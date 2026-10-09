@@ -1,6 +1,6 @@
 # เงินวันนี้ · Daily Money Tracker
 
-Mobile-first, Thai-language, offline-first **daily income and expense tracker** (MVP v0.1.0). Uses a responsive React + TypeScript + Vite frontend and IndexedDB for local data storage.
+Mobile-first, Thai-language, offline-first **daily income and expense tracker** (MVP v0.2.0). Uses a responsive React + TypeScript + Vite frontend and IndexedDB for local data storage.
 
 ## ✨ Features
 
@@ -10,25 +10,30 @@ Mobile-first, Thai-language, offline-first **daily income and expense tracker** 
 - Reports and category summaries, JSON backup/restore, and Excel-friendly UTF-8 CSV export.
 - Installable Progressive Web App (PWA); offline usage after the first load.
 - Financial amounts stored in **integer satang**, dates stored as **local calendar dates**.
+- **Slip OCR**: from the Add Transaction form, capture or select a Thai/English bank transfer slip (JPG, PNG, WebP, max 10 MB). Tesseract.js extracts the amount, date (including Buddhist Era), and recipient when detectable. Review and edit fields before explicitly saving. No background auto-import.
 - No account, server, bank access, tracking scripts, or analytics by default.
+
+## Slip OCR privacy and limitations
+
+- Image OCR runs inside the browser using Tesseract.js (Thai + English). On the **first scan**, the OCR engine and language files must be downloaded from their configured external CDNs; without those assets the scan does not work offline. The selected image and raw OCR text are only held in memory during scanning, and are **not uploaded to our server** or saved in IndexedDB.
+- OCR results are estimates, not bank-verified transaction records. Account numbers, transfer references, and fee/balance lines must not be treated as the payment amount. Ambiguous fields remain blank; always verify against the original image.
+- Only the explicitly confirmed form fields are saved. The image is not attached to the transaction. For photos in HEIC format, convert to JPG before scanning.
 
 ## Quick start
 
-Requires Node.js 20.19+ or 22.12+, and pnpm 10. CI uses pnpm to avoid an npm 10 dependency-resolution bug.
+Requires Node.js 20.19+ or 22.12+.
 
 ```bash
-corepack enable
-corepack prepare pnpm@10 --activate
-pnpm install
-pnpm dev
+npm install
+npm run dev
 ```
 
 Open the local URL printed by Vite. For tests and production build:
 
 ```bash
-pnpm test
-pnpm build
-pnpm preview
+npm test
+npm run build
+npm run preview
 ```
 
 Deploy `dist/` to any static hosting, e.g. Vercel (Vite static preset). To enable PWA service worker, deploy with HTTPS.
@@ -52,17 +57,20 @@ The store is **IndexedDB**, isolated to the site's origin. **It does not sync ac
 
 **Net cash flow** = recorded income − recorded expenses; this is *not* your bank balance and does not represent debts or assets. Expense categories include debt payments, but the app does not manage full loan balances or double-entry accounting.
 
-## Repository
+## Repository setup
 
-Canonical repository: **https://github.com/kreecrypto/Money-Tracker** (`main`).
+Suggested GitHub repository: `daily-money-tracker` (private).
+
+1. Create the repository via https://github.com/new (do **not** initialize with a README if pushing this complete project).
+2. Run:
 
 ```bash
-git clone https://github.com/kreecrypto/Money-Tracker.git
-cd Money-Tracker
-corepack enable
-corepack prepare pnpm@10 --activate
-pnpm install
-pnpm dev
+git init
+git branch -M main
+git add .
+git commit -m "feat: initial daily money tracker MVP"
+git remote add origin https://github.com/YOUR_USERNAME/daily-money-tracker.git
+git push -u origin main
 ```
 
 ## UX / roadmap
