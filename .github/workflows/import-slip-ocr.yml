@@ -1,0 +1,34 @@
+name: Import OCR upgrade
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/import-slip-ocr.yml'
+      - 'bootstrap/money-tracker-source.tar.xz'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  import:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Apply staged OCR source
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [ ! -f bootstrap/money-tracker-source.tar.xz ]; then
+            echo "No staged source archive; skipping."
+            exit 0
+          fi
+          tar -xJf bootstrap/money-tracker-source.tar.xz -C .
+          rm -rf bootstrap
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          if ! git diff --cached --quiet; then
+            git commit -m "feat: read Thai/English bank transfer slips with on-device OCR"
+            git push origin HEAD:main
+          fi
