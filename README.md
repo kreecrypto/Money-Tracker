@@ -50,20 +50,15 @@ The store is **IndexedDB**, isolated to the site's origin. **It does not sync ac
 
 **Net cash flow** = recorded income − recorded expenses; this is *not* your bank balance and does not represent debts or assets. Expense categories include debt payments, but the app does not manage full loan balances or double-entry accounting.
 
-## Repository setup
+## Repository
 
-Suggested GitHub repository: `daily-money-tracker` (private).
-
-1. Create the repository via https://github.com/new (do **not** initialize with a README if pushing this complete project).
-2. Run:
+Canonical repository: **https://github.com/kreecrypto/Money-Tracker** (`main`).
 
 ```bash
-git init
-git branch -M main
-git add .
-git commit -m "feat: initial daily money tracker MVP"
-git remote add origin https://github.com/YOUR_USERNAME/daily-money-tracker.git
-git push -u origin main
+git clone https://github.com/kreecrypto/Money-Tracker.git
+cd Money-Tracker
+npm install
+npm run dev
 ```
 
 ## UX / roadmap
