@@ -2,7 +2,7 @@ name: Import MVP source
 on:
   push:
     paths:
-      - 'bootstrap/money-tracker-source.tar.xz'
+      - 'bootstrap/**'
   workflow_dispatch:
 
 permissions:
@@ -17,6 +17,8 @@ jobs:
         run: |
           set -euo pipefail
           tar -xJf bootstrap/money-tracker-source.tar.xz -C .
+          # GitHub Actions tokens cannot create workflow files; CI will be installed separately
+          rm -f .github/workflows/ci.yml
           rm -rf bootstrap
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
