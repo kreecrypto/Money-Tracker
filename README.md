@@ -14,19 +14,21 @@ Mobile-first, Thai-language, offline-first **daily income and expense tracker** 
 
 ## Quick start
 
-Requires Node.js 20.19+ or 22.12+.
+Requires Node.js 20.19+ or 22.12+, and pnpm 10. CI uses pnpm to avoid an npm 10 dependency-resolution bug.
 
 ```bash
-npm install
-npm run dev
+corepack enable
+corepack prepare pnpm@10 --activate
+pnpm install
+pnpm dev
 ```
 
 Open the local URL printed by Vite. For tests and production build:
 
 ```bash
-npm test
-npm run build
-npm run preview
+pnpm test
+pnpm build
+pnpm preview
 ```
 
 Deploy `dist/` to any static hosting, e.g. Vercel (Vite static preset). To enable PWA service worker, deploy with HTTPS.
@@ -57,8 +59,10 @@ Canonical repository: **https://github.com/kreecrypto/Money-Tracker** (`main`).
 ```bash
 git clone https://github.com/kreecrypto/Money-Tracker.git
 cd Money-Tracker
-npm install
-npm run dev
+corepack enable
+corepack prepare pnpm@10 --activate
+pnpm install
+pnpm dev
 ```
 
 ## UX / roadmap

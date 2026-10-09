@@ -9,7 +9,13 @@
 - [ ] React desktop/mobile browser UI test: **not run** (dependencies unavailable here).
 - [ ] PWA iOS/Android device installation test: **not run**.
 - [ ] Production deployment: **not done**.
-- [ ] GitHub repository creation / push: **not done** (connected GitHub tools expose file/issue/PR operations but no repository-creation action).
+- [x] GitHub repository created by owner, and initial source imported to `kreecrypto/Money-Tracker` (`main`).
+
+## GitHub CI verification
+
+- [x] Install dependencies with pnpm 10 in GitHub Actions.
+- [x] Unit tests passed and production TypeScript/Vite build passed at commit `cff92b76e000e66e4b5bddd542667bda9560301a` (workflow run [37970476651](https://github.com/kreecrypto/Money-Tracker/actions/runs/37970476651)).
+- [ ] Manual desktop/mobile browser QA, real-device PWA QA, and production deployment still pending.
 
 ## Before production
 
