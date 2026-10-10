@@ -61,7 +61,7 @@ describe('OCR conservative bank parsing',()=>{
     expect(d.transaction_date).toBeNull();
   });
 });
-vi.mock('../server/iphone/ocr',()=>({ocrImage:vi.fn(async()=>({
+vi.mock('../server/iphone/ocr',async importOriginal=>({...await importOriginal<typeof import('../server/iphone/ocr')>(),ocrImage:vi.fn(async()=>({
   amount_satang:11900,type:'expense',transaction_date:'2026-10-09',
   category:'อื่น ๆ',note:'KBank review',method:'bank',
   source_label:'KBank',bank_fingerprint:'test-event'
