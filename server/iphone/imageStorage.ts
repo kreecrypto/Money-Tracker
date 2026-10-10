@@ -60,7 +60,7 @@ export async function storeImage(path:string,bytes:Uint8Array,mime:string){
   const {key}=config();
   await checked(await fetch(objectUrl(path),{method:'POST',
     headers:{apikey:key,authorization:'Bearer '+key,'content-type':mime,'x-upsert':'false'},
-    body:Buffer.from(bytes),cache:'no-store'
+    body:new Blob([Uint8Array.from(bytes)],{type:mime}),cache:'no-store'
   }));
 }
 /** Never creates a publicly accessible URL. */
