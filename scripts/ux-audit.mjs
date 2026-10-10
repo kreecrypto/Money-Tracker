@@ -100,6 +100,10 @@ try {
   console.log('AUDIT_SUMMARY_START');
   console.log(JSON.stringify(short,null,2));
   console.log('AUDIT_SUMMARY_END');
+  const focus=findings.filter(x=>['mobile320','tablet768'].includes(x.viewport)&&['home','reports','settings','entry-modal','ocr-panel'].includes(x.view));
+  console.log('AXE_DETAILS_START');
+  console.log(JSON.stringify(focus.map(x=>({viewport:x.viewport,view:x.view,violations:x.axe?.violations,smallTouchTargets:x.smallTouchTargets})),null,2));
+  console.log('AXE_DETAILS_END');
 } catch (err) {
   console.error('UX AUDIT FAILURE',err);
   process.exitCode=1;
