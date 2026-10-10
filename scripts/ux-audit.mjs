@@ -7,7 +7,7 @@ import { setTimeout as sleep } from 'node:timers/promises';
 const dir='audit-artifacts';
 fs.mkdirSync(dir,{recursive:true});
 const base='http://127.0.0.1:4173';
-const server=spawn('npm',['run','dev','--','--host','127.0.0.1','--port','4173','--strictPort'],{stdio:'ignore'});
+const server=spawn('npm',['run','dev','--','--host','127.0.0.1','--port','4173','--strictPort'],{stdio:'ignore',env:{...process.env,VITE_IPHONE_BRIDGE_URL:'https://iphone-bridge.test'}});
 let browser;
 const findings=[];
 function record(view,viewport,more){findings.push({viewport,view,...more});}
@@ -117,6 +117,58 @@ try {
     record('restore-smoke',name,{initiallyDisabled:locked,enabledAfterAcknowledgement:unlocked,closed:await restoreDialog.count()===0,pageErrors:errors});
     await context.close();
   }
+
+  // Financial-safety E2E uses only synthetic drafts; no real token, bank slip or API.
+  const draftId='11111111-1111-4111-8111-111111111111';
+  const draftContext=await browser.newContext({viewport:{width:390,height:844},isMobile:true,hasTouch:true});
+  await draftContext.addInitScript(()=>{
+    localStorage.setItem('money-tracker-iphone-review-token-v1','A'.repeat(64));
+  });
+  const reviewPage=await draftContext.newPage();
+  const reviewErrors=[];
+  let reviewed=false;
+  const reviewRequests=[];
+  await reviewPage.route('https://iphone-bridge.test/api/iphone/**',async route=>{
+    const req=route.request(),path=new URL(req.url()).pathname;
+    let response;
+    if(path.endsWith('/drafts')&&req.method()==='POST'){
+      reviewRequests.push(req.postDataJSON());
+      reviewed=true;
+      response={status:'confirmed',id:draftId};
+    } else if(path.endsWith('/drafts'))response={drafts:reviewed?[]:[{
+      id:draftId,amountSatang:8900,type:'expense',date:null,category:'อื่น ๆ',note:'สลิปทดสอบ (ข้อมูลจำลอง)',
+      method:'bank',source:'Synthetic iPhone Test',createdAt:'2026-10-10T10:00:00Z',
+      image:{status:'available',available:true,expiresAt:'2027-01-01T00:00:00Z'}
+    }]};
+    else if(path.endsWith('/ledger'))response={transactions:[]};
+    if(path.endsWith('/image')){
+      const png=Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+jRZYAAAAASUVORK5CYII=','base64');
+      await route.fulfill({status:200,contentType:'image/png',body:png});
+      return;
+    }
+    await route.fulfill({status:200,contentType:'application/json',body:JSON.stringify(response||{})});
+  });
+  reviewPage.on('pageerror',e=>reviewErrors.push(e.message));
+  await reviewPage.goto(base,{waitUntil:'networkidle'});
+  await reviewPage.locator('.mobile-bottom-nav button').nth(2).click();
+  await reviewPage.getByRole('article',{name:'รายการรอตรวจสอบจาก iPhone'}).waitFor();
+  await scan(reviewPage,'inbox-synthetic-pending','iphone390');
+  await reviewPage.getByRole('button',{name:'แตะเพื่อเปิดภาพสลิป'}).click();
+  await reviewPage.getByRole('button',{name:'ขยายภาพสลิปต้นฉบับ'}).click();
+  const zoomOpened=await reviewPage.getByRole('dialog',{name:'ภาพสลิปขนาดใหญ่'}).isVisible();
+  await reviewPage.keyboard.press('Escape');
+  const zoomClosed=await reviewPage.getByRole('dialog',{name:'ภาพสลิปขนาดใหญ่'}).count()===0;
+  await reviewPage.getByRole('button',{name:'ยืนยันบันทึก'}).click();
+  const typeBlocked=await reviewPage.getByText('กรุณายืนยันว่าเป็นเงินเข้า หรือเงินออก').isVisible()&&reviewRequests.length===0;
+  await reviewPage.getByRole('button',{name:'เงินออก / รายจ่าย'}).click();
+  await reviewPage.getByRole('button',{name:'ยืนยันบันทึก'}).click();
+  const dateBlocked=await reviewPage.getByText('กรุณาระบุวันที่จากสลิป').isVisible()&&reviewRequests.length===0;
+  await reviewPage.locator('#iphone-date-'+draftId).fill('2026-10-10');
+  await reviewPage.getByRole('button',{name:'ยืนยันบันทึก'}).click();
+  await reviewPage.waitForTimeout(250);
+  const confirmed=reviewRequests.length===1&&reviewRequests[0]?.type==='expense'&&reviewRequests[0]?.date==='2026-10-10'&&reviewRequests[0]?.amountSatang===8900;
+  record('inbox-synthetic-review','iphone390',{zoomOpened,zoomClosed,typeBlocked,dateBlocked,confirmed,pageErrors:reviewErrors});
+  await draftContext.close();
   fs.writeFileSync(dir+'/audit.json',JSON.stringify({date:new Date().toISOString(),base,results:findings},null,2));
   const short=findings.map(f=>({viewport:f.viewport,view:f.view,overflowPx:f.overflowPx,smallTouchTargetCount:f.smallTouchTargetCount,touchTargetCount:f.touchTargetCount,smallTextCount:f.smallTextCount,textCount:f.textCount,axe:f.axe?.violations?.map(x=>x.id+':'+x.nodeCount),savedVisible:f.savedVisible,initiallyDisabled:f.initiallyDisabled,enabledAfterAcknowledgement:f.enabledAfterAcknowledgement,closed:f.closed,modal:f.modal,pageErrors:f.pageErrors})); 
   console.log('AUDIT_SUMMARY_START');
@@ -131,10 +183,11 @@ try {
     ||(x.axe?.violations?.length||0)>0
     ||(x.view==='save-smoke'&&(!x.savedVisible||x.pageErrors?.length))
     ||(x.view==='restore-smoke'&&(!x.initiallyDisabled||!x.enabledAfterAcknowledgement||!x.closed||x.pageErrors?.length))
+    ||(x.view==='inbox-synthetic-review'&&(!x.zoomOpened||!x.zoomClosed||!x.typeBlocked||!x.dateBlocked||!x.confirmed||x.pageErrors?.length))
     ||(x.view==='mobile-home-actions'&&(!x.correctHierarchy||!x.quickActionsVisible||!x.bottomNavVisible||!x.openedOCR||x.pageErrors?.length))
   ).map(x=>({viewport:x.viewport,view:x.view,overflowPx:x.overflowPx,axe:x.axe?.violations?.map(v=>v.id),savedVisible:x.savedVisible,restore:[x.initiallyDisabled,x.enabledAfterAcknowledgement,x.closed]}));
   if(critical.length){console.error('UX_ACCEPTANCE_FAIL',JSON.stringify(critical));process.exitCode=1;}
-  else console.log('UX_ACCEPTANCE_PASS: 6 viewports, Inbox, mobile quick OCR, save, restore, responsive and WCAG scans');
+  else console.log('UX_ACCEPTANCE_PASS: 6 viewports, synthetic slip review and zoom, mobile OCR, save, restore and WCAG');
 } catch (err) {
   console.error('UX AUDIT FAILURE',err);
   process.exitCode=1;
