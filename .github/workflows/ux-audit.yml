@@ -1,0 +1,37 @@
+name: UX/UI Audit
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'scripts/ux-audit.mjs'
+      - '.github/workflows/ux-audit.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  browser-audit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Install app and audit tools
+        run: |
+          npm install --no-package-lock
+          npm install --no-save --no-package-lock playwright@1.56.1 @axe-core/playwright@4.11.0
+      - name: Install test browser
+        run: npx playwright install chromium
+      - name: Run responsive UX/UI and accessibility audit
+        run: node scripts/ux-audit.mjs
+      - name: Upload screenshots and machine-readable findings
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: money-tracker-ux-audit
+          path: audit-artifacts/
+          if-no-files-found: warn
+          retention-days: 7
