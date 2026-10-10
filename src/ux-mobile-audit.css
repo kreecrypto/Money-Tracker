@@ -57,3 +57,29 @@
 }
 @media(max-width:360px){.iphone-direction button{padding:7px;font-size:12px}.inbox-page{width:100%}}
 @media(prefers-reduced-motion:reduce){.pending-inbox-cta,.iphone-direction button{transition:none}}
+
+/* Batch F: hierarchy, type scale and clear financial-review warnings. */
+.iphone-duplicate-warning{border:1px solid #e1b882;background:#fff8ed;border-radius:12px;padding:13px;margin:14px 0;color:#714b26}
+.iphone-duplicate-warning strong{font-size:14px;line-height:1.5;display:block}
+.iphone-duplicate-warning p{font-size:13px;line-height:1.6;margin:6px 0 10px}
+.iphone-duplicate-warning label{display:flex;gap:10px;align-items:flex-start;font-size:13px;line-height:1.5;cursor:pointer}
+.iphone-duplicate-warning input{width:20px!important;height:20px!important;min-height:20px!important;margin:0;flex:none}
+.iphone-duplicate-warning input:focus-visible{outline:3px solid #17664f;outline-offset:2px}
+.backup-last-date{color:#476151;font-size:13px;line-height:1.6;margin:10px 0}
+.iphone-slip-close:focus-visible,.iphone-slip-image-button:focus-visible{outline:3px solid #5db49a;outline-offset:3px}
+@media(max-width:660px){
+ .home-dashboard .hero-card{order:0}
+ .home-dashboard .mobile-quick-actions{order:1}
+ .home-dashboard .pending-inbox-cta{order:2}
+ .home-dashboard .transactions-surface{order:3}
+ .home-dashboard .budget-card{order:4}
+ .home-dashboard .budget-alert{order:5}
+ .home-dashboard .home-report-link{order:6}
+ .home-dashboard .two-column{order:7}
+ .bars-chart .bar-slot>span,.chart-legend span,.report-category div>span,.report-stat>span,
+ .metric-foot,.home-dashboard .budget-linear-meta span{font-size:12px;line-height:1.5}
+ .report-category strong,.report-category b,.report-stat strong{font-size:14px;line-height:1.5}
+ .iphone-inbox{min-width:0}
+ .settings-grid .settings-card>p{font-size:14px;line-height:1.6}
+}
+@media(max-width:360px){.bars-chart .bar-slot>span{font-size:12px}}
