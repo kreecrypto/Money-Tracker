@@ -10,6 +10,13 @@ Feature: iPhone Image Upload → OCR → 7-day Private Storage → Review Inbox 
 - Scheduler extensions \`pg_cron\` + \`pg_net\` installed, token stored as Supabase Vault secret **money_tracker_slip_cleanup_token**; matching Vercel Production environment variable **SLIP_CLEANUP_SECRET**. The hourly job \`money-tracker-slip-expiry-hourly\` is currently **inactive pending approved deployment**.
 - GitHub branch \`feat/slip-image-retention-7d-20261010\`, PR #8. The current Vercel Hobby account exceeded its per-day API deployment quota (402 on Oct 10). **Do not claim live end-to-end tests or enable Cron until a new deploy is successful.** Do not buy/upgrade plans without explicit approval.
 
+## iPhone HEIC/HEIF support paths (2026-10-10)
+- The **manual in-browser scanner** on iPhone Safari uses local native HEIC decode + canvas JPEG conversion before OCR. No HEIC original goes to the Money Tracker API through this path.
+- **iOS Shortcuts image uploads** still require JPEG, PNG or WebP under 3 MiB. Add the iOS Shortcuts **Convert Image → JPEG** step before `Get Contents of URL` if the bank slip is HEIC. The API intentionally rejects unsupported MIME and binary signatures.
+- Non-Safari Chromium/Firefox may not natively decode HEIC: use a JPEG export rather than silently treating the image as valid.
+- Use only test slips or user-consented screenshots during real-device verification. Do not paste tokens into GitHub issues or chat.
+- A new **manual API negative smoke** workflow verifies that missing or fake tokens are rejected. It does not replace the protected **upload → OCR → 7-day expiry → physical deletion** E2E.
+
 ## Safe activation (order is mandatory)
 
 1. Wait until Vercel free daily deployment quota resets; keep original project's protection settings unchanged.
