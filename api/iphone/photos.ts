@@ -1,5 +1,5 @@
-import {auth,ownerKey,saveDraft,sha,json} from '../../server/iphone/bridge';
-import {inspectPhotosOCR} from '../../server/iphone/photos';
+import {auth,ownerKey,saveDraft,sha,json} from '../../server/iphone/bridge.js';
+import {inspectPhotosOCR} from '../../server/iphone/photos.js';
 
 export const maxDuration=15;
 const MAX_TEXT_BYTES=18*1024;

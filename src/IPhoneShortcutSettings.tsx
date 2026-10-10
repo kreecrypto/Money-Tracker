@@ -1,3 +1,4 @@
+import IPhoneSlipPreview from './IPhoneSlipPreview';
 import {useCallback,useState} from 'react';
 import {Camera,CheckCircle2,RefreshCcw,ShieldCheck,Smartphone,Unlink} from 'lucide-react';
 import {baht,EXPENSE_CATEGORIES,INCOME_CATEGORIES,METHODS,toSatang,todayLocal} from './lib/finance';
@@ -33,6 +34,7 @@ function Draft({draft,onReviewed}:{draft:IPhoneDraft;onReviewed:()=>Promise<void
   };
   return <article className="iphone-draft" aria-label="รายการรอตรวจสอบจาก iPhone">
     <p className="iphone-draft-source"><Camera size={14}/> {draft.source} <span>· กรุณาตรวจสอบก่อนบันทึก</span></p>
+    <IPhoneSlipPreview draft={draft}/>
     <div className="iphone-draft-grid">
       <div><label className="field-label" htmlFor={'iphone-type-'+draft.id}>ประเภทรายการ</label>
         <select id={'iphone-type-'+draft.id} value={type} onChange={e=>switchType(e.target.value as 'income'|'expense')}>
@@ -97,8 +99,8 @@ export default function IPhoneShortcutSettings({onImported}:{onImported:()=>Prom
   };
   return <section className="surface settings-card iphone-card" aria-label="iPhone Shortcut">
     <div className="settings-icon green"><Smartphone size={23}/></div>
-    <h3>iPhone Photos → เงินวันนี้</h3>
-    <p>Photos Auto Slip Sync สำหรับ iOS 26: เมื่อปิดแอปธนาคาร Shortcuts สามารถค้นหารูปล่าสุด อ่านข้อความบน iPhone แล้วส่งเฉพาะข้อความที่คล้ายสลิปเข้าระบบเพื่อรอยืนยัน โดยไม่ต้องเชื่อม LINE OA ของธนาคาร</p>
+    <h3>Review Inbox · iPhone Photos → เงินวันนี้</h3>
+    <p>Photos Auto Slip Sync สำหรับ iOS 26: เมื่อปิดแอปธนาคาร Shortcuts สามารถค้นหารูปล่าสุด อ่านข้อความบน iPhone แล้วส่งเฉพาะข้อความที่คล้ายสลิปเข้าระบบเพื่อรอยืนยัน โดยไม่ต้องเชื่อม LINE OA ของธนาคาร หากส่งเป็นภาพ ระบบจะเก็บภาพใน Private Storage ชั่วคราวไม่เกิน 7 วันเพื่อใช้ตรวจสอบก่อนลบอัตโนมัติ</p>
     <details className="iphone-photos-setup">
       <summary>วิธีเปิด Auto Slip Sync บน iPhone (iOS 26)</summary>
       <ol>
@@ -106,7 +108,7 @@ export default function IPhoneShortcutSettings({onImported}:{onImported:()=>Prom
         <li>กรองข้อความบน iPhone ให้พบคำเกี่ยวกับการโอน <strong>และ</strong> ป้ายยอดเงินธุรกรรมก่อนส่ง</li>
         <li>ส่งเฉพาะข้อความ OCR ไปยัง API ผ่าน POST JSON โดยใช้ Upload Token เฉพาะเครื่อง</li>
         <li>Shortcuts → Automation → App → เลือก K PLUS → Is Closed → Run Immediately → เลือก Shortcut นี้</li>
-        <li>กลับมาหน้านี้เพื่อตรวจยอด เลือกเงินเข้า/ออกและยืนยัน</li>
+        <li>กลับมาหน้านี้เพื่อตรวจภาพสลิปเทียบกับยอด เลือกเงินเข้า/ออกและยืนยัน</li>
       </ol>
       <p className="iphone-photos-caution">ไม่ใช่การเฝ้าดู Photos ตลอดเวลา หากสลิปยังไม่ถูกบันทึกตอนปิดแอป อาจต้องใช้ Automation ตามเวลาช่วยตรวจอีกครั้ง</p>
       <a href="https://github.com/kreecrypto/Money-Tracker/blob/main/docs/IOS26_PHOTOS_AUTO_SLIP.md" target="_blank" rel="noopener noreferrer">อ่านคู่มือ Shortcuts แบบละเอียด</a>
@@ -134,6 +136,6 @@ export default function IPhoneShortcutSettings({onImported}:{onImported:()=>Prom
           <p className="iphone-empty">ไม่มีรายการรอตรวจสอบ · ส่งภาพจาก Shortcut แล้วกดตรวจรายการใหม่</p>}
       </>}
     {note&&<p className="line-status" role="status">{note}</p>}
-    <small className="hint">ใช้ได้เมื่อ API พร้อมและตั้งค่ารหัสใน Vercel แล้ว รายการที่ยืนยันจะเก็บใน IndexedDB ของเบราว์เซอร์นี้ (ยังไม่ใช่ Cloud Sync สองทาง)</small>
+    <small className="hint">ใช้ได้เมื่อ API พร้อมและตั้งค่ารหัสใน Vercel แล้ว รูปสลิปจาก Image Upload เก็บใน Private Storage ชั่วคราวไม่เกิน 7 วัน ส่วนรายการยืนยันยังอยู่ใน IndexedDB ของเบราว์เซอร์นี้ (ไม่ใช่ Cloud Sync สองทาง)</small>
   </section>;
 }

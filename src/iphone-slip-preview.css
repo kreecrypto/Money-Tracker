@@ -1,0 +1,14 @@
+.iphone-slip-evidence{border:1px solid #dfe9e6;border-radius:12px;padding:13px;margin:10px 0 16px;min-width:0;background:#f8fbfa}
+.iphone-slip-evidence-head{display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:6px;margin-bottom:10px}
+.iphone-slip-evidence-head strong,.iphone-slip-evidence-head small{display:flex;align-items:center;gap:5px}
+.iphone-slip-evidence-head strong{font-size:13px;color:#244f42}
+.iphone-slip-evidence-head small{font-size:11px;color:#57746a}
+.iphone-slip-image-button{display:block;position:relative;border:0;background:white;width:100%;border-radius:10px;overflow:hidden;padding:0;cursor:zoom-in}
+.iphone-slip-image-button img{max-width:100%;max-height:360px;width:auto;height:auto;display:block;margin:auto;object-fit:contain}
+.iphone-slip-image-button span{display:flex;align-items:center;gap:5px;justify-content:center;padding:8px;color:#207860;font-size:12px}
+.iphone-slip-load{width:100%;justify-content:center;min-height:44px}
+.iphone-slip-placeholder{padding:16px 10px;text-align:center;background:#eef2f0;border-radius:8px;font-size:12px;color:#526d65;line-height:1.6}
+.iphone-slip-zoom{position:fixed;inset:0;z-index:12000;background:rgba(7,19,15,.96);display:grid;place-items:center;padding:60px 14px 24px}
+.iphone-slip-zoom img{max-width:100%;max-height:100%;object-fit:contain}
+.iphone-slip-close{position:absolute;top:calc(15px + env(safe-area-inset-top,0px));right:15px;border:0;border-radius:50%;background:#fff;color:#123;padding:12px;min-width:44px;min-height:44px}
+@media(min-width:900px){.iphone-draft:has(.iphone-slip-evidence) .iphone-slip-evidence{max-width:520px}}

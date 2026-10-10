@@ -1,5 +1,7 @@
-import {auth,appCors,json,options,pendingDrafts,reviewDraft} from '../../server/iphone/bridge';
-import {EXPENSE_CATEGORIES,INCOME_CATEGORIES} from '../../src/lib/finance';
+import {auth,appCors,json,options,pendingDrafts,reviewDraft} from '../../server/iphone/bridge.js';
+import {imageSummary,readDraft,deleteImage,changeImage} from '../../server/iphone/imageStorage.js';
+import {ownerKey} from '../../server/iphone/bridge.js';
+import {EXPENSE_CATEGORIES,INCOME_CATEGORIES} from '../../src/lib/finance.js';
 const isRealDate=(v:string)=>{if(!/^\d{4}-\d{2}-\d{2}$/.test(v))return false;const [y,m,d]=v.split('-').map(Number);const t=new Date(Date.UTC(y,m-1,d));return t.getUTCFullYear()===y&&t.getUTCMonth()===m-1&&t.getUTCDate()===d;};
 export const maxDuration=15;
 export {options as OPTIONS};
@@ -17,7 +19,7 @@ export async function GET(request:Request){
     const rows=await pendingDrafts();
     return json({drafts:rows.map(x=>({
       id:x.id,amountSatang:x.amount_satang,type:x.type,date:x.transaction_date,
-      category:x.category,note:x.note,method:x.method,source:x.source_label,createdAt:x.created_at
+      category:x.category,note:x.note,method:x.method,source:x.source_label,createdAt:x.created_at,image:imageSummary(x as Parameters<typeof imageSummary>[0])
     }))},200,g.headers);
   }catch{return json({error:'STORAGE_UNAVAILABLE'},503,g.headers);}
 }
@@ -50,8 +52,18 @@ export async function POST(request:Request){
       category:input.category,note:input.note,method:input.method as 'cash'|'bank'|'card'|'wallet'};
   }
   try{
+    const before=decision==='discard'?await readDraft(input.id as string,ownerKey()):null;
     const row=await reviewDraft(input.id as string,decision,entry);
     if(!row)return json({error:'ALREADY_REVIEWED_OR_MISSING'},409,g.headers);
+    // Financial review is not blocked by photo retention/storage outages.
+    if(decision==='discard'&&before?.image_path){
+      try{
+        await deleteImage(before.image_path);
+        await changeImage(before.id,before.owner_key,{image_status:'deleted',image_path:null,image_deleted_at:new Date().toISOString()});
+      }catch{
+        await changeImage(before.id,before.owner_key,{image_status:'delete_failed',image_last_error_code:'DISCARD_DELETE_FAILED'}).catch(()=>{});
+      }
+    }
     return json({status:row.status,id:row.id},200,g.headers);
   }catch{return json({error:'STORAGE_UNAVAILABLE'},503,g.headers);}
 }
