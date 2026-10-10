@@ -1,5 +1,5 @@
 import {describe,it,expect} from 'vitest';
-import {parseLineExpense} from '../api/line/parser';
+import {parseLineExpense} from '../api/line/_parser';
 
 describe('LINE automatic financial entry parser',()=>{
   it('records a daily expense from natural Thai text',()=>{
