@@ -10,7 +10,7 @@ export default function SlipScanner({onApply,onClose}:Props){
   const galleryRef=useRef<HTMLInputElement>(null);
   const cameraRef=useRef<HTMLInputElement>(null);
   const workerRef=useRef<{terminate:()=>Promise<unknown>}|null>(null);
-  const mountedRef=useRef(true);
+  const mountedRef=useRef(false);
   const [preview,setPreview]=useState<string|null>(null);
   const [filename,setFilename]=useState('');
   const [result,setResult]=useState<SlipFields|null>(null);
@@ -18,9 +18,14 @@ export default function SlipScanner({onApply,onClose}:Props){
   const [progress,setProgress]=useState(0);
   const [stage,setStage]=useState<'convert'|'download'|'recognize'>('download');
   const [error,setError]=useState('');
-  useEffect(()=>()=>{
-    mountedRef.current=false;
-    if(workerRef.current)void workerRef.current.terminate().catch(()=>{});
+  useEffect(()=>{
+    // React Strict Mode invokes effect cleanup + setup again in development.
+    // Reset the flag on each setup or all later OCR callbacks are silently ignored.
+    mountedRef.current=true;
+    return ()=>{
+      mountedRef.current=false;
+      if(workerRef.current)void workerRef.current.terminate().catch(()=>{});
+    };
   },[]);
   useEffect(()=>()=>{if(preview)URL.revokeObjectURL(preview);},[preview]);
 
