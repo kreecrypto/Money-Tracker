@@ -1,5 +1,6 @@
 import {auth,appCors,json,options,pendingDrafts,reviewDraft} from '../../server/iphone/bridge';
-import {EXPENSE_CATEGORIES,INCOME_CATEGORIES,validDate} from '../../src/lib/finance';
+import {EXPENSE_CATEGORIES,INCOME_CATEGORIES} from '../../src/lib/finance';
+const isRealDate=(v:string)=>{if(!/^\d{4}-\d{2}-\d{2}$/.test(v))return false;const [y,m,d]=v.split('-').map(Number);const t=new Date(Date.UTC(y,m-1,d));return t.getUTCFullYear()===y&&t.getUTCMonth()===m-1&&t.getUTCDate()===d;};
 export const maxDuration=15;
 export {options as OPTIONS};
 function grant(request:Request){
@@ -37,7 +38,7 @@ export async function POST(request:Request){
     if(!['income','expense'].includes(String(input.type)) ||
       !Number.isSafeInteger(input.amountSatang) || Number(input.amountSatang)<=0 ||
       Number(input.amountSatang)>999999999999 ||
-      typeof input.date!=='string' || !validDate(input.date) ||
+      typeof input.date!=='string' || !isRealDate(input.date) ||
       typeof input.category!=='string'||input.category.length>80 ||
       typeof input.note!=='string'||input.note.length>500 ||
       !['cash','bank','card','wallet'].includes(String(input.method)))
