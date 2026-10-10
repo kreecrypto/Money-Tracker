@@ -1,4 +1,4 @@
-const CACHE='ngoentoday-app-v2';
+const CACHE='ngoentoday-app-v3';
 const CORE=['/','/index.html','/manifest.webmanifest','/icon.svg','/icon-192.png','/icon-512.png'];
 self.addEventListener('install',event=>{
  event.waitUntil((async()=>{
