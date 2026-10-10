@@ -93,13 +93,38 @@ try {
     await page.waitForTimeout(180);
     const confirmed=await page.getByText('รายการทดสอบ UX Audit').count();
     record('save-smoke',name,{savedVisible:confirmed>0,saveState:state,pageErrors:errors});
+    await page.evaluate(()=>{
+      const nav=innerWidth<=660?document.querySelector('.mobile-bottom-nav'):document.querySelector('.sidebar');
+      Array.from(nav?.querySelectorAll('button')||[]).find(x=>x.textContent?.includes('ตั้งค่า')||x.getAttribute('aria-label')==='ตั้งค่า')?.click();
+    });
+    const sample={app:'ngoentoday',version:1,exportedAt:new Date().toISOString(),transactions:[],settings:{monthlyBudgetSatang:0}};
+    await page.locator('input[accept=".json,application/json"]').setInputFiles({name:'audit-backup.json',mimeType:'application/json',buffer:Buffer.from(JSON.stringify(sample))});
+    const restoreDialog=page.getByRole('alertdialog');
+    await restoreDialog.waitFor();
+    const locked=await page.getByRole('button',{name:'ยืนยันแทนที่ข้อมูล'}).isDisabled();
+    await page.getByRole('checkbox',{name:/ฉันเข้าใจ/}).check();
+    const unlocked=await page.getByRole('button',{name:'ยืนยันแทนที่ข้อมูล'}).isEnabled();
+    await restoreDialog.getByRole('button',{name:'ยกเลิก'}).click();
+    record('restore-smoke',name,{initiallyDisabled:locked,enabledAfterAcknowledgement:unlocked,closed:await restoreDialog.count()===0,pageErrors:errors});
     await context.close();
   }
   fs.writeFileSync(dir+'/audit.json',JSON.stringify({date:new Date().toISOString(),base,results:findings},null,2));
-  const short=findings.map(f=>({viewport:f.viewport,view:f.view,overflowPx:f.overflowPx,smallTouchTargetCount:f.smallTouchTargetCount,touchTargetCount:f.touchTargetCount,smallTextCount:f.smallTextCount,textCount:f.textCount,axe:f.axe?.violations?.map(x=>x.id+':'+x.nodeCount),savedVisible:f.savedVisible,modal:f.modal,pageErrors:f.pageErrors})); 
+  const short=findings.map(f=>({viewport:f.viewport,view:f.view,overflowPx:f.overflowPx,smallTouchTargetCount:f.smallTouchTargetCount,touchTargetCount:f.touchTargetCount,smallTextCount:f.smallTextCount,textCount:f.textCount,axe:f.axe?.violations?.map(x=>x.id+':'+x.nodeCount),savedVisible:f.savedVisible,initiallyDisabled:f.initiallyDisabled,enabledAfterAcknowledgement:f.enabledAfterAcknowledgement,closed:f.closed,modal:f.modal,pageErrors:f.pageErrors})); 
   console.log('AUDIT_SUMMARY_START');
   console.log(JSON.stringify(short,null,2));
   console.log('AUDIT_SUMMARY_END');
+  const focus=findings.filter(x=>['mobile320','tablet768'].includes(x.viewport)&&['home','reports','settings','entry-modal','ocr-panel'].includes(x.view));
+  console.log('AXE_DETAILS_START');
+  console.log(JSON.stringify(focus.map(x=>({viewport:x.viewport,view:x.view,violations:x.axe?.violations,smallTouchTargets:x.smallTouchTargets})),null,2));
+  console.log('AXE_DETAILS_END');
+  const critical=findings.filter(x=>x.view==='navigation-obstruction'
+    ||x.overflowPx>0
+    ||(x.axe?.violations?.length||0)>0
+    ||(x.view==='save-smoke'&&(!x.savedVisible||x.pageErrors?.length))
+    ||(x.view==='restore-smoke'&&(!x.initiallyDisabled||!x.enabledAfterAcknowledgement||!x.closed||x.pageErrors?.length))
+  ).map(x=>({viewport:x.viewport,view:x.view,overflowPx:x.overflowPx,axe:x.axe?.violations?.map(v=>v.id),savedVisible:x.savedVisible,restore:[x.initiallyDisabled,x.enabledAfterAcknowledgement,x.closed]}));
+  if(critical.length){console.error('UX_ACCEPTANCE_FAIL',JSON.stringify(critical));process.exitCode=1;}
+  else console.log('UX_ACCEPTANCE_PASS: 4 viewport, save, restore, responsive and WCAG scans');
 } catch (err) {
   console.error('UX AUDIT FAILURE',err);
   process.exitCode=1;

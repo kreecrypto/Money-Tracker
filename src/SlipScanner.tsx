@@ -17,6 +17,7 @@ export default function SlipScanner({onApply,onClose}:Props){
   const [result,setResult]=useState<SlipFields|null>(null);
   const [busy,setBusy]=useState(false);
   const [progress,setProgress]=useState(0);
+  const [stage,setStage]=useState<'download'|'recognize'>('download');
   const [error,setError]=useState('');
   useEffect(()=>()=>{
     mountedRef.current=false;
@@ -28,7 +29,7 @@ export default function SlipScanner({onApply,onClose}:Props){
     const file=e.target.files?.[0];
     e.target.value='';
     if(!file||busy)return;
-    setResult(null);setError('');setProgress(0);
+    setResult(null);setError('');setProgress(0);setStage('download');
     if(!SUPPORTED_TYPES.has(file.type)){setError('รองรับภาพ JPG, PNG หรือ WebP เท่านั้น หากเป็น HEIC กรุณาแปลงเป็น JPG ก่อน');return;}
     if(file.size===0||file.size>MAX_FILE_BYTES){setError('เลือกรูปขนาดไม่เกิน 10 MB');return;}
     setFilename(file.name);
@@ -40,7 +41,7 @@ export default function SlipScanner({onApply,onClose}:Props){
       if(!mountedRef.current)return;
       const worker=await createWorker(['tha','eng'],1,{
         logger:message=>{
-          if(mountedRef.current&&message.status==='recognizing text')setProgress(Math.round((message.progress||0)*100));
+          if(mountedRef.current&&message.status==='recognizing text'){setStage('recognize');setProgress(Math.round((message.progress||0)*100));}
         },
       });
       if(!mountedRef.current){await worker.terminate();return;}
@@ -63,14 +64,14 @@ export default function SlipScanner({onApply,onClose}:Props){
     <div className="slip-actions"><button type="button" className="btn btn-secondary" disabled={busy} onClick={()=>galleryRef.current?.click()}><FileImage size={17}/> เลือกรูปสลิป</button><button type="button" className="btn btn-ghost bordered" disabled={busy} onClick={()=>cameraRef.current?.click()}><Camera size={17}/> ถ่ายรูป</button></div>
     <input ref={galleryRef} aria-label="เลือกรูปสลิป" type="file" className="visually-hidden" accept="image/png,image/jpeg,image/webp" onChange={e=>void scan(e)}/>
     <input ref={cameraRef} aria-label="ถ่ายรูปสลิป" type="file" className="visually-hidden" accept="image/*" capture="environment" onChange={e=>void scan(e)}/>
-    {preview&&<figure className="slip-preview"><img src={preview} alt="ภาพสลิปที่เลือก"/><figcaption>{filename}</figcaption></figure>}
-    {busy&&<div className="slip-progress" role="status" aria-live="polite"><div className="slip-progress-track"><div style={{width:`${progress}%`}}/></div><span>กำลังอ่านข้อความในรูป… {progress?`${progress}%`:'เตรียม OCR ภาษาไทย/อังกฤษ'}</span></div>}
+    {preview&&<figure className="slip-preview"><img src={preview} alt="ตัวอย่างสลิปโอนเงินที่เลือกสำหรับตรวจทาน"/><figcaption>{filename}</figcaption></figure>}
+    {busy&&<div className="slip-progress" role="status" aria-live="polite"><div className="slip-progress-track"><div style={{width:`${progress}%`}}/></div><span>กำลังอ่านข้อความในรูป… {stage==='recognize'?`${progress}%`:'กำลังโหลดชุด OCR ภาษาไทย/อังกฤษ'}</span></div>}
     {error&&<p className="error-message" role="alert">{error}</p>}
     {result&&<div className="slip-result" aria-live="polite"><strong>ข้อมูลที่อ่านได้ (กรุณาตรวจทาน)</strong><dl><div><dt>จำนวนเงิน</dt><dd>{result.amountSatang!==null?`฿${baht(result.amountSatang)}`:'อ่านไม่สำเร็จ'}</dd></div><div><dt>วันที่</dt><dd>{result.date||'อ่านไม่สำเร็จ'}</dd></div><div><dt>ผู้รับ</dt><dd>{result.recipient||'ไม่พบข้อมูล'}</dd></div></dl>
       {result.warnings.map((warning,i)=><p key={i} className="slip-warning">⚠ {warning}</p>)}
       <details className="slip-raw"><summary>ดูข้อความ OCR เพื่อเทียบกับสลิป</summary><pre>{result.rawText||'ไม่มีข้อความ'}</pre></details>
       <button type="button" className="btn btn-primary slip-apply" disabled={result.amountSatang===null&&result.date===null&&result.recipient===null} onClick={()=>onApply(result)}><Check size={17}/> ใช้ข้อมูลนี้ในฟอร์ม</button>
     </div>}
-    <p className="slip-privacy"><ShieldCheck size={14}/> ประมวลผลภาพในเครื่อง ไม่อัปโหลดสลิป (ครั้งแรกต้องใช้อินเทอร์เน็ตเพื่อโหลด OCR)</p>
+    <p className="slip-privacy"><ShieldCheck size={14}/> ประมวลผลภาพในเบราว์เซอร์ ไม่ส่งภาพเข้าเซิร์ฟเวอร์แอป (ครั้งแรกต้องโหลดชุด OCR ผ่านอินเทอร์เน็ต)</p>
   </section>;
 }

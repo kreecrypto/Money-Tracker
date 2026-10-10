@@ -5,6 +5,13 @@ on:
     paths:
       - 'scripts/ux-audit.mjs'
       - '.github/workflows/ux-audit.yml'
+  pull_request:
+    branches: [main]
+    paths:
+      - 'src/**'
+      - 'package.json'
+      - 'scripts/ux-audit.mjs'
+      - '.github/workflows/ux-audit.yml'
   workflow_dispatch:
 
 permissions:
