@@ -58,7 +58,14 @@ try {
       });
       await page.locator('.mobile-action-scan').click();
       const openedOCR=await page.locator('.modal .slip-panel').isVisible();
-      await page.locator('.modal .modal-heading button').click();
+      const closeHit=await page.locator('.modal .modal-heading button').evaluate(el=>{
+        const b=el.getBoundingClientRect(),midX=b.x+b.width/2,midY=b.y+b.height/2;
+        const modal=el.closest('.modal'),d=modal?.getBoundingClientRect();
+        const target=document.elementFromPoint(midX,midY);
+        return {viewport:[innerWidth,innerHeight],button:{x:b.x,y:b.y,w:b.width,h:b.height,midX,midY},modal:{x:d?.x,y:d?.y,w:d?.width,h:d?.height,scrollTop:modal?.scrollTop,scrollHeight:modal?.scrollHeight},hit:{tag:target?.tagName,cls:target?.className,outer:target?.outerHTML.slice(0,210)},pointer:getComputedStyle(el).pointerEvents};
+      });
+      console.log('CLOSE_BUTTON_HIT_TEST',JSON.stringify({name,closeHit}));
+      await page.locator('.modal .modal-heading button').click({timeout:4000});
       record('mobile-home-actions',name,{...mobileHome,openedOCR,pageErrors:errors});
     }
     const menu=['รายการทั้งหมด','รายงาน','ตั้งค่า'];
