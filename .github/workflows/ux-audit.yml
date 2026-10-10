@@ -35,6 +35,11 @@ jobs:
         run: |
           pnpm install --no-frozen-lockfile
           pnpm add -D playwright@1.56.1 @axe-core/playwright@4.11.0 --no-lockfile
+      - name: Install Thai fonts for screenshot fidelity
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq fonts-noto-core fonts-thai-tlwg
+          fc-match ':lang=th'
       - name: Install test browser
         run: pnpm exec playwright install chromium
       - name: Run responsive UX/UI and accessibility audit
