@@ -130,6 +130,8 @@ try {
   const reviewRequests=[];
   await reviewPage.route('https://iphone-bridge.test/api/iphone/**',async route=>{
     const req=route.request(),path=new URL(req.url()).pathname;
+    const cors={'access-control-allow-origin':base,'access-control-allow-methods':'GET,POST,OPTIONS','access-control-allow-headers':'Authorization,Content-Type'};
+    if(req.method()==='OPTIONS'){await route.fulfill({status:204,headers:cors});return;}
     let response;
     if(path.endsWith('/drafts')&&req.method()==='POST'){
       reviewRequests.push(req.postDataJSON());
@@ -143,10 +145,10 @@ try {
     else if(path.endsWith('/ledger'))response={transactions:[]};
     if(path.endsWith('/image')){
       const png=Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+jRZYAAAAASUVORK5CYII=','base64');
-      await route.fulfill({status:200,contentType:'image/png',body:png});
+      await route.fulfill({status:200,headers:{...cors,'content-type':'image/png'},body:png});
       return;
     }
-    await route.fulfill({status:200,contentType:'application/json',body:JSON.stringify(response||{})});
+    await route.fulfill({status:200,headers:{...cors,'content-type':'application/json'},body:JSON.stringify(response||{})});
   });
   reviewPage.on('pageerror',e=>reviewErrors.push(e.message));
   await reviewPage.goto(base,{waitUntil:'networkidle'});
