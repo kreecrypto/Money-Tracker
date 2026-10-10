@@ -19,12 +19,15 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10
       - name: Install app and audit tools
         run: |
-          npm install --no-package-lock
-          npm install --no-save --no-package-lock playwright@1.56.1 @axe-core/playwright@4.11.0
+          pnpm install --no-frozen-lockfile
+          pnpm add -D playwright@1.56.1 @axe-core/playwright@4.11.0 --no-lockfile
       - name: Install test browser
-        run: npx playwright install chromium
+        run: pnpm exec playwright install chromium
       - name: Run responsive UX/UI and accessibility audit
         run: node scripts/ux-audit.mjs
       - name: Upload screenshots and machine-readable findings
