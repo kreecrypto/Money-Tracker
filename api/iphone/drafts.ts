@@ -1,7 +1,7 @@
-import {auth,appCors,json,options,pendingDrafts,reviewDraft} from '../../server/iphone/bridge';
-import {imageSummary,readDraft,deleteImage,changeImage} from '../../server/iphone/imageStorage';
-import {ownerKey} from '../../server/iphone/bridge';
-import {EXPENSE_CATEGORIES,INCOME_CATEGORIES} from '../../src/lib/finance';
+import {auth,appCors,json,options,pendingDrafts,reviewDraft} from '../../server/iphone/bridge.js';
+import {imageSummary,readDraft,deleteImage,changeImage} from '../../server/iphone/imageStorage.js';
+import {ownerKey} from '../../server/iphone/bridge.js';
+import {EXPENSE_CATEGORIES,INCOME_CATEGORIES} from '../../src/lib/finance.js';
 const isRealDate=(v:string)=>{if(!/^\d{4}-\d{2}-\d{2}$/.test(v))return false;const [y,m,d]=v.split('-').map(Number);const t=new Date(Date.UTC(y,m-1,d));return t.getUTCFullYear()===y&&t.getUTCMonth()===m-1&&t.getUTCDate()===d;};
 export const maxDuration=15;
 export {options as OPTIONS};
