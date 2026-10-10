@@ -92,13 +92,13 @@ export function imageSummary(row:ImageRow){
 export async function purgeCandidates(now:Date,limit=40){
   const cutoff=encodeURIComponent(now.toISOString());
   const stale=encodeURIComponent(new Date(now.getTime()-20*60*1000).toISOString());
-  const clauses='or=(and(image_expires_at.lte.'+cutoff+',image_status.in.(available,uploading,delete_failed,deleting,upload_failed)),and(image_status.in.(uploading,upload_failed),created_at.lte.'+stale+'))';
+  const clauses='or=(image_status.eq.delete_failed,image_status.eq.deleting,and(image_expires_at.lte.'+cutoff+',image_status.in.(available,uploading,upload_failed)),and(image_status.in.(uploading,upload_failed),created_at.lte.'+stale+'))';
   return db(table+'?image_path=not.is.null&'+clauses+
     '&select=*&order=image_expires_at.asc.nullsfirst&limit='+Math.min(limit,100),'GET');
 }
 export async function purgeRow(row:ImageRow){
   if(!row.image_path)return {deleted:false};
-  if(!expired(row)&&!(row.image_status==='uploading'||row.image_status==='upload_failed'))
+  if(!expired(row)&&!(['uploading','upload_failed','delete_failed','deleting'].includes(row.image_status)||row.status==='discarded'))
     return {deleted:false};
   // Mark "deleting" before removing the object so a retry after crash is safe.
   const current=await changeImage(row.id,row.owner_key,{image_status:'deleting'});
