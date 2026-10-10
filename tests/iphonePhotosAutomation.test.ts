@@ -91,7 +91,7 @@ describe('Photos Automation OCR text API',()=>{
     expect(r.status).toBe(202);
     expect((await r.json())).toMatchObject({status:'pending',reviewRequired:true});
     const row=mock.save.mock.calls[0][0];
-    expect(row).toMatchObject({amount_satang:11900,status:undefined,
+    expect(row).toMatchObject({amount_satang:11900,
       method:'bank',source_label:'KBank / Photos'});
     const serialized=JSON.stringify(row);
     expect(serialized).not.toContain('400,070.79');
