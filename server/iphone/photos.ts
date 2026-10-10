@@ -3,7 +3,8 @@ import {parseSlipText} from '../../src/lib/slip';
 
 /** Client first extracts text on iOS. Send ONLY receipt-like OCR text, not private photos. */
 const THAI_DIGITS='๐๑๒๓๔๕๖๗๘๙';
-const normalized=(text:string)=>text.normalize('NFKC')
+// Do not NFKC-normalize Thai: สระอำ is decomposed, breaking จำนวนเงิน labels.
+const normalized=(text:string)=>text
   .replace(/[๐-๙]/g,ch=>String(THAI_DIGITS.indexOf(ch)))
   .replace(/\r\n?/g,'\n').replace(/[ \t]+/g,' ').trim();
 
