@@ -1,4 +1,4 @@
-import { parseLineExpense } from './parser';
+import { parseLineExpense } from './_parser';
 
 type LineEvent = {
   type?: string;
