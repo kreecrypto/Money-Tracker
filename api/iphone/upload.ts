@@ -1,6 +1,6 @@
-import {auth,MAX_IMAGE_BYTES,imageType,sha,ownerKey,saveDraft,json} from '../../server/iphone/bridge';
-import {ocrImage} from '../../server/iphone/ocr';
-import {IMAGE_BUCKET,changeImage,privatePath,storeImage,deleteImage,findDraftByDigest} from '../../server/iphone/imageStorage';
+import {auth,MAX_IMAGE_BYTES,imageType,sha,ownerKey,saveDraft,json} from '../../server/iphone/bridge.js';
+import {ocrImage} from '../../server/iphone/ocr.js';
+import {IMAGE_BUCKET,changeImage,privatePath,storeImage,deleteImage,findDraftByDigest} from '../../server/iphone/imageStorage.js';
 
 export const maxDuration=120;
 export async function POST(request:Request):Promise<Response>{
