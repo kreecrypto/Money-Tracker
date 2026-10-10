@@ -20,7 +20,7 @@ function event(message:object, eventId='bank-evt-1'){
 async function send(events:object[],secret='test-channel-secret'){
   const body=JSON.stringify({events});
   const signed=new Uint8Array(await crypto.subtle.sign(
-    'HMAC',await crypto.subtle.importKey('raw',new TextEncoder().encode(secret),'HMAC',false,['sign']),
+    'HMAC',await crypto.subtle.importKey('raw',new TextEncoder().encode(secret),{name:'HMAC',hash:'SHA-256'},false,['sign']),
     new TextEncoder().encode(body)
   ));
   const signature=btoa(String.fromCharCode(...signed));
@@ -71,7 +71,7 @@ describe('Secure LINE bank forward flow',()=>{
     const raw='{"events":[],"hello":"\\u0e44\\u0e17\\u0e22"}';
     const other=raw.replace('\\u0e44','ไ');
     const secret='test-channel-secret';
-    const key=await crypto.subtle.importKey('raw',new TextEncoder().encode(secret),'HMAC',false,['sign']);
+    const key=await crypto.subtle.importKey('raw',new TextEncoder().encode(secret),{name:'HMAC',hash:'SHA-256'},false,['sign']);
     const sig=new Uint8Array(await crypto.subtle.sign('HMAC',key,new TextEncoder().encode(raw)));
     const signature=btoa(String.fromCharCode(...sig));
     expect(await verifyLineSignature(raw,signature,secret)).toBe(true);
