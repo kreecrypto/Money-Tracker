@@ -148,3 +148,26 @@ body,.app-shell{background:var(--mobile-canvas);color:var(--mobile-ink)}
 .line-sync-actions .btn{min-height:44px}
 .line-sync-card .hint{display:block;margin-top:14px;color:#53685e;font-size:12px;line-height:1.65}
 @media(max-width:660px){.line-sync-actions{flex-direction:column}.line-sync-actions .btn{width:100%}}
+
+/* iPhone Shortcuts: pending bank-review UI, accessible at 320px */
+.iphone-card{min-width:0}
+.iphone-card .line-status{display:flex;align-items:center;gap:8px;padding:10px 12px;border-radius:10px;background:#eef6f0;color:#245f49;font-size:13px;line-height:1.55}
+.iphone-token-input{width:100%;max-width:430px;min-height:48px;display:block;border:1px solid #c6d7cd;border-radius:12px;padding:12px 14px;margin:6px 0 14px;background:#fff}
+.iphone-token-input:focus{outline:3px solid #aad9c7;outline-offset:2px}
+.iphone-draft{min-width:0;margin:16px 0;padding:16px;border:1px solid #dde8df;border-radius:16px;background:#fff;box-shadow:none}
+.iphone-draft-source{display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin:0 0 12px;color:#1d624c;font-size:13px;font-weight:600}
+.iphone-draft-source span{color:#56685d;font-weight:400}
+.iphone-draft-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+.iphone-card .iphone-draft input,.iphone-card .iphone-draft select{width:100%;min-width:0;min-height:44px;border:1px solid #d3e1d9;background:#fff;border-radius:10px;padding:9px 10px;color:#20392d;box-sizing:border-box}
+.iphone-card .iphone-draft .field-label{margin-top:10px}
+.iphone-draft-actions{display:flex;flex-wrap:wrap;gap:10px;margin:14px 0}
+.iphone-draft-actions .btn{min-height:44px}
+.iphone-draft-help{font-size:12px;line-height:1.6;color:#53675a}
+.iphone-pending-heading{margin:18px 0 8px;font-size:15px}
+.iphone-empty{background:#f3f7f4;padding:14px;border-radius:12px;font-size:13px;color:#53675a}
+@media(max-width:660px){
+  .iphone-draft{padding:12px}
+  .iphone-draft-grid{grid-template-columns:1fr}
+  .iphone-draft-actions{flex-direction:column}
+  .iphone-draft-actions .btn{width:100%}
+}
