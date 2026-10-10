@@ -1,7 +1,7 @@
 import {createWorker} from 'tesseract.js';
-import {parseBankNotice} from '../line/bank';
-import {parseSlipText} from '../../src/lib/slip';
-import type {EntryType} from '../../src/lib/finance';
+import {parseBankNotice} from '../line/bank.js';
+import {parseSlipText} from '../../src/lib/slip.js';
+import type {EntryType} from '../../src/lib/finance.js';
 
 export type OCRDraft={
   type:EntryType|null;amount_satang:number|null;transaction_date:string|null;
