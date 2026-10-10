@@ -5,6 +5,7 @@ export type IPhoneDraft={
   id:string;amountSatang:number|null;type:'income'|'expense'|null;
   date:string|null;category:string;note:string;method:'bank'|'cash'|'card'|'wallet';
   source:string;createdAt:string;
+  image?:{status:'none'|'uploading'|'available'|'upload_failed'|'deleting'|'deleted'|'delete_failed';available:boolean;expiresAt:string|null};
 };
 const TOKEN_KEY='money-tracker-iphone-review-token-v1';
 const SEEN_KEY='money-tracker-iphone-seen-v1';
@@ -64,4 +65,23 @@ export async function iphoneSync():Promise<{imported:number;received:number}>{
     localStorage.setItem(SEEN_KEY,JSON.stringify([...seenItems].slice(-3000)));
   }
   return {imported,received:rows.length};
+}
+
+
+/** Protected binary fetch; no signed link and no token in a URL. Caller revokes object URLs. */
+export async function iphoneImage(id:string):Promise<Blob>{
+  const base=host(),token=localStorage.getItem(TOKEN_KEY)||'';
+  if(!base||!/^[a-f0-9]{64}$/i.test(token))throw Error('ยังไม่ได้เชื่อม iPhone Shortcut');
+  if(!/^[a-f0-9-]{36}$/i.test(id))throw Error('ไม่พบรายการ');
+  const r=await fetch(base+'/api/iphone/image?id='+encodeURIComponent(id),{
+    headers:{authorization:'Bearer '+token},cache:'no-store'
+  });
+  if(r.status===410)throw Error('รูปสลิปหมดอายุแล้ว');
+  if(r.status===404)throw Error('รายการนี้ไม่มีภาพสลิป');
+  if(r.status===401)throw Error('กรุณาเชื่อม Review Token อีกครั้ง');
+  if(!r.ok)throw Error('ไม่สามารถโหลดภาพได้ กรุณาลองใหม่');
+  const mime=r.headers.get('content-type')||'';
+  if(!['image/jpeg','image/png','image/webp'].includes(mime))
+    throw Error('ชนิดไฟล์ภาพไม่ถูกต้อง');
+  return r.blob();
 }
