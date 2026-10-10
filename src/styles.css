@@ -62,3 +62,19 @@
  .report-category b{font-size:11px}
  .transaction-actions .icon-btn{width:44px}
 }
+
+/* Backup import confirmation flow. */
+.btn-danger{background:#a33d37;color:#fff;border-color:#a33d37}
+.btn-danger:hover:not(:disabled){background:#85312c}
+.restore-notice{display:flex;align-items:flex-start;gap:12px;padding:15px;border-radius:12px;margin:23px 0 16px;background:#fff2e9;border:1px solid #efcbbb;color:#783c2e}
+.restore-notice svg{flex:none}
+.restore-notice strong{font-size:14px}
+.restore-notice p{font-size:13px;line-height:1.65;margin:5px 0 0}
+.restore-counts{display:flex;flex-direction:column;gap:0;margin:0 0 15px}
+.restore-counts>div{display:flex;gap:12px;justify-content:space-between;align-items:center;padding:12px 0;border-bottom:1px solid #e7edeb}
+.restore-counts dt{color:#53656b;font-size:13px}
+.restore-counts dd{margin:0;font-size:14px;font-weight:750;color:#203630}
+.restore-backup{width:100%;min-height:44px}
+.restore-confirm{display:flex;align-items:flex-start;gap:10px;margin:19px 0;color:#465d52;font-size:13px;line-height:1.6;cursor:pointer}
+.restore-confirm input{flex:none;width:20px;height:20px;margin:2px 0 0;accent-color:#146e5c}
+@media(max-width:660px){.restore-modal .modal-footer{margin-top:10px}.restore-modal .btn{white-space:normal;text-align:center}}
