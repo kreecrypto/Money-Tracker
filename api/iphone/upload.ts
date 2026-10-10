@@ -1,6 +1,6 @@
 import {auth,MAX_IMAGE_BYTES,imageType,sha,ownerKey,saveDraft,json} from '../../server/iphone/bridge';
 import {ocrImage} from '../../server/iphone/ocr';
-import {IMAGE_BUCKET,changeImage,privatePath,storeImage,deleteImage} from '../../server/iphone/imageStorage';
+import {IMAGE_BUCKET,changeImage,privatePath,storeImage,deleteImage,findDraftByDigest} from '../../server/iphone/imageStorage';
 
 export const maxDuration=120;
 export async function POST(request:Request):Promise<Response>{
@@ -25,9 +25,16 @@ export async function POST(request:Request):Promise<Response>{
 
     // OCR conservatively. Original bank balances are never used as transaction amounts.
     const parsed=await ocrImage(bytes);
-    const row=await saveDraft({...parsed,owner_key:owner,image_digest:sha(bytes),
+    const digest=sha(bytes);
+    let row=await saveDraft({...parsed,owner_key:owner,image_digest:digest,
       bank_fingerprint:parsed.bank_fingerprint?sha(parsed.bank_fingerprint):null});
-    if(!row)return json({status:'duplicate',reviewRequired:false},200);
+    if(!row){
+      const previous=await findDraftByDigest(owner,digest);
+      if(!previous||previous.status!=='pending'||previous.image_status!=='upload_failed'||previous.image_path)
+        return json({status:'duplicate',reviewRequired:false},200);
+      // Same draft, retry of failed blob transfer only; never generate a new financial row.
+      row=previous;
+    }
     draftId=row.id;
     path=privatePath(owner,row.id,input.type);
     const uploadedAt=new Date();
@@ -41,7 +48,8 @@ export async function POST(request:Request):Promise<Response>{
     await changeImage(row.id,owner,{image_status:'available',image_last_error_code:null});
     return json({status:'pending',draftId:row.id,reviewRequired:true,
       image:{available:true,expiresAt:expiresAt.toISOString()}},202);
-  }catch{
+  }catch(e){
+    if(e instanceof Error&&e.message==='DUPLICATE_IMAGE')return json({status:'duplicate',reviewRequired:false},200);
     // A DB commit after the blob write can fail. Compensate and leave a retryable record.
     if(path){
       let removed=false;
