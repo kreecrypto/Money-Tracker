@@ -104,3 +104,15 @@ body,.app-shell{background:var(--mobile-canvas);color:var(--mobile-ink)}
 @media(prefers-reduced-motion:reduce){
   .budget-linear-track span{transition:none}
 }
+
+/* Keep the mobile sheet inside its own hit-testing layer.
+   Sticky header prevents the close control being covered while OCR expands the sheet. */
+@media(max-width:660px){
+  .modal-backdrop{overflow:hidden;display:flex;justify-content:stretch;align-items:flex-end}
+  .modal{position:relative;flex:none;max-height:94dvh;overscroll-behavior:contain;animation:none}
+  .modal-heading{
+    position:sticky;top:0;z-index:6;display:flex;align-items:center;
+    background:#fff;min-height:52px;padding-bottom:8px;
+  }
+  .modal-heading .icon-btn{position:relative;z-index:7;flex:none;width:44px;height:44px;pointer-events:auto}
+}
