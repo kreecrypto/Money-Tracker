@@ -61,10 +61,10 @@ try {
       await page.locator('.modal .modal-heading button').click();
       record('mobile-home-actions',name,{...mobileHome,openedOCR,pageErrors:errors});
     }
-    const menu=['รายการทั้งหมด','รายงาน','ตั้งค่า'];
-    const views=['transactions','reports','settings'];
+    const menu=['รายการทั้งหมด','รอตรวจสอบ','รายงาน','ตั้งค่า'];
+    const views=['transactions','inbox','reports','settings'];
     for(let i=0;i<menu.length;i++){
-      const buttons=page.locator(width<=660?'.mobile-bottom-nav button':'.sidebar .nav-item').nth(i+1);
+      const buttons=i===3?page.locator('.header-settings'):page.locator(width<=660?'.mobile-bottom-nav button':'.sidebar nav .nav-item').nth(i+1);
       try{await buttons.click({timeout:2500});}
       catch(err){
         const obstruction=await buttons.evaluate(el=>{
@@ -78,6 +78,7 @@ try {
       }
       await scan(page,views[i],name);
     }
+    await page.locator(width<=660?'.mobile-bottom-nav button':'.sidebar nav .nav-item').nth(1).click();
     const add=page.locator(width<=660?'.mobile-fab':'.top-add');
     await add.click({timeout:3500});
     await scan(page,'entry-modal',name);
@@ -104,10 +105,7 @@ try {
     await page.waitForTimeout(180);
     const confirmed=await page.getByText('รายการทดสอบ UX Audit').count();
     record('save-smoke',name,{savedVisible:confirmed>0,saveState:state,pageErrors:errors});
-    await page.evaluate(()=>{
-      const nav=innerWidth<=660?document.querySelector('.mobile-bottom-nav'):document.querySelector('.sidebar');
-      Array.from(nav?.querySelectorAll('button')||[]).find(x=>x.textContent?.includes('ตั้งค่า')||x.getAttribute('aria-label')==='ตั้งค่า')?.click();
-    });
+    await page.locator('.header-settings').click();
     const sample={app:'ngoentoday',version:1,exportedAt:new Date().toISOString(),transactions:[],settings:{monthlyBudgetSatang:0}};
     await page.locator('input[accept=".json,application/json"]').setInputFiles({name:'audit-backup.json',mimeType:'application/json',buffer:Buffer.from(JSON.stringify(sample))});
     const restoreDialog=page.getByRole('alertdialog');
@@ -124,7 +122,7 @@ try {
   console.log('AUDIT_SUMMARY_START');
   console.log(JSON.stringify(short,null,2));
   console.log('AUDIT_SUMMARY_END');
-  const focus=findings.filter(x=>['mobile320','tablet768'].includes(x.viewport)&&['home','reports','settings','entry-modal','ocr-panel'].includes(x.view));
+  const focus=findings.filter(x=>['mobile320','tablet768'].includes(x.viewport)&&['home','inbox','reports','settings','entry-modal','ocr-panel'].includes(x.view));
   console.log('AXE_DETAILS_START');
   console.log(JSON.stringify(focus.map(x=>({viewport:x.viewport,view:x.view,violations:x.axe?.violations,smallTouchTargets:x.smallTouchTargets})),null,2));
   console.log('AXE_DETAILS_END');
@@ -136,7 +134,7 @@ try {
     ||(x.view==='mobile-home-actions'&&(!x.correctHierarchy||!x.quickActionsVisible||!x.bottomNavVisible||!x.openedOCR||x.pageErrors?.length))
   ).map(x=>({viewport:x.viewport,view:x.view,overflowPx:x.overflowPx,axe:x.axe?.violations?.map(v=>v.id),savedVisible:x.savedVisible,restore:[x.initiallyDisabled,x.enabledAfterAcknowledgement,x.closed]}));
   if(critical.length){console.error('UX_ACCEPTANCE_FAIL',JSON.stringify(critical));process.exitCode=1;}
-  else console.log('UX_ACCEPTANCE_PASS: 6 viewport, mobile quick OCR, save, restore, responsive and WCAG scans');
+  else console.log('UX_ACCEPTANCE_PASS: 6 viewports, Inbox, mobile quick OCR, save, restore, responsive and WCAG scans');
 } catch (err) {
   console.error('UX AUDIT FAILURE',err);
   process.exitCode=1;
