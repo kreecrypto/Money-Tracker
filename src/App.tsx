@@ -75,7 +75,7 @@ function EntryModal({initial,existing,close,submit}:{initial:Transaction|null;ex
   };
   const switchType=(newType:EntryType)=>{setType(newType);setCategory(newType==='expense'?EXPENSE_CATEGORIES[0]:INCOME_CATEGORIES[0]);if(slipApplied){setDirectionVerified(true);setError('');}};
   const applySlip=(data:SlipFields)=>{setSlipApplied(true);setDirectionVerified(false);setDuplicateAcknowledged(false);
-    if(data.amountSatang!==null)setAmount((data.amountSatang/100).toFixed(2));
+    setAmount(data.amountSatang!==null?(data.amountSatang/100).toFixed(2):'');
     if(data.date)setDate(data.date);
     if(data.recipient)setNote(`โอนเงิน: ${data.recipient}`.slice(0,500));
     setMethod('bank');
