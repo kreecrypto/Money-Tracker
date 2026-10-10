@@ -1,0 +1,106 @@
+/* Money Tracker 0.5 — daily minimalist, inspired by the usability of Dime.
+   Original design, not a reproduction. The 320px experience is the baseline. */
+:root{
+  --mobile-ink:#1c3129;
+  --mobile-muted:#51665d;
+  --mobile-line:#e5ebe7;
+  --mobile-canvas:#f9faf8;
+  --mobile-accent:#17664f;
+  --mobile-soft:#eef5f0;
+}
+body,.app-shell{background:var(--mobile-canvas);color:var(--mobile-ink)}
+.btn-primary{background:var(--mobile-accent);border-color:var(--mobile-accent);box-shadow:none}
+.btn-primary:hover:not(:disabled){background:#10533f}
+.btn:hover:not(:disabled){transform:none}
+.surface,.hero-card,.budget-card,.metric{box-shadow:none}
+.hero-card{background:#fff;border:1px solid var(--mobile-line);color:var(--mobile-ink)}
+.hero-kicker,.hero-card>p{color:var(--mobile-muted)}
+.hero-value,.hero-value span,.hero-bottom strong{color:var(--mobile-ink)}
+.hero-bottom span{color:var(--mobile-muted)}
+.hero-line{background:var(--mobile-line)}
+.hero-pattern,.hero-dot{display:none}
+.home-dashboard .budget-card{
+  min-height:0;border-radius:16px;padding:18px 20px;display:block;
+  background:#fff;text-align:left
+}
+.budget-summary-head{display:flex;align-items:flex-start;justify-content:space-between;gap:12px}
+.budget-summary-head h3{font-size:15px;margin:0;letter-spacing:-.2px}
+.budget-summary-head p{font-size:12px;line-height:1.5;margin:7px 0 0;color:var(--mobile-muted)}
+.budget-summary-head .text-action{flex:none;margin:0;white-space:nowrap;color:var(--mobile-accent)}
+.budget-linear-track{height:7px;border-radius:99px;background:#e9efeb;overflow:hidden;margin-top:20px}
+.budget-linear-track span{display:block;height:100%;background:#27866d;border-radius:inherit;transition:width .2s ease}
+.budget-linear-track span.over-budget{background:#a75038}
+.budget-linear-meta{display:flex;justify-content:space-between;gap:10px;margin-top:10px;color:var(--mobile-muted);font-size:12px;font-variant-numeric:tabular-nums}
+.home-report-link{display:flex;justify-content:center}
+.home-report-link .btn{min-height:48px;color:var(--mobile-accent);background:transparent;padding:10px 16px}
+.transaction-emoji,.transaction-emoji.income{background:#edf5ef;color:#256b53}
+.transaction-emoji.expense{background:#f4f1eb;color:#745a43}
+.type-switch{border:1px solid var(--mobile-line);background:#f6f8f6}
+.type-switch .selected.expense,.type-switch .selected.income{box-shadow:none}
+.amount-input:focus-within{outline:3px solid #93cabb;outline-offset:2px}
+.month-picker{box-shadow:none}
+@media(max-width:660px){
+  .topbar{height:68px;padding:10px 18px;border-bottom:1px solid var(--mobile-line)}
+  .topbar h1{font-size:20px;letter-spacing:-.5px}
+  .topbar .greeting{font-size:12px}
+  .main-content{padding:14px 16px 28px}
+  .view-topline{gap:0;margin:0 0 18px}
+  .home-topline>div:first-child{display:none}
+  .month-picker{min-width:210px;width:auto;align-self:flex-start;min-height:44px;border-radius:12px;background:transparent}
+  .month-picker button{width:44px;height:44px}
+  .month-picker span{font-size:13px}
+  .home-dashboard{gap:16px}
+  .hero-card{border:0;background:transparent;padding:2px 1px 10px;border-radius:0}
+  .hero-kicker{font-size:13px;font-weight:650}
+  .hero-value{font-size:clamp(32px,9vw,44px);letter-spacing:-1.6px;margin:8px 0 0;line-height:1.23}
+  .hero-value span{font-size:22px}
+  .hero-card>p{font-size:12px;margin:5px 0 0}
+  .hero-line{margin:20px 0 14px}
+  .hero-bottom{gap:12px}
+  .hero-bottom>div{gap:6px}
+  .hero-bottom span{font-size:12px}
+  .hero-bottom strong{font-size:clamp(15px,4.5vw,20px)}
+  .mobile-quick-actions{gap:10px;grid-template-columns:repeat(2,minmax(0,1fr))}
+  .mobile-quick-actions button{min-height:68px;padding:12px;display:flex;align-items:center;flex-direction:row;justify-content:flex-start;gap:9px;border-radius:14px}
+  .quick-action-symbol{width:36px;height:36px;flex:none;border-radius:10px}
+  .mobile-quick-actions button strong{font-size:13px;white-space:normal}
+  .mobile-quick-actions button small{display:none}
+  .mobile-quick-actions .mobile-action-scan{background:#fff}
+  .transactions-surface{background:transparent;border:0;border-radius:0;padding:0!important}
+  .home-dashboard .transactions-surface{padding:0!important}
+  .home-dashboard .transactions-surface .section-header{margin:0 0 8px;padding:0 0 2px}
+  .transactions-surface .section-header h3{font-size:16px}
+  .transactions-surface .tx-list{background:#fff;border:1px solid var(--mobile-line);border-radius:16px;padding:0 12px;overflow:visible}
+  .transactions-surface .transaction-row{min-height:74px;padding:11px 0;border-bottom:1px solid var(--mobile-line)}
+  .transactions-surface .transaction-row:last-child{border-bottom:0}
+  .transaction-end{max-width:40%}
+  .transaction-end b{font-size:13px}
+  .transaction-copy strong{font-size:13px}
+  .transaction-copy span{font-size:11px}
+  .home-dashboard .budget-card{padding:16px;border:1px solid var(--mobile-line)}
+  .home-report-link .btn{width:100%;border-color:var(--mobile-line);background:#fff}
+  .mobile-bottom-nav{background:#fff;border-top:1px solid var(--mobile-line)}
+  .mobile-bottom-nav button.active{color:var(--mobile-accent)}
+  .mobile-fab{background:var(--mobile-accent);box-shadow:0 8px 18px #163a2828}
+  .modal{box-shadow:0 -8px 30px #163a2828}
+  .modal .amount-input input{font-size:32px}
+  .modal-footer{background:#fff}
+}
+@media(max-width:360px){
+  .main-content{padding-left:14px;padding-right:14px}
+  .mobile-quick-actions button{padding:10px;gap:7px}
+  .quick-action-symbol{width:34px;height:34px}
+  .mobile-quick-actions button strong{font-size:12px}
+  .transaction-end{max-width:37%}
+}
+@media(min-width:661px){
+  .hero-card{min-height:240px}
+  .hero-value{color:var(--mobile-ink)}
+  .hero-bottom strong{color:var(--mobile-ink)}
+  .home-dashboard .budget-card{min-height:240px}
+  .budget-summary-head{flex-wrap:wrap}
+  .home-report-link{margin-top:16px}
+}
+@media(prefers-reduced-motion:reduce){
+  .budget-linear-track span{transition:none}
+}
