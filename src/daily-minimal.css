@@ -116,3 +116,21 @@ body,.app-shell{background:var(--mobile-canvas);color:var(--mobile-ink)}
   }
   .modal-heading .icon-btn{position:relative;z-index:7;flex:none;width:44px;height:44px;pointer-events:auto}
 }
+
+/* Prevent legacy selectors from stretching budget actions and visually-hidden OCR inputs. */
+.home-dashboard .budget-card .budget-summary-head .text-action{
+  width:auto;min-width:44px;flex:0 0 auto;align-self:flex-start;justify-content:flex-end;
+  margin:0;padding:8px 0;
+}
+.modal input.visually-hidden,
+.modal input.visually-hidden:not(.amount-input input){
+  position:absolute!important;width:1px!important;height:1px!important;
+  min-width:1px!important;min-height:1px!important;padding:0!important;
+  margin:0!important;border:0!important;overflow:hidden!important;
+  clip:rect(0,0,0,0)!important;clip-path:inset(50%)!important;
+}
+@media(max-width:660px){
+  .app-shell,.app-body,.main-content,.home-dashboard{min-width:0;max-width:100%}
+  .budget-summary-head{min-width:0}
+  .budget-summary-head>div{min-width:0}
+}
