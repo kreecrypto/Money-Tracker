@@ -1,5 +1,5 @@
-import {sessionLineId,confirmedRows} from './_link';
-import {cors,json,options} from './_cors';
+import {sessionLineId,confirmedRows} from '../../server/line/link';
+import {cors,json,options} from '../../server/line/cors';
 export const maxDuration=15;
 export {options as OPTIONS};
 export async function GET(request:Request){
