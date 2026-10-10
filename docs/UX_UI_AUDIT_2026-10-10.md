@@ -3,7 +3,7 @@
 **Project:** เงินวันนี้ / Money-Tracker
 **Repo:** https://github.com/kreecrypto/Money-Tracker
 **Deployment:** https://money-tracker-beta-teal.vercel.app/
-**Source revision audited:** `2129b936` (application product code remains v0.2.0)
+**Source revision audited:** `e2bbc691` (application product code remains v0.2.0)
 **Scope:** Dashboard, Transactions CRUD, Reports, Settings, Add Transaction modal, Slip OCR, responsive layout, accessibility, data safety, public access
 **Audit type:** Source/UI implementation inspection + production HTTP check + Chromium browser QA. **Not** a Figma-to-production pixel parity review.
 
@@ -11,7 +11,7 @@
 
 - **Verified — Source:** `src/App.tsx`, `src/SlipScanner.tsx`, `src/styles.css`, `src/lib/slip.ts`, `src/lib/storage.ts`, `public/sw.js`, `README.md`.
 - **Verified — Deploy:** Vercel served production HTML with HTTP 200 through authenticated Vercel fetch. Project framework Vite, build READY. Public anonymous browsing has **not** been proven: Deployment Protection reports SSO enabled for some domains.
-- **Verified — Browser (preliminary):** Playwright Chromium at viewport 320px recorded a Settings navigation click blocked by overlapping main content following Reports. Audit scripts and screenshots are in `scripts/ux-audit.mjs` and the UX/UI Audit Actions artifacts. Recheck when automated audit completes.
+- **Verified — Browser:** GitHub Actions Playwright Chromium run [38014103488](https://github.com/kreecrypto/Money-Tracker/actions/runs/38014103488) **PASS**. 24 screen snapshots across 320px/390px/768px/1280px; [25-file screenshot and JSON evidence artifact](https://github.com/kreecrypto/Money-Tracker/actions/runs/38014103488/artifacts/11655158441) (requires GitHub access; limited retention). Four isolated create-and-save smoke tests succeeded without page errors. One 320px Settings pointer obstruction was detected and programmatically bypassed for coverage, NOT fixed.
 - **Not yet verified:** Real-device iPhone Safari/Android Chrome touch and camera behavior, assistive technology/VoiceOver, bank slip image accuracy, data persistence following PWA upgrades, public anonymous access.
 
 ## Executive summary
@@ -23,7 +23,7 @@ The app has a clear four-item IA, recognizable income/expense visual language, a
 | ID | Area | Evidence | User impact | Fix / acceptance criteria |
 |---|---|---|---|---|
 | P0-01 | Slip OCR → transaction type | `EntryModal` defaults to `expense`; `applySlip` inserts amount/date/note and bank method but does not enforce selecting whether this is money in or out | An incoming bank transfer can be unintentionally recorded as an expense, distorting totals | OCR review must require an explicit **เงินเข้า / เงินออก** choice before Apply/Save. Never infer direction solely from account slip layout. Test incoming and outgoing slips for each flow. |
-| P0-02 | Small-screen navigation | Initial 320px Chromium test: after Reports, clicking Settings timed out; `main.main-content` intercepted pointer events at the intended click coordinates | A user may be unable to navigate all four tabs on narrow screens | Reproduce and remove the overlapping clickable area. At 320/375/390/430 px every nav action must be clickable by real pointer, without forced DOM click and without horizontal scrolling. |
+| P0-02 | Small-screen navigation | Chromium 320px: Reports had **30px horizontal overflow** and Settings nav was pushed outside the viewport; pointer click was intercepted by `main.main-content` (confirmed in run 38014103488) | User cannot reliably navigate all four tabs on a narrow viewport | Remove horizontal overflow and ensure the fixed bottom bar never expands beyond the viewport. At 320/375/390/430px every nav action must be clickable by a real pointer, without forced DOM click or horizontal scrolling. |
 | P0-03 (gate) | Production access | Vercel `ssoProtection.enabled: true` for `all_except_custom_domains`; authenticated fetch works, public anonymous reachability unverified | External real users may see a login/authorization page | Run a private-session anonymous URL test before labeling the app publicly released; keep protection unless public access is explicitly intended and approved. **Status: BLOCKED / unverified**, not a demonstrated outage. |
 
 ### P1 — high priority
@@ -38,6 +38,8 @@ The app has a clear four-item IA, recognizable income/expense visual language, a
 | P1-06 | Data retention | Financial data is IndexedDB-only; backups must be exported manually and importing a backup replaces everything after a native browser confirm | Add persistent first-use and post-N-transactions backup reminder; offer a backup download before destructive import. Make 'แทนที่ข้อมูลทั้งหมด' visually explicit with a preview of counts. |
 | P1-07 | Keyboard and screen-reader modal access | Modal has `role=dialog` and Escape-to-close but no visible focus trap/return focus logic; no backdrop scroll lock evident | Trap focus within modal, focus title/first useful field, restore focus on close, prevent background scroll and clarify async save disabled states. |
 | P1-08 | iPhone scan input support | Input accepts only JPEG/PNG/WebP; HEIC/HEIF from iOS may be rejected. OCR model download may take time, progress can stay at zero until recognition | Add HEIC conversion or explicit photo-compression path; show Downloading OCR → Reading image → Review status and an actionable offline/network error. |
+| P1-09 | Collapsed tablet navigation accessibility | At 768px the sidebar hides its text labels without supplying aria-label to the four icon-only navigation buttons; axe-core reports four `button-name` failures | Add aria-label per nav action, tooltip for sighted pointer users, and visible keyboard focus. Ensure the current page state remains announced. |
+| P1-10 | Form control labeling | axe-core reports one `label` failure in Settings (repeated while Settings remains underneath the modal); the hidden JSON import file input has no accessible name | Add a stable id + associated label or aria-label; confirm no unlabeled controls in the full audit. |
 
 ### P2 — usability refinements
 
@@ -48,6 +50,26 @@ The app has a clear four-item IA, recognizable income/expense visual language, a
 | P2-03 | 'กระแสเงินสุทธิ' can be mistaken for available bank balance; 'อัตราเก็บเงิน' can be negative | Add 'รายรับ - รายจ่ายที่บันทึก' under the headline. Show negative ratio as 'ใช้มากกว่ารายรับ' and distinguish untracked cash/bank balances. |
 | P2-04 | Search and filters work only within the selected month and type; CSV export wording is broader than current visual filter | Add a period shortcut and category/method filters or explicitly communicate month scope. |
 | P2-05 | Destructive interactions rely on native `window.confirm`, unlike the designed dialog | Create consistent confirmation and result states for deletion/restore with clear primary/secondary CTA ordering. |
+
+
+## Browser QA measurements — completed
+
+**GitHub Actions:** [Run 38014103488 — PASS](https://github.com/kreecrypto/Money-Tracker/actions/runs/38014103488). This is a **successful audit execution**, not a claim that the audited UI passes accessibility. Screenshots and machine-readable results: [25 artifacts](https://github.com/kreecrypto/Money-Tracker/actions/runs/38014103488/artifacts/11655158441).
+
+| Metric | Result | Interpretation |
+|---|---|---|
+| Viewports | 320×700, 390×844, 768×1024, 1280×800 | Emulated Chromium only; not real device coverage |
+| Pages/screens | 24 snapshots (Dashboard, Transactions, Reports, Settings, Add, OCR × 4) | All target screen states captured |
+| Basic save smoke | 4/4 success; no JavaScript page errors | Local IndexedDB save flow verified in each emulated viewport |
+| axe-core `color-contrast` | Found in **24/24** screen snapshots | Repeated contrast failures in nearly every component; counts are *screen-level*, not distinct bugs |
+| axe-core `button-name` | Found in **6/24** snapshots, all at 768px | Collapsed icon-only sidebar loses four accessible names |
+| axe-core `label` | Found in **12/24** snapshots | One missing input label persists on Settings/underlying overlay |
+| Mobile 320px | Reports 30px horizontal overflow, Settings 2px | One reproducible blocked Settings tab during Reports; the automation used DOM click solely to continue |
+| Mobile 390px | No horizontal overflow recorded in six target snapshots | This does not prove device Safari is issue-free |
+| OCR panel at 320px | 13 of 18 visible interactive targets below 44px in width or height | Touch-target check is a UX heuristic, not automatic WCAG-failure proof |
+| OCR modal at 320px | 630px visible height; content height 1156px; Save CTA below the viewport | Scrolling is required to reach the main action after scanning |
+
+**Screen-level automated audit status: FAIL** until accessibility, narrow-screen navigation, and financial-type confirmation are corrected. The GitHub Actions workflow itself passed and uploaded evidence.
 
 ## Recommended UX direction
 
