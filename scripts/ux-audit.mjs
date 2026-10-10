@@ -82,10 +82,17 @@ try {
     await page.locator('#amount').fill('125.50');
     await page.locator('#note').fill('รายการทดสอบ UX Audit');
     await page.getByRole('button',{name:'บันทึกรายการ',exact:true}).click();
-    await page.waitForTimeout(200);
-    await page.getByRole('button',{name:'รายการทั้งหมด',exact:true}).last().evaluate(el=>el.click());
+    await page.waitForTimeout(500);
+    const state=await page.evaluate(()=>({modalOpen:!!document.querySelector('.modal'),formError:document.querySelector('.modal .error-message')?.textContent?.trim()||null,toast:document.querySelector('.toast')?.textContent?.trim()||null}));
+    if(state.modalOpen) await page.locator('.modal .modal-heading button').first().evaluate(el=>el.click());
+    await page.evaluate(()=>{
+      const nav=innerWidth<=660?document.querySelector('.mobile-bottom-nav'):document.querySelector('.sidebar');
+      const target=Array.from(nav?.querySelectorAll('button')||[]).find(x=>x.textContent?.includes('รายการทั้งหมด'));
+      target?.click();
+    });
+    await page.waitForTimeout(180);
     const confirmed=await page.getByText('รายการทดสอบ UX Audit').count();
-    record('save-smoke',name,{savedVisible:confirmed>0,pageErrors:errors});
+    record('save-smoke',name,{savedVisible:confirmed>0,saveState:state,pageErrors:errors});
     await context.close();
   }
   fs.writeFileSync(dir+'/audit.json',JSON.stringify({date:new Date().toISOString(),base,results:findings},null,2));
@@ -96,7 +103,8 @@ try {
 } catch (err) {
   console.error('UX AUDIT FAILURE',err);
   process.exitCode=1;
-} finally {
+ } finally {
+  fs.writeFileSync(dir+'/audit.json',JSON.stringify({date:new Date().toISOString(),base,results:findings},null,2));
   if(browser)await browser.close();
   server.kill('SIGTERM');
 }
