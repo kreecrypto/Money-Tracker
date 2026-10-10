@@ -1,6 +1,6 @@
 import {timingSafeEqual} from 'node:crypto';
-import {json} from '../../server/iphone/bridge';
-import {purgeCandidates,purgeRow} from '../../server/iphone/imageStorage';
+import {json} from '../../server/iphone/bridge.js';
+import {purgeCandidates,purgeRow} from '../../server/iphone/imageStorage.js';
 export const maxDuration=60;
 function authorized(request:Request){
   const expected=(process.env.SLIP_CLEANUP_SECRET||'').trim();
