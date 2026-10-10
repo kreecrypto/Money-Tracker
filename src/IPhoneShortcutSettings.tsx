@@ -1,7 +1,7 @@
 import IPhoneSlipPreview from './IPhoneSlipPreview';
 import {useCallback,useEffect,useState} from 'react';
 import {Camera,CheckCircle2,RefreshCcw,ShieldCheck,Smartphone,Unlink} from 'lucide-react';
-import {baht,EXPENSE_CATEGORIES,INCOME_CATEGORIES,METHODS,toSatang,todayLocal} from './lib/finance';
+import {baht,EXPENSE_CATEGORIES,INCOME_CATEGORIES,METHODS,toSatang} from './lib/finance';
 import {
   iphoneConfigured,iphoneConnected,iphoneConnect,iphoneDisconnect,iphoneDrafts,iphoneReview,
   iphoneSync,type IPhoneDraft
