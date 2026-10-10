@@ -43,13 +43,24 @@ try {
   await ready();
   try{browser=await chromium.launch({headless:true,channel:'chrome',args:['--no-sandbox']});}
   catch{browser=await chromium.launch({headless:true,args:['--no-sandbox']});}
-  for(const [name,width,height] of [['mobile320',320,700],['iphone390',390,844],['tablet768',768,1024],['desktop1280',1280,800]]){
+  for(const [name,width,height] of [['mobile320',320,700],['mobile375',375,812],['iphone390',390,844],['mobile430',430,932],['tablet768',768,1024],['desktop1280',1280,800]]){
     const context=await browser.newContext({viewport:{width,height},deviceScaleFactor:1,isMobile:width<700,hasTouch:width<700});
     const page=await context.newPage();
     const errors=[];
     page.on('pageerror',e=>errors.push(e.message));
     await page.goto(base,{waitUntil:'networkidle'});
     await scan(page,'home',name);
+    if(width<=660){
+      const mobileHome=await page.evaluate(()=>{
+        const el=name=>document.querySelector(name)?.getBoundingClientRect();
+        const hero=el('.hero-card'),quick=el('.mobile-quick-actions'),recent=el('.transactions-surface'),nav=el('.mobile-bottom-nav');
+        return {correctHierarchy:!!(hero&&quick&&recent&&hero.top<quick.top&&quick.top<recent.top),quickActionsVisible:!!(quick&&quick.width>0),bottomNavVisible:!!(nav&&nav.width===innerWidth)};
+      });
+      await page.locator('.mobile-action-scan').click();
+      const openedOCR=await page.locator('.modal .slip-panel').isVisible();
+      await page.locator('.modal .modal-heading button').click();
+      record('mobile-home-actions',name,{...mobileHome,openedOCR,pageErrors:errors});
+    }
     const menu=['รายการทั้งหมด','รายงาน','ตั้งค่า'];
     const views=['transactions','reports','settings'];
     for(let i=0;i<menu.length;i++){
@@ -122,9 +133,10 @@ try {
     ||(x.axe?.violations?.length||0)>0
     ||(x.view==='save-smoke'&&(!x.savedVisible||x.pageErrors?.length))
     ||(x.view==='restore-smoke'&&(!x.initiallyDisabled||!x.enabledAfterAcknowledgement||!x.closed||x.pageErrors?.length))
+    ||(x.view==='mobile-home-actions'&&(!x.correctHierarchy||!x.quickActionsVisible||!x.bottomNavVisible||!x.openedOCR||x.pageErrors?.length))
   ).map(x=>({viewport:x.viewport,view:x.view,overflowPx:x.overflowPx,axe:x.axe?.violations?.map(v=>v.id),savedVisible:x.savedVisible,restore:[x.initiallyDisabled,x.enabledAfterAcknowledgement,x.closed]}));
   if(critical.length){console.error('UX_ACCEPTANCE_FAIL',JSON.stringify(critical));process.exitCode=1;}
-  else console.log('UX_ACCEPTANCE_PASS: 4 viewport, save, restore, responsive and WCAG scans');
+  else console.log('UX_ACCEPTANCE_PASS: 6 viewport, mobile quick OCR, save, restore, responsive and WCAG scans');
 } catch (err) {
   console.error('UX AUDIT FAILURE',err);
   process.exitCode=1;
