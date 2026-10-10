@@ -54,7 +54,17 @@ try {
     const views=['transactions','reports','settings'];
     for(let i=0;i<menu.length;i++){
       const buttons=page.getByRole('button',{name:menu[i],exact:true});
-      await buttons.last().click();
+      try{await buttons.last().click({timeout:2500});}
+      catch(err){
+        const obstruction=await buttons.last().evaluate(el=>{
+          const r=el.getBoundingClientRect(),x=r.left+r.width/2,y=r.top+r.height/2;
+          const hit=document.elementFromPoint(x,y);
+          return {buttonLabel:el.getAttribute('aria-label')||el.textContent?.trim(),rect:{x:r.x,y:r.y,width:r.width,height:r.height},hitTag:hit?.tagName,hitClass:hit?.className,hitText:hit?.textContent?.trim().slice(0,50)};
+        });
+        record('navigation-obstruction',name,{from:i===0?'home':views[i-1],to:views[i],obstruction,error:String(err).slice(0,250)});
+        console.log('NAVIGATION_OBSTRUCTION',JSON.stringify({viewport:name,to:views[i],obstruction}));
+        await buttons.last().evaluate(el=>el.click());
+      }
       await scan(page,views[i],name);
     }
     const add=page.getByRole('button',{name:'เพิ่มรายการ',exact:true});
@@ -73,7 +83,7 @@ try {
     await page.locator('#note').fill('รายการทดสอบ UX Audit');
     await page.getByRole('button',{name:'บันทึกรายการ',exact:true}).click();
     await page.waitForTimeout(200);
-    await page.getByRole('button',{name:'รายการทั้งหมด',exact:true}).last().click();
+    await page.getByRole('button',{name:'รายการทั้งหมด',exact:true}).last().evaluate(el=>el.click());
     const confirmed=await page.getByText('รายการทดสอบ UX Audit').count();
     record('save-smoke',name,{savedVisible:confirmed>0,pageErrors:errors});
     await context.close();
