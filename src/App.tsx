@@ -4,6 +4,7 @@ import {baht,CATEGORY_ICONS,DEFAULT_SETTINGS,EXPENSE_CATEGORIES,expenseByCategor
 import {deleteTransaction,loadSettings,loadTransactions,replaceAll,saveSettings,saveTransaction} from './lib/storage';
 import {createBackup,downloadText,parseBackup,toCsv} from './lib/backup';
 import SlipScanner from './SlipScanner';
+import RestoreDialog from './RestoreDialog';
 import type {SlipFields} from './lib/slip';
 
 type Page='home'|'transactions'|'reports'|'settings';
@@ -102,6 +103,8 @@ export default function App(){
   const [ready,setReady]=useState(false);const [loadingError,setLoadingError]=useState('');const [toast,setToast]=useState('');const [search,setSearch]=useState('');const [filter,setFilter]=useState<Filter>('all');
   const [budgetEdit,setBudgetEdit]=useState('');const [budgetSaving,setBudgetSaving]=useState(false);
   const [lastBackupAt,setLastBackupAt]=useState(()=>{try{return Number(localStorage.getItem('ngoentoday-last-backup')||0);}catch{return 0;}});
+  const [pendingRestore,setPendingRestore]=useState<ReturnType<typeof parseBackup>|null>(null);
+  const [restoreBusy,setRestoreBusy]=useState(false);
   const importRef=useRef<HTMLInputElement>(null);
   const reload=useCallback(async()=>{const [rows,s]=await Promise.all([loadTransactions(),loadSettings()]);setItems(rows);setSettings(s);setBudgetEdit(s.monthlyBudgetSatang?String(s.monthlyBudgetSatang/100):'');},[]);
   useEffect(()=>{reload().catch(e=>setLoadingError(e instanceof Error?e.message:'เปิดฐานข้อมูลไม่สำเร็จ')).finally(()=>setReady(true));},[reload]);
@@ -126,9 +129,19 @@ export default function App(){
   const importBackup=async(file:File)=>{try{
     if(file.size>25*1024*1024)throw new Error('ไฟล์ใหญ่เกิน 25 MB');
     const parsed=parseBackup(await file.text());
-    if(!window.confirm(`นำเข้ารายการ ${parsed.transactions.length} รายการหรือไม่? ข้อมูลปัจจุบัน ${items.length} รายการจะถูกแทนที่ทั้งหมด กรุณาสำรองข้อมูลเดิมก่อน`))return;
-    await replaceAll(parsed.transactions,parsed.settings);await reload();setToast(`นำเข้าสำเร็จ ${parsed.transactions.length} รายการ`);
+    setPendingRestore(parsed);
   }catch(e){setToast(e instanceof Error?e.message:'นำเข้าไม่สำเร็จ');}finally{if(importRef.current)importRef.current.value='';}};
+  const confirmRestore=async()=>{
+    if(!pendingRestore)return;
+    try{
+      setRestoreBusy(true);
+      await replaceAll(pendingRestore.transactions,pendingRestore.settings);
+      await reload();
+      setToast(`นำเข้าสำเร็จ ${pendingRestore.transactions.length} รายการ`);
+      setPendingRestore(null);
+    }catch(e){setToast(e instanceof Error?e.message:'นำเข้าไม่สำเร็จ');}
+    finally{setRestoreBusy(false);}
+  };
   if(!ready) return <div className="loading-screen"><div className="loading-icon">฿</div>กำลังเปิดสมุดบันทึกของคุณ...</div>;
   if(loadingError) return <div className="loading-screen"><span>⚠️</span><h2>ไม่สามารถเปิดข้อมูลได้</h2><p>{loadingError}</p><button className="btn btn-primary" onClick={()=>window.location.reload()}>ลองอีกครั้ง</button></div>;
   return <div className="app-shell"><aside className="sidebar"><Logo/><div className="workspace-label">WORKSPACE</div><nav aria-label="เมนูหลัก">{navItems.map(({key,label,icon:Icon})=><button key={key} className={`nav-item ${view===key?'active':''}`} aria-label={label} aria-current={view===key?'page':undefined} onClick={()=>setView(key)}><Icon size={19} strokeWidth={1.9}/><span>{label}</span>{view===key&&<span className="nav-active-indicator"/>}</button>)}</nav><div className="sidebar-spacer"/><div className="privacy-card"><div className="privacy-graphic"><ShieldCheck size={24}/></div><strong>ข้อมูลเป็นของคุณ</strong><p>รายการเก็บไว้บนอุปกรณ์นี้ ไม่ส่งขึ้นคลาวด์</p><span><CloudOff size={13}/> LOCAL FIRST</span></div><p className="sidebar-version">เงินวันนี้ · เวอร์ชัน 0.3.0</p></aside>
@@ -151,5 +164,6 @@ export default function App(){
     <button aria-label="เพิ่มรายการ" title="เพิ่มรายการ" className="mobile-fab" onClick={openAdd}><Plus size={25}/></button><nav className="mobile-bottom-nav" aria-label="เมนูมือถือ">{navItems.map(({key,label,icon:Icon})=><button key={key} className={view===key?'active':''} aria-current={view===key?'page':undefined} onClick={()=>setView(key)}><Icon size={21}/><span>{label}</span></button>)}</nav>
     {toast&&<div className="toast" role="status"><Check size={17}/>{toast}</div>}
     {modalOpen&&<EntryModal initial={editing} existing={items} close={()=>setModalOpen(false)} submit={onSave}/>}
+    {pendingRestore&&<RestoreDialog existingCount={items.length} importedCount={pendingRestore.transactions.length} busy={restoreBusy} onBackup={exportJson} onConfirm={()=>{void confirmRestore();}} onClose={()=>setPendingRestore(null)}/>}
   </div>;
 }
