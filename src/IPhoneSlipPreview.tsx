@@ -8,14 +8,21 @@ export default function IPhoneSlipPreview({draft}:{draft:IPhoneDraft}){
   const [error,setError]=useState('');
   const [loading,setLoading]=useState(false);
   const [zoom,setZoom]=useState(false);
+  const [clock,setClock]=useState(Date.now());
   const meta=draft.image;
   const expiry=meta?.expiresAt?Date.parse(meta.expiresAt):null;
-  const accessible=Boolean(meta?.available&&expiry&&expiry>Date.now());
+  const accessible=Boolean(meta?.available&&expiry&&expiry>clock);
   const release=useCallback(()=>setUrl(previous=>{if(previous)URL.revokeObjectURL(previous);return null;}),[]);
   useEffect(()=>()=>{release();},[release]);
+  useEffect(()=>{
+    if(!expiry)return;
+    const delay=Math.max(0,Math.min(expiry-Date.now(),2147483647));
+    const id=setTimeout(()=>{setClock(Date.now());release();setZoom(false);},delay+10);
+    return ()=>clearTimeout(id);
+  },[expiry,release]);
   useEffect(()=>{release();setZoom(false);setError('');},[draft.id,release]);
   const load=async()=>{
-    if(!accessible||loading)return;
+    if(!accessible||expiry===null||expiry<=Date.now()||loading)return;
     setLoading(true);setError('');
     try{
       const blob=await iphoneImage(draft.id);
