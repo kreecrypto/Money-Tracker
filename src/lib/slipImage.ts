@@ -30,8 +30,12 @@ export async function prepareSlipForOcr(file:File):Promise<File>{
   const image=new Image();
   try{
     await new Promise<void>((resolve,reject)=>{
-      image.onload=()=>resolve();
-      image.onerror=()=>reject(Error('ไม่สามารถอ่าน HEIC บนเบราว์เซอร์นี้ได้ กรุณาใช้ Safari หรือแปลงเป็น JPG'));
+      // Some Chromium versions never emit a decode error for an unsupported HEIC blob.
+      // Fail closed rather than leaving the review scanner indefinitely busy.
+      const fail=()=>reject(Error('ไม่สามารถอ่าน HEIC บนเบราว์เซอร์นี้ได้ กรุณาใช้ Safari หรือแปลงเป็น JPG'));
+      const timer=setTimeout(fail,6000);
+      image.onload=()=>{clearTimeout(timer);resolve();};
+      image.onerror=()=>{clearTimeout(timer);fail();};
       image.src=objectUrl;
     });
     const {width,height}=scaledSlipSize(image.naturalWidth,image.naturalHeight);
