@@ -2,6 +2,7 @@
  * Run only against the configured Money Tracker API domain after approved deployment.
  */
 import fs from 'node:fs';
+import pathUtil from 'node:path';
 const BASE='https://money-tracker-api-blush.vercel.app';
 const path=process.env.RELEASE_REPORT_PATH||'release-artifacts/api-negative-smoke.json';
 const bogus='0'.repeat(64);
@@ -31,7 +32,7 @@ for(const test of cases){
   results.push({name:test.name,expected:test.expected,status,passed,error});
   console.log((passed?'PASS':'FAIL')+' '+test.name+' (HTTP '+status+', expected '+test.expected+')');
 }
-fs.mkdirSync(new URL('.', 'file://'+process.cwd()+'/'+path).pathname,{recursive:true});
+fs.mkdirSync(pathUtil.dirname(path),{recursive:true});
 fs.writeFileSync(path,JSON.stringify({timestamp:new Date().toISOString(),base:BASE,results,allPassed:results.every(x=>x.passed)},null,2));
 if(results.some(x=>!x.passed)){
   console.error('RELEASE_GATE_BLOCKED: API negative smoke is not fully passing');
