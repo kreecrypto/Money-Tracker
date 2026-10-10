@@ -1,6 +1,6 @@
 # เงินวันนี้ · Daily Money Tracker
 
-Mobile-first, Thai-language, offline-first **daily income and expense tracker** (MVP v0.3.0). Uses a responsive React + TypeScript + Vite frontend and IndexedDB for local data storage.
+Mobile-first, Thai-language, offline-first **daily income and expense tracker** (MVP v0.4.0). Uses a responsive React + TypeScript + Vite frontend and IndexedDB for local data storage.
 
 ## ✨ Features
 
@@ -56,6 +56,14 @@ type Transaction = {
 The store is **IndexedDB**, isolated to the site's origin. **It does not sync across devices**. Removing site data, using private mode, or changing domains/browsers may cause data loss. **Download a JSON backup regularly.** A restore replaces all current transactions only after a confirmation. This is not encrypted storage: anyone with access to the unlocked browser profile/device may access the local data. Avoid importing backups from untrusted sources.
 
 **Net cash flow** = recorded income − recorded expenses; this is *not* your bank balance and does not represent debts or assets. Expense categories include debt payments, but the app does not manage full loan balances or double-entry accounting.
+
+## Mobile-first Minimal UI v0.4.0
+
+- Redesigned home layout for 320px-first mobile use: top-level recorded net cash flow, quick Add/Scan Slip shortcuts and recent transactions, with charts below.
+- Simplified colors, flatter cards, clearer Thai typography, unobtrusive per-row action menu and bottom navigation.
+- OCR can be opened directly from the home screen without first entering the manual-entry form.
+- See [Mobile-first design specification](docs/MOBILE_FIRST_DESIGN.md).
+- GitHub's automated Chromium UX audit now covers 320, 375, 390, 430, 768 and 1280px.
 
 ## UX/UI fixes v0.3.0
 
