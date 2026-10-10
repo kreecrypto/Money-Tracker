@@ -1,0 +1,59 @@
+/* 2026-10-10 — Mobile-first QA implementation: single audit layer.
+   This file only contains the incremental UX improvements, preserving legacy desktop styles. */
+:root {--ux-ink:#1c3129;--ux-muted:#51665d;--ux-line:#e5ebe7;--ux-accent:#17664f;--ux-surface:#fff;--ux-bg:#f9faf8}
+.header-settings{display:grid;place-items:center;width:44px;height:44px;min-width:44px;border:0;border-radius:12px;background:transparent;color:var(--ux-ink);cursor:pointer}
+.header-settings:hover{background:#eef5f0}
+.header-settings:focus-visible,.pending-inbox-cta:focus-visible,.iphone-direction button:focus-visible,.iphone-inbox-refresh:focus-visible{outline:3px solid #31997b;outline-offset:2px}
+.inbox-badge{display:inline-flex;align-items:center;justify-content:center;min-width:19px;height:19px;padding:0 4px;border-radius:20px;background:#17664f;color:#fff;font-size:11px;font-weight:800;line-height:1.1}
+.sidebar .nav-item .inbox-badge{margin-left:auto}
+.sidebar-settings{width:100%;margin-top:6px}
+.pending-inbox-cta{display:flex;align-items:center;gap:12px;width:100%;padding:13px 16px;text-align:left;border:1px solid #cfe5d8;border-radius:15px;background:#eff8f2;color:var(--ux-ink);min-height:66px;cursor:pointer}
+.pending-inbox-cta>span{flex:1;display:grid;gap:4px}
+.pending-inbox-cta strong{font-size:14px;line-height:1.3}
+.pending-inbox-cta small{font-size:13px;color:var(--ux-muted);line-height:1.3}
+.inbox-page{max-width:800px;margin:0 auto;min-width:0}
+.inbox-page-title{margin:0 0 16px}
+.inbox-page-title h2{font-size:22px;color:var(--ux-ink);margin:0 0 5px}
+.inbox-page-title p{font-size:14px;color:var(--ux-muted);margin:0;line-height:1.5}
+.iphone-inbox{background:var(--ux-surface);padding:20px;border:1px solid var(--ux-line);border-radius:18px;box-shadow:none}
+.iphone-inbox-header{display:flex;align-items:flex-start;justify-content:space-between;gap:12px}
+.iphone-inbox-header h3{font-size:17px;margin:0 0 4px;color:var(--ux-ink)}
+.iphone-inbox-header p{font-size:13px;line-height:1.55;color:var(--ux-muted);margin:0}
+.iphone-inbox-count{min-width:32px;height:32px;display:grid;place-items:center;border-radius:12px;background:#e8f4ed;color:var(--ux-accent);font-size:16px;font-weight:800}
+.iphone-inbox-refresh{margin:14px 0 4px;min-height:44px}
+.iphone-direction-label{font-size:14px;line-height:1.6;color:var(--ux-ink);margin:14px 0 8px}
+.iphone-direction-label strong{color:#a34730}
+.iphone-direction-label small{color:var(--ux-muted);font-size:12px}
+.iphone-direction{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;margin:0 0 16px}
+.iphone-direction button{min-width:0;min-height:49px;background:#fff;color:var(--ux-ink);border:1px solid #c7d8ce;border-radius:12px;font-size:14px;font-weight:650;cursor:pointer;padding:10px}
+.iphone-direction button.selected{border:2px solid var(--ux-accent);background:#eaf4ee;color:#135640}
+.iphone-direction button.selected.expense{background:#faf1ed;border-color:#a95339;color:#88402e}
+.iphone-draft{padding:18px;box-shadow:none}
+.iphone-draft .iphone-slip-evidence{margin:10px 0 12px}
+.iphone-card .iphone-draft .field-label{font-size:14px;color:var(--ux-ink);line-height:1.55}
+.iphone-card .iphone-draft input,.iphone-card .iphone-draft select{font-size:16px;min-height:48px}
+.iphone-card .iphone-draft .iphone-draft-grid{gap:10px}
+.iphone-draft-help{font-size:13px;line-height:1.6}
+.iphone-draft-actions button{min-height:48px;font-size:14px}
+.iphone-empty{line-height:1.6;font-size:14px}
+.iphone-card .line-status{font-size:13px;line-height:1.6}
+.transaction-copy span,.transaction-end span{font-size:13px;line-height:1.5}
+.transaction-copy strong,.transaction-end b{font-size:14px;line-height:1.5}
+.mobile-bottom-nav button .inbox-badge{position:absolute;top:1px;right:calc(50% - 26px);pointer-events:none;box-shadow:0 0 0 2px #fff}
+.iphone-open-inbox{width:100%;min-height:48px}
+@media(max-width:660px){
+  .topbar{gap:8px}.topbar-actions{gap:5px}.header-settings{width:44px;height:44px;flex:none}
+  .inbox-page-title h2{font-size:20px}
+  .inbox-page-title p{font-size:13px}
+  .iphone-inbox{padding:15px 12px;border-radius:15px}
+  .iphone-draft{padding:12px}
+  .iphone-direction button{font-size:13px}
+  .iphone-draft-actions{gap:9px}
+  .mobile-bottom-nav button{min-height:48px}
+  .mobile-bottom-nav{isolation:isolate}
+  .iphone-draft .iphone-slip-evidence-head small{font-size:12px}
+  .transaction-copy span,.transaction-end span{font-size:12px}
+  .transaction-copy strong,.transaction-end b{font-size:14px}
+}
+@media(max-width:360px){.iphone-direction button{padding:7px;font-size:12px}.inbox-page{width:100%}}
+@media(prefers-reduced-motion:reduce){.pending-inbox-cta,.iphone-direction button{transition:none}}
