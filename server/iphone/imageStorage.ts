@@ -32,6 +32,12 @@ async function db(path:string,method:'GET'|'PATCH',body?:Record<string,unknown>)
   return await r.json() as ImageRow[];
 }
 const filter=(id:string,owner:string)=>table+'?id=eq.'+encodeURIComponent(id)+'&owner_key=eq.'+encodeURIComponent(owner);
+export async function findDraftByDigest(owner:string,digest:string){
+  if(!/^[a-f0-9]{64}$/.test(owner)||!/^[a-f0-9]{64}$/.test(digest))return null;
+  const rows=await db(table+'?owner_key=eq.'+encodeURIComponent(owner)+
+    '&image_digest=eq.'+encodeURIComponent(digest)+'&select=*','GET');
+  return rows[0]||null;
+}
 export async function readDraft(id:string,owner:string){
   const rows=await db(filter(id,owner)+'&select=*','GET');
   return rows[0]||null;
