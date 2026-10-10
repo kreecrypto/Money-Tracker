@@ -97,8 +97,20 @@ export default function IPhoneShortcutSettings({onImported}:{onImported:()=>Prom
   };
   return <section className="surface settings-card iphone-card" aria-label="iPhone Shortcut">
     <div className="settings-icon green"><Smartphone size={23}/></div>
-    <h3>iPhone Shortcut → เงินวันนี้</h3>
-    <p>เปิด LINE ธนาคาร แคปภาพ แล้วแชร์ไป Shortcut เพื่อส่งรูปอย่างปลอดภัย ระบบ OCR จะสร้างรายการให้ตรวจสอบก่อนบันทึก ไม่ต้องเชื่อม LINE OA ของธนาคาร</p>
+    <h3>iPhone Photos → เงินวันนี้</h3>
+    <p>Photos Auto Slip Sync สำหรับ iOS 26: เมื่อปิดแอปธนาคาร Shortcuts สามารถค้นหารูปล่าสุด อ่านข้อความบน iPhone แล้วส่งเฉพาะข้อความที่คล้ายสลิปเข้าระบบเพื่อรอยืนยัน โดยไม่ต้องเชื่อม LINE OA ของธนาคาร</p>
+    <details className="iphone-photos-setup">
+      <summary>วิธีเปิด Auto Slip Sync บน iPhone (iOS 26)</summary>
+      <ol>
+        <li>สร้าง Shortcut: Find Photos (รูปล่าสุด) → Repeat with Each → Extract Text from Image</li>
+        <li>กรองข้อความบน iPhone ให้พบคำเกี่ยวกับการโอน <strong>และ</strong> ป้ายยอดเงินธุรกรรมก่อนส่ง</li>
+        <li>ส่งเฉพาะข้อความ OCR ไปยัง API ผ่าน POST JSON โดยใช้ Upload Token เฉพาะเครื่อง</li>
+        <li>Shortcuts → Automation → App → เลือก K PLUS → Is Closed → Run Immediately → เลือก Shortcut นี้</li>
+        <li>กลับมาหน้านี้เพื่อตรวจยอด เลือกเงินเข้า/ออกและยืนยัน</li>
+      </ol>
+      <p className="iphone-photos-caution">ไม่ใช่การเฝ้าดู Photos ตลอดเวลา หากสลิปยังไม่ถูกบันทึกตอนปิดแอป อาจต้องใช้ Automation ตามเวลาช่วยตรวจอีกครั้ง</p>
+      <a href="https://github.com/kreecrypto/Money-Tracker/blob/main/docs/IOS26_PHOTOS_AUTO_SLIP.md" target="_blank" rel="noopener noreferrer">อ่านคู่มือ Shortcuts แบบละเอียด</a>
+    </details>
     {!iphoneConfigured()?
       <p className="line-status" role="status"><ShieldCheck size={17}/> ยังไม่ได้เปิดใช้ iPhone API — ต้องตั้งค่า Bridge และฐานข้อมูลก่อน</p>:
       !linked?<>
