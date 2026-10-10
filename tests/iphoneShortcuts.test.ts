@@ -75,6 +75,15 @@ vi.mock('../server/iphone/bridge',async importOriginal=>{
     reviewDraft:vi.fn(async()=>({id:'38dbeb1a-df38-43bc-b4b3-ea3f74f198c9',status:'confirmed'}))
   };
 });
+vi.mock('../server/iphone/imageStorage',async importOriginal=>{
+  const original=await importOriginal<typeof import('../server/iphone/imageStorage')>();
+  return {...original,
+    changeImage:vi.fn(async(id:string,owner:string,patch:Record<string,unknown>)=>({id,owner_key:owner,...patch})),
+    storeImage:vi.fn(async()=>{}),
+    deleteImage:vi.fn(async()=>{}),
+    readDraft:vi.fn(async()=>null)
+  };
+});
 import {POST as upload} from '../api/iphone/upload';
 import {GET as drafts,POST as review} from '../api/iphone/drafts';
 import {GET as ledger} from '../api/iphone/ledger';
