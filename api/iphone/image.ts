@@ -14,13 +14,14 @@ export async function GET(request:Request):Promise<Response>{
   if(!/^[a-f0-9-]{36}$/i.test(id))return json({error:'INVALID_ID'},400,cors);
   try{
     const row=await readDraft(id,ownerKey());
-    if(!row||row.image_status==='none'||row.image_status==='deleted'||!row.image_path)
+    if(!row||row.status==='discarded'||row.image_status==='none'||row.image_status==='deleted'||!row.image_path)
       return json({error:'IMAGE_NOT_FOUND'},404,cors);
     if(expired(row))return json({error:'IMAGE_EXPIRED'},410,cors);
     if(row.image_status!=='available'||row.image_bucket!==IMAGE_BUCKET)
       return json({error:'IMAGE_UNAVAILABLE'},503,cors);
     const blob=await getImage(row.image_path);
     const body=await blob.arrayBuffer();
+    if(expired(row))return json({error:'IMAGE_EXPIRED'},410,cors);
     return new Response(body,{status:200,headers:{
       'content-type':row.image_mime||'application/octet-stream',
       'content-length':String(body.byteLength),
