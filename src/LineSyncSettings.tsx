@@ -15,7 +15,7 @@ export default function LineSyncSettings({onImported}:{onImported:()=>Promise<vo
       setLinked(true);setCode('');
       const result=await syncLineInbox();
       await onImported();
-      setNotice('เชื่อม LINE สำเร็จ นำเข้ารายการใหม่ '+result.imported+' รายการ');
+      setNotice('เชื่อม LINE สำเร็จ นำเข้า '+result.imported+' รายการ'+(result.possibleDuplicates?` · พบ ${result.possibleDuplicates} รายการที่อาจซ้ำกับ iPhone โปรดตรวจรายการทั้งหมด` :''));
     }catch(e){setNotice(e instanceof Error?e.message:'เชื่อม LINE ไม่สำเร็จ');}
     finally{setPending(false);}
   };
@@ -24,7 +24,7 @@ export default function LineSyncSettings({onImported}:{onImported:()=>Promise<vo
     try{
       const result=await syncLineInbox();
       await onImported();
-      setNotice('ซิงก์แล้ว: เพิ่ม '+result.imported+' จาก '+result.received+' รายการบน LINE');
+      setNotice('ซิงก์แล้ว: เพิ่ม '+result.imported+' จาก '+result.received+' รายการบน LINE'+(result.possibleDuplicates?` · พบ ${result.possibleDuplicates} รายการที่อาจซ้ำกับ iPhone โปรดตรวจรายการทั้งหมด` :''));
     }catch(e){setLinked(lineLinked());setNotice(e instanceof Error?e.message:'ซิงก์ไม่สำเร็จ');}
     finally{setPending(false);}
   };

@@ -1,0 +1,26 @@
+name: API Negative Security Smoke
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  api-negative-smoke:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Negative security checks against approved production API
+        run: node scripts/release-api-smoke.mjs
+      - name: Upload non-sensitive status evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: money-tracker-api-negative-smoke
+          path: release-artifacts/api-negative-smoke.json
+          if-no-files-found: warn
+          retention-days: 7

@@ -1,4 +1,4 @@
-import {toSatang} from './finance';
+import {toSatang} from './finance.js';
 
 /** OCR parsing is intentionally conservative: uncertain values stay empty for human review. */
 export type SlipFields = {
