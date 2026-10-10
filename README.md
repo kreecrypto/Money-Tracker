@@ -1,6 +1,6 @@
 # เงินวันนี้ · Daily Money Tracker
 
-Mobile-first, Thai-language, offline-first **daily income and expense tracker** (MVP v0.2.0). Uses a responsive React + TypeScript + Vite frontend and IndexedDB for local data storage.
+Mobile-first, Thai-language, offline-first **daily income and expense tracker** (MVP v0.3.0). Uses a responsive React + TypeScript + Vite frontend and IndexedDB for local data storage.
 
 ## ✨ Features
 
@@ -57,25 +57,33 @@ The store is **IndexedDB**, isolated to the site's origin. **It does not sync ac
 
 **Net cash flow** = recorded income − recorded expenses; this is *not* your bank balance and does not represent debts or assets. Expense categories include debt payments, but the app does not manage full loan balances or double-entry accounting.
 
+## UX/UI fixes v0.3.0
+
+- Slip OCR now requires an explicit incoming/outgoing classification after recognition. No transfer is auto-saved. OCR review appears as a dedicated step inside the Add dialog.
+- Duplicate-like entries (same date, direction, amount, payment method) require explicit acknowledgment.
+- Keyboard focus is trapped in the dialog, previous focus is restored, and background scrolling is locked.
+- Budget and six-month charts respect the selected calendar month; the Dashboard prompts for JSON backups after multiple entries.
+- Responsive navigation, screen-reader names, contrast, and touch targets have been improved; see `docs/UX_UI_AUDIT_2026-10-10.md`.
+- Use `npm run build` and `npm test` before release; automated Chromium audit validates 320/390/768/1280px but cannot substitute for device Safari and real bank slip QA.
+
+## Canonical repository
+
+This code is hosted at https://github.com/kreecrypto/Money-Tracker and production deploys through Vercel on `main`. The application is currently deployed at https://money-tracker-beta-teal.vercel.app/. Visibility is controlled by the Vercel project protection settings.
+
 ## Repository setup
 
-Suggested GitHub repository: `daily-money-tracker` (private).
-
-1. Create the repository via https://github.com/new (do **not** initialize with a README if pushing this complete project).
-2. Run:
+Clone the existing repository:
 
 ```bash
-git init
-git branch -M main
-git add .
-git commit -m "feat: initial daily money tracker MVP"
-git remote add origin https://github.com/YOUR_USERNAME/daily-money-tracker.git
-git push -u origin main
+git clone https://github.com/kreecrypto/Money-Tracker.git
+cd Money-Tracker
+npm install
+npm run dev
 ```
 
 ## UX / roadmap
 
-See [`docs/PRODUCT.md`](docs/PRODUCT.md), [`docs/ROADMAP.md`](docs/ROADMAP.md), [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md), and [`docs/QA.md`](docs/QA.md). MVP is **not** yet connected to Supabase, banks, or a live domain.
+See [`docs/PRODUCT.md`](docs/PRODUCT.md), [`docs/ROADMAP.md`](docs/ROADMAP.md), [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md), and [`docs/QA.md`](docs/QA.md). MVP remains local-only: there is no Supabase or bank connection. A Vercel production domain is connected, but access may be restricted by Vercel Authentication.
 
 ## Security and privacy
 
