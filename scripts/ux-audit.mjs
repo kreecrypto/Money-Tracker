@@ -73,6 +73,7 @@ try {
     await page.locator('#note').fill('รายการทดสอบ UX Audit');
     await page.getByRole('button',{name:'บันทึกรายการ',exact:true}).click();
     await page.waitForTimeout(200);
+    await page.getByRole('button',{name:'รายการทั้งหมด',exact:true}).last().click();
     const confirmed=await page.getByText('รายการทดสอบ UX Audit').count();
     record('save-smoke',name,{savedVisible:confirmed>0,pageErrors:errors});
     await context.close();
