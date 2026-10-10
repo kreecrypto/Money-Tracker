@@ -30,3 +30,23 @@ revoke all on table public.money_tracker_line_transactions from anon,authenticat
 grant all on table public.money_tracker_line_transactions to service_role;
 comment on table public.money_tracker_line_transactions is
   'Server-side LINE chat captures and pending bank drafts; no public access. Sync requires a separate authenticated account-linking flow.';
+
+-- Pairing proof can be issued only through a signature-verified LINE direct chat.
+-- The browser never sees another user's LINE ID or server credentials.
+create table if not exists public.money_tracker_line_links (
+  line_user_id text primary key,
+  pair_code_digest text unique,
+  pair_expires_at timestamptz,
+  session_digest text unique,
+  session_expires_at timestamptz,
+  linked_at timestamptz,
+  created_at timestamptz not null default now(),
+  constraint line_links_user_id_length check (length(line_user_id) between 1 and 150)
+);
+create index if not exists idx_money_tracker_line_link_expiry
+  on public.money_tracker_line_links(pair_expires_at);
+alter table public.money_tracker_line_links enable row level security;
+revoke all on table public.money_tracker_line_links from anon,authenticated;
+grant all on table public.money_tracker_line_links to service_role;
+comment on table public.money_tracker_line_links is
+ 'LINE-verified one-time pairing code and hash-only bearer session. Never expose tokens or user IDs to browsers directly.';
