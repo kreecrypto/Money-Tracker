@@ -130,6 +130,10 @@ async function handle(event:LineEvent,token:string){
     return;
   }
   const bank=parseBankNotice(body);
+  if(!bank&&/KBank|K PLUS|รายการโอน\/ถอน|ยอดเงินคงเหลือ|จากบัญชี|จำนวนเงิน/i.test(body)){
+    await reply(replyToken,'ข้อความนี้ดูเหมือนแจ้งเตือนธนาคาร แต่ยังแยกวันที่หรือยอดเงินที่ถูกต้องไม่ได้ จึงไม่บันทึก กรุณาส่งภาพที่ชัดเจน',token);
+    return;
+  }
   if(bank){
     if(!bank.date){
       await reply(replyToken,'กรุณาส่งข้อความที่มีวันที่ทำรายการชัดเจน ยังไม่ได้บันทึก',token);
