@@ -1,5 +1,5 @@
-import {auth,appCors,options,json,ownerKey} from '../../server/iphone/bridge';
-import {getImage,readDraft,expired,IMAGE_BUCKET} from '../../server/iphone/imageStorage';
+import {auth,appCors,options,json,ownerKey} from '../../server/iphone/bridge.js';
+import {getImage,readDraft,expired,IMAGE_BUCKET} from '../../server/iphone/imageStorage.js';
 
 export const maxDuration=20;
 export {options as OPTIONS};
