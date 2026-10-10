@@ -58,16 +58,7 @@ try {
       });
       await page.locator('.mobile-action-scan').click();
       const openedOCR=await page.locator('.modal .slip-panel').isVisible();
-      const closeHit=await page.locator('.modal .modal-heading button').evaluate(el=>{
-        const b=el.getBoundingClientRect(),midX=b.x+b.width/2,midY=b.y+b.height/2;
-        const modal=el.closest('.modal'),d=modal?.getBoundingClientRect();
-        const target=document.elementFromPoint(midX,midY);
-        const doc=document.documentElement, vv=visualViewport;
-        const candidates=Array.from(document.querySelectorAll('body *')).map(e=>{const r=e.getBoundingClientRect();return{cls:String(e.className?.baseVal||e.className||'').slice(0,95),tag:e.tagName,x:Math.round(r.x),right:Math.round(r.right),width:Math.round(r.width),scrollWidth:e.scrollWidth}}).filter(x=>x.right>320||x.width>320).sort((a,b)=>b.width-a.width).slice(0,20);
-        return {viewport:[innerWidth,innerHeight],screenWidth:screen.width,clientWidth:doc.clientWidth,scrollWidth:doc.scrollWidth,bodyScrollWidth:document.body.scrollWidth,visualViewport:vv?{width:vv.width,scale:vv.scale,offsetLeft:vv.offsetLeft}:null,overflowNodes:candidates,button:{x:b.x,y:b.y,w:b.width,h:b.height,midX,midY},modal:{x:d?.x,y:d?.y,w:d?.width,h:d?.height,scrollTop:modal?.scrollTop,scrollHeight:modal?.scrollHeight},hit:{tag:target?.tagName,cls:target?.className,outer:target?.outerHTML.slice(0,210)},pointer:getComputedStyle(el).pointerEvents};
-      });
-      console.log('CLOSE_BUTTON_HIT_TEST',JSON.stringify({name,closeHit}));
-      await page.locator('.modal .modal-heading button').click({timeout:4000});
+      await page.locator('.modal .modal-heading button').click();
       record('mobile-home-actions',name,{...mobileHome,openedOCR,pageErrors:errors});
     }
     const menu=['รายการทั้งหมด','รายงาน','ตั้งค่า'];
