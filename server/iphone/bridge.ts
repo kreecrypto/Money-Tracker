@@ -56,7 +56,7 @@ export async function saveDraft(row:Pick<IPhoneDraft,
 }
 export async function pendingDrafts(){
   return await db(table+'?owner_key=eq.'+esc(ownerKey())+
-    '&status=eq.pending&select=id,amount_satang,type,transaction_date,category,note,method,source_label,created_at&order=created_at.desc&limit=50','GET');
+    '&status=eq.pending&select=id,amount_satang,type,transaction_date,category,note,method,source_label,created_at,image_status,image_expires_at&order=created_at.desc&limit=50','GET');
 }
 export async function confirmedDrafts(){
   return await db(table+'?owner_key=eq.'+esc(ownerKey())+
