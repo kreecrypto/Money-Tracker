@@ -22,7 +22,7 @@ function todayBangkok(){
 export async function verifyLineSignature(raw:string,sig:string,secret:string){
   if(!sig||sig.length>200)return false;
   const enc=new TextEncoder();
-  const key=await crypto.subtle.importKey('raw',enc.encode(secret),'HMAC',false,['sign']);
+  const key=await crypto.subtle.importKey('raw',enc.encode(secret),{name:'HMAC',hash:'SHA-256'},false,['sign']);
   const signed=new Uint8Array(await crypto.subtle.sign('HMAC',key,enc.encode(raw)));
   const expected=btoa(String.fromCharCode(...signed));
   let mismatch=expected.length^sig.length;
