@@ -90,6 +90,15 @@ try {
       return {viewportHeight:innerHeight,modalHeight:Math.round(r.height),modalScrollHeight:el.scrollHeight,modalClientHeight:el.clientHeight,actionsInView:Array.from(el.querySelectorAll('.modal-footer button')).map(x=>{const r=x.getBoundingClientRect();return{label:x.textContent?.trim(),bottom:Math.round(r.bottom),viewportBottom:innerHeight};})};
     });
     record('entry-scroll',name,{modal,pageErrors:errors});
+    if(name==='iphone390'){
+      // Chromium does not decode iPhone HEIC natively: verify graceful, local-only fallback.
+      await page.locator('.slip-panel input[aria-label="เลือกรูปสลิป"]').setInputFiles({
+        name:'synthetic-slip.heic',mimeType:'image/heic',buffer:Buffer.from('00000018667479706865696300000000','hex')
+      });
+      await page.locator('.slip-panel .error-message').waitFor({state:'visible',timeout:10000});
+      const heicFallback=await page.locator('.slip-panel .error-message').textContent();
+      record('heic-unsupported-fallback',name,{ok:!!heicFallback&&/HEIC|Safari|JPG/.test(heicFallback),message:heicFallback,pageErrors:errors});
+    }
     await page.getByRole('button',{name:'ปิดการสแกน'}).click();
     await page.locator('#amount').fill('125.50');
     await page.locator('#note').fill('รายการทดสอบ UX Audit');
@@ -185,6 +194,7 @@ try {
     ||(x.axe?.violations?.length||0)>0
     ||(x.view==='save-smoke'&&(!x.savedVisible||x.pageErrors?.length))
     ||(x.view==='restore-smoke'&&(!x.initiallyDisabled||!x.enabledAfterAcknowledgement||!x.closed||x.pageErrors?.length))
+    ||(x.view==='heic-unsupported-fallback'&&(!x.ok||x.pageErrors?.length))
     ||(x.view==='inbox-synthetic-review'&&(!x.zoomOpened||!x.zoomClosed||!x.typeBlocked||!x.dateBlocked||!x.confirmed||x.pageErrors?.length))
     ||(x.view==='mobile-home-actions'&&(!x.correctHierarchy||!x.quickActionsVisible||!x.bottomNavVisible||!x.openedOCR||x.pageErrors?.length))
   ).map(x=>({viewport:x.viewport,view:x.view,overflowPx:x.overflowPx,axe:x.axe?.violations?.map(v=>v.id),savedVisible:x.savedVisible,restore:[x.initiallyDisabled,x.enabledAfterAcknowledgement,x.closed]}));
