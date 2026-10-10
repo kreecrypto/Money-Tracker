@@ -93,6 +93,19 @@ try {
     await page.waitForTimeout(180);
     const confirmed=await page.getByText('รายการทดสอบ UX Audit').count();
     record('save-smoke',name,{savedVisible:confirmed>0,saveState:state,pageErrors:errors});
+    await page.evaluate(()=>{
+      const nav=innerWidth<=660?document.querySelector('.mobile-bottom-nav'):document.querySelector('.sidebar');
+      Array.from(nav?.querySelectorAll('button')||[]).find(x=>x.textContent?.includes('ตั้งค่า')||x.getAttribute('aria-label')==='ตั้งค่า')?.click();
+    });
+    const sample={app:'ngoentoday',version:1,exportedAt:new Date().toISOString(),transactions:[],settings:{monthlyBudgetSatang:0}};
+    await page.locator('input[accept=".json,application/json"]').setInputFiles({name:'audit-backup.json',mimeType:'application/json',buffer:Buffer.from(JSON.stringify(sample))});
+    const restoreDialog=page.getByRole('alertdialog');
+    await restoreDialog.waitFor();
+    const locked=await page.getByRole('button',{name:'ยืนยันแทนที่ข้อมูล'}).isDisabled();
+    await page.getByRole('checkbox',{name:/ฉันเข้าใจ/}).check();
+    const unlocked=await page.getByRole('button',{name:'ยืนยันแทนที่ข้อมูล'}).isEnabled();
+    await restoreDialog.getByRole('button',{name:'ยกเลิก'}).click();
+    record('restore-smoke',name,{initiallyDisabled:locked,enabledAfterAcknowledgement:unlocked,closed:await restoreDialog.count()===0,pageErrors:errors});
     await context.close();
   }
   fs.writeFileSync(dir+'/audit.json',JSON.stringify({date:new Date().toISOString(),base,results:findings},null,2));
