@@ -1,61 +1,96 @@
-# LINE Chat → Money Tracker Automation
+# LINE Forward → Money Tracker — Implementation Guide
 
-## Status
-- DONE (code in feature branch): signed webhook handler, Thai transaction parser, RLS-protected Supabase staging inbox migration, parsing tests.
-- NOT LIVE: no LINE Official Account credentials, dedicated Supabase Money Tracker project, approved cloud login/linking, or Money Tracker browser sync.
-- Images/slips, daily alerts, and cloud ledger UI are NOT yet implemented.
-- Do not merge/deploy to production before completing authentication, dedicated storage, and end-to-end security QA.
+## What is built on this feature branch
 
-## Phase 1 — LINE text inbox
+This is a **staging-only implementation**. There are no active LINE credentials or dedicated Money Tracker Supabase database yet.
 
-Send a direct chat to the Money Tracker LINE Official Account, not a personal chat or group.
+```mermaid
+flowchart TD
+    A["KBank Live or another bank LINE OA"] -->|User forwards text or sends screenshot| B["Money Tracker LINE OA"]
+    B --> C["LINE Messaging API signed webhook"]
+    C --> D{"Text or Image?"}
+    D -->|Text| E["Detect bank notice or ordinary daily entry"]
+    D -->|Image| F["Retrieve LINE image privately and OCR Thai/English"]
+    F --> G["Parse amount beside จำนวนเงิน; ignore balance"]
+    E --> G
+    E -->|Unambiguous natural expense text| H["Auto-confirm direct entry"]
+    G --> I["Create pending bank draft with event and bank fingerprint"]
+    I --> J{"User confirms in LINE"}
+    J -->|Income or Expense| K["Confirmed Cloud Inbox"]
+    J -->|Cancel| L["Cancelled, not booked"]
+    H --> K
+    K --> M["Device verifies 20-character pairing code"]
+    M --> N["Fetch confirmed rows using scoped session token"]
+    N --> O["Idempotently import into local IndexedDB"]
+    O --> P["Money Tracker Home, Transactions, Reports"]
+```
 
-Examples:
-- กาแฟ 65 → expense ฿65 / food / cash
-- จ่าย 120 ค่าแท็กซี่ โอน → expense ฿120 / transport / bank
-- รับ 5000 งานเสริม → income ฿5000 / side income
-- เงินเดือน 55000 → income ฿55000 / salary
+## Examples
 
-The bot verifies the LINE signature against the raw request body, ensures the sender is allowlisted, parses a single amount with an unambiguous direction, inserts into a Supabase staging inbox (idempotent UNIQUE LINE event id), and replies with a confirmation. Conflicting directions or multiple amounts are not saved.
+| Forwarded message | Extracted result | Safety |
+|---|---|---|
+| KBank Live screenshot of 9 Oct 2569, transfer -119.00, balance 400070.79 | expense 119.00 THB, date 2026-10-09 | Bank balance is **never** used as transaction amount. Explicit LINE review required |
+| Direct LINE chat: กาแฟ 65 | expense 65.00, food | Auto-add only when there is one clear amount |
+| Direct LINE chat: รับ 5000 งานเสริม | income 5000.00, side income | Auto-add only when direction is unambiguous |
+| Two amounts in plain text with no identifiable bank amount label | No entry | Must clarify, never guess |
 
-The web app does NOT yet show these records because it only reads local IndexedDB. This is a staging implementation only.
+Supported image input: a **user-sent JPEG/PNG/WEBP screenshot** on the Money Tracker OA. LINE's message-content API cannot read a different OA's historical messages. The user must forward text or send a screenshot into the Money Tracker OA. Some LINE OA card layouts cannot be forwarded directly; screenshot is the fallback.
 
-## Setup required
+## LINE chat confirmation
 
-1. Create/identify a LINE Official Account; enable Messaging API; obtain Channel Secret and Channel Access Token.
-2. Approve a new Supabase project dedicated to Money Tracker. Never reuse UTP or other projects without explicit approval. Apply the SQL migration in supabase/migrations/20261010000000_line_inbox.sql.
-3. Configure SERVER-ONLY environment variables: LINE_CHANNEL_SECRET, LINE_CHANNEL_ACCESS_TOKEN, LINE_ALLOWED_USER_IDS, SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY.
-4. Deploy webhook to a *separately scoped PUBLIC host*: the current Money Tracker Vercel app requires Vercel Authentication, so LINE cannot call it unauthenticated. Public webhook traffic must pass HMAC verification, allowlist and rate limits. Do not turn off whole-app Vercel protection as a side effect.
-5. In LINE Developers, configure POST webhook URL; enable Use webhook; verify signed empty-event request HTTP 200.
-6. Verify unauthorized signatures 403, missing credentials 503, duplicate LINE delivery creates one row, and only authorized sender events are saved.
+For a bank notice, the bot does NOT book the event immediately. It creates a server-side pending record and replies:
 
-Never commit secrets or prefix them VITE_, which would expose them in frontend bundles. Keep Supabase service-role token server-only.
+- บันทึกเป็นรายจ่าย (postback)
+- บันทึกเป็นรายรับ (postback)
+- ไม่บันทึก (postback)
 
-## Phase 2 — Secure Money Tracker app synchronization (required)
+Only a signed postback from the same LINE account can change a pending record to confirmed or cancelled. Once confirmed, it becomes eligible for syncing to Money Tracker. The source bank screenshot is **not saved** in the database.
 
-- Add actual user authentication (e.g. Supabase Auth) and LINK the LINE ID using a validated LINE Login / LIFF token or a server-issued short-lived pairing flow. Never trust an unverified LINE ID from the browser.
-- Secure row ownership using RLS and implement idempotent transactions sync.
-- Back up local IndexedDB transactions and ask approval for one-time data migration/merge; do not delete or silently replace records.
-- Show LINE-sourced transactions in the home, transaction list and reports, including offline/error/conflict states.
-- Test cross-device access and protect all private data from other users.
+## Connect user to browser securely
 
-## Phase 3 — Optional improvements
+1. User sends **/เชื่อม** in a direct chat with the Money Tracker OA.
+2. Bot issues an unguessable 20-hex-character code that expires in 5 minutes.
+3. User opens Money Tracker → **ตั้งค่า** → **LINE → เงินวันนี้** and pastes code.
+4. Vercel's server endpoint exchanges the code for a random 256-bit device token. Only the SHA-256 hash of that token is stored in Supabase.
+5. Browser requests the confirmed inbox over HTTPS from the scoped public bridge host. The origin must match the configured Money Tracker site.
+6. Imported rows get stable IDs in IndexedDB; seen rows are remembered to prevent repeated imports after local deletion.
+7. App automatically syncs on load and when brought back into the foreground. An explicit sync button also exists in Settings.
 
-- LINE slip images → retrieve content → private OCR → REQUIRE review/direction confirmation before saving.
-- LINE push notifications, monthly reports and overspending alerts with user opt-in and message quota awareness.
-- LIFF app to view ledger in LINE.
+**Limitations:** This is one-way **LINE → browser** sync, not full multi-device cloud bookkeeping. Manually added/edited records remain local. Unlinking locally revokes the device's saved token; send **/ยกเลิกเชื่อม** to the OA to revoke the cloud session. Reissuing a pairing code revokes the previous device session. Only up to 500 newest confirmed LINE records are fetched in one sync.
 
-## QA gates
+## Needed before live launch
 
-- Parser unit tests and Vite build
-- Webhook verified signature/raw body, forged signature denial, allowlist and replay deduplication
-- LINE Official Account real user test, database failure handling, idempotency
-- Auth/RLS per-user integration tests
-- React mobile browser UX regression and iPhone LINE in-app tests
+**LINE provider**
+- Create or provide Money Tracker LINE Official Account with Messaging API enabled.
+- Add the official-account Channel Secret and Channel Access Token as secret env vars, **not in this chat**.
+- Configure the public webhook URL and enable redelivery.
+- Allowlist the permitted LINE user IDs at launch.
 
-## References
+**Supabase**
+- Approve a **new dedicated Money Tracker Supabase project**. None exists currently. Do NOT apply this migration to unrelated UTP or other databases.
+- Apply `supabase/migrations/20261010000000_line_inbox.sql` and test service-role access and RLS.
+- Configure server-only SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY.
 
-- https://developers.line.biz/en/docs/messaging-api/getting-started/
-- https://developers.line.biz/en/docs/messaging-api/verify-webhook-signature/
+**Vercel**
+- Existing Money Tracker app has Vercel SSO Protection enabled for vercel.app domains. Do **not** switch off app-wide protection.
+- Deploy the server routes to a separate, publicly reachable bridge host with valid webhook HMAC, sender allowlist and strict CORS.
+- Environment variables on the bridge: LINE_CHANNEL_SECRET, LINE_CHANNEL_ACCESS_TOKEN, LINE_ALLOWED_USER_IDS, SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY and LINE_ALLOWED_APP_ORIGIN (e.g. https://money-tracker-beta-teal.vercel.app).
+- On Money Tracker frontend, configure **VITE_LINE_BRIDGE_URL** to the public HTTPS bridge host. This URL is public and is not a secret.
+- Avoid broad, unauthenticated database endpoints. Service-role keys NEVER go to browser code.
+
+## Release gates
+
+1. Unit parser tests, bank notice tests, signed webhook and postback tests, TypeScript and production build.
+2. Real bank screenshots on LINE OA via LINE Messaging API. Verify image download, Thai OCR model availability, reply-token timing, unknown-image handling and transaction confirmation.
+3. Forged signature -> 403. Unknown sender -> ignored. Missing credentials -> 503. Failed storage -> 503. Duplicate webhook ID and repeated bank notice fingerprint -> no double-booking.
+4. Expired pairing code, one-time claim, session revocation, origin CORS deny, and database RLS negative tests.
+5. Import into IndexedDB, app balance/reports update, offline/resume, local backup and preserve existing user records.
+6. Browser Audit mobile 320/375/390/430, tablet 768, desktop 1280, and on-device iPhone Safari and LINE in-app browser.
+7. Production rollout only after these gates and owner-approved infrastructure/credentials.
+
+## Reference documentation
+
 - https://developers.line.biz/en/docs/messaging-api/receiving-messages/
-- https://vercel.com/docs/functions/runtimes/node-js
+- https://developers.line.biz/en/docs/messaging-api/verify-webhook-signature/
+- https://developers.line.biz/en/reference/messaging-api/
+- https://vercel.com/docs/functions/configuring-functions/duration
