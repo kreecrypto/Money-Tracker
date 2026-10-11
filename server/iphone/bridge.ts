@@ -6,6 +6,8 @@ export type IPhoneDraft={
   status:'pending'|'confirmed'|'discarded';type:EntryType|null;amount_satang:number|null;
   transaction_date:string|null;category:string;note:string;method:Method;source_label:string;
   created_at:string;reviewed_at:string|null;
+  /** Private backend OCR evidence. Only returned to an authorized reviewer. */
+  ocr_text?:string|null;
 };
 export const MAX_IMAGE_BYTES=3*1024*1024; // allow multipart overhead below Vercel's 4.5MB cap
 export const sha=(data:Uint8Array|string)=>createHash('sha256').update(data).digest('hex');
@@ -49,14 +51,14 @@ const esc=(s:string)=>encodeURIComponent(s);
 const table='money_tracker_iphone_drafts';
 export async function saveDraft(row:Pick<IPhoneDraft,
   'owner_key'|'image_digest'|'bank_fingerprint'|'type'|'amount_satang'|'transaction_date'|'category'|'note'|'method'|'source_label'
->){
+> & {ocr_text?:string|null}){
   const data=await db(table+'?on_conflict=owner_key,image_digest','POST',
     {...row,status:'pending'},'resolution=ignore-duplicates,return=representation');
   return data[0]||null;
 }
 export async function pendingDrafts(){
   return await db(table+'?owner_key=eq.'+esc(ownerKey())+
-    '&status=eq.pending&select=id,amount_satang,type,transaction_date,category,note,method,source_label,created_at,image_status,image_expires_at&order=created_at.desc&limit=50','GET');
+    '&status=eq.pending&select=id,amount_satang,type,transaction_date,category,note,method,source_label,ocr_text,created_at,image_status,image_expires_at&order=created_at.desc&limit=50','GET');
 }
 export async function confirmedDrafts(){
   return await db(table+'?owner_key=eq.'+esc(ownerKey())+
