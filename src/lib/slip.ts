@@ -9,7 +9,7 @@ export type SlipFields = {
   warnings: string[];
 };
 
-const AMOUNT_LABEL = /(?:จำนวน\s*เงิน(?:ที่\s*โอน)?|ยอด(?:เงิน|โอน|ชำระ|จ่าย)|จำนวนที่โอน|total\s*(?:amount|paid)?|amount(?:\s*paid)?)/iu;
+const AMOUNT_LABEL = /(?:จำนวน\s*เงิน(?:ที่\s*โอน)?|ยอด(?:เงิน|โอน|ชำระ|จ่าย)|จำนวน\s*[:：]|จำนวนที่โอน|total\s*(?:amount|paid)?|amount(?:\s*paid)?)/iu;
 const EXCLUDED_AMOUNT = /(?:ค่าธรรมเนียม|ค่าบริการ|ยอดคงเหลือ|คงเหลือ|balance|fee|ค่าธรรมเนียมการโอน|เลขที่|รหัสอ้างอิง|reference|เลขอ้างอิง|บัญชี|account|หมายเลข)/iu;
 const MONEY_RE = /(?:฿\s*|THB\s*)?(?:\d{1,3}(?:,\d{3})+(?:\.\d{2})?|\d{1,7}(?:\.\d{2})?)/giu;
 const THAI_MONTHS = new Map<string,number>([

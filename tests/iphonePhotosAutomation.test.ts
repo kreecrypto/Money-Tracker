@@ -5,11 +5,33 @@ const KPLUS=[
   'K PLUS','โอนเงินสำเร็จ','9 ต.ค. 69','จำนวนเงิน 119.00 บาท',
   'ผู้รับเงิน: ABC','เลขที่รายการ 123456789'
 ].join('\n');
+const KPLUS_IOS27_PHOTO_TEXT=[
+  'โอนเงินสำเร็จ',
+  '11 ต.ค. 69 21:09 น.',
+  'นาย ตัวอย่าง',
+  'ธ.กสิกรไทย',
+  'xxx-x-x6721-x',
+  'จำนวน:',
+  '0.01 บาท',
+  'ค่าธรรมเนียม:',
+  '0.00 บาท',
+  'เลขที่รายการ',
+  '016284210922BTF06060'
+].join('\n');
 const KBANK_ALERT=[
   'KBank Live','รายการโอน/ถอน','9 ต.ค. 69 18:44 น.',
   'จำนวนเงิน -119.00 บาท','ยอดเงินคงเหลือ 400,070.79 บาท'
 ].join('\n');
 describe('iOS 26 Photos on-device OCR receipt classifier',()=>{
+  it('accepts iOS 27 K PLUS Extract Text from Photos with จำนวน: amount on the next line',()=>{
+    const x=inspectPhotosOCR(KPLUS_IOS27_PHOTO_TEXT);
+    expect(x).toMatchObject({accept:true,reason:'receipt',amountSatang:1,date:'2026-10-11',type:null});
+    expect(x.note).not.toContain('0.00');
+  });
+  it('does not substitute the fee for a missing จำนวน: amount',()=>{
+    const x=inspectPhotosOCR('K PLUS\nโอนเงินสำเร็จ\n11 ต.ค. 69\nจำนวน:\nค่าธรรมเนียม: 60.00 บาท');
+    expect(x.amountSatang).toBeNull();
+  });
   it('accepts K PLUS transfer slip, leaving direction to user confirmation',()=>{
     const x=inspectPhotosOCR(KPLUS);
     expect(x).toMatchObject({accept:true,amountSatang:11900,date:'2026-10-09',type:null});

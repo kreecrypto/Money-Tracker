@@ -10,7 +10,7 @@ const normalized=(text:string)=>text
 
 const BANK_BRAND=/(?:KBank|K\s*PLUS|กสิกร|SCB|ไทยพาณิชย์|Krungthai|กรุงไทย|Krungsri|กรุงศรี|ธนาคาร|ttb|กรุงเทพ|Bangkok Bank|PromptPay|พร้อมเพย์)/i;
 const TRANSACTION=/(?:โอนเงินสำเร็จ|ทำรายการสำเร็จ|โอนเงิน|รับโอน|โอนเข้า|โอนออก|รายการโอน|รายการโอน\/ถอน|สลิป|ใบยืนยัน|transfer\s*(?:successful|completed)|transaction\s*(?:successful|completed)|payment\s*(?:successful|completed)|paid)/i;
-const TRANSACTION_AMOUNT=/(?:จำนวน\s*เงิน(?:ที่\s*โอน)?|ยอด(?:โอน|ชำระ|จ่าย)|จำนวนที่โอน|ยอดชำระ|amount(?:\s*paid)?|total\s*(?:amount|paid))/i;
+const TRANSACTION_AMOUNT=/(?:จำนวน\s*เงิน(?:ที่\s*โอน)?|ยอด(?:โอน|ชำระ|จ่าย)|จำนวน\s*[:：]|จำนวนที่โอน|ยอดชำระ|amount(?:\s*paid)?|total\s*(?:amount|paid))/i;
 const BALANCE=/(?:ยอด(?:เงิน)?คงเหลือ|ยอดคงเหลือ|available\s*balance|\bbalance\b)/i;
 
 export type PhotosCandidate={
