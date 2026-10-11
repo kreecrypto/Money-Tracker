@@ -40,6 +40,11 @@ export function Draft({draft,onReviewed,existing=[]}:{draft:IPhoneDraft;onReview
   return <article className="iphone-draft" aria-label="รายการรอตรวจสอบจาก iPhone">
     <p className="iphone-draft-source"><Camera size={14}/> {draft.source} <span>· กรุณาตรวจสอบก่อนบันทึก</span></p>
     <IPhoneSlipPreview draft={draft}/>
+    {draft.ocrText&&<details className="iphone-ocr-evidence" aria-label="ข้อความ OCR จากภาพสลิป">
+      <summary>อ่านข้อความ OCR ต้นฉบับ (ข้อมูลส่วนตัว)</summary>
+      <pre style={{whiteSpace:'pre-wrap',overflowWrap:'anywhere',maxHeight:240,overflowY:'auto'}}>{draft.ocrText}</pre>
+      <small>ตรวจเทียบกับภาพจริงก่อนบันทึก ข้อความอาจมีเลขบัญชีหรือยอดเงินคงเหลือ</small>
+    </details>}
     <p className="iphone-direction-label">ยืนยันประเภทเงิน <strong>(จำเป็น)</strong>{draft.type&&<small> · ระบบอ่านว่า {draft.type==='income'?'เงินเข้า':'เงินออก'} โปรดตรวจจากสลิปอีกครั้ง</small>}</p>
     <div className="iphone-direction" role="group" aria-label="ยืนยันประเภทเงิน">
       <button type="button" aria-pressed={type==='expense'} className={type==='expense'?'selected expense':''} onClick={()=>switchType('expense')}>เงินออก / รายจ่าย</button>
