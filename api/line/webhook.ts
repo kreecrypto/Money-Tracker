@@ -1,8 +1,8 @@
-import {parseLineExpense} from '../../server/line/parser';
-import {parseBankNotice,type BankNotice} from '../../server/line/bank';
-import {readLineBankImage} from '../../server/line/ocr';
-import {insertLineRow,reviewLineRow,fingerprint,type LineRow} from '../../server/line/storage';
-import {issuePairCode,revokeLineSession} from '../../server/line/link';
+import {parseLineExpense} from '../../server/line/parser.js';
+import {parseBankNotice,type BankNotice} from '../../server/line/bank.js';
+import {readLineBankImage} from '../../server/line/ocr.js';
+import {insertLineRow,reviewLineRow,fingerprint,type LineRow} from '../../server/line/storage.js';
+import {issuePairCode,revokeLineSession} from '../../server/line/link.js';
 
 export const maxDuration=120;
 type LineEvent={

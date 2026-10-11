@@ -1,4 +1,4 @@
-import type {EntryType} from '../../src/lib/finance';
+import type {EntryType} from '../../src/lib/finance.js';
 
 export type BankNotice={
   type:EntryType; amountSatang:number; date:string|null; time:string|null;

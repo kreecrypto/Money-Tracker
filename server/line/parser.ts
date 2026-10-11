@@ -1,7 +1,7 @@
 import {
   EXPENSE_CATEGORIES, INCOME_CATEGORIES, toSatang,
   type EntryType, type Method
-} from '../../src/lib/finance';
+} from '../../src/lib/finance.js';
 
 export type LineEntry = {
   type: EntryType;
