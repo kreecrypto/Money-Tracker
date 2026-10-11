@@ -19,7 +19,8 @@ export async function GET(request:Request){
     const rows=await pendingDrafts();
     return json({drafts:rows.map(x=>({
       id:x.id,amountSatang:x.amount_satang,type:x.type,date:x.transaction_date,
-      category:x.category,note:x.note,method:x.method,source:x.source_label,createdAt:x.created_at,image:imageSummary(x as Parameters<typeof imageSummary>[0])
+      category:x.category,note:x.note,method:x.method,source:x.source_label,createdAt:x.created_at,
+      ocrText:x.ocr_text||null,image:imageSummary(x as Parameters<typeof imageSummary>[0])
     }))},200,g.headers);
   }catch{return json({error:'STORAGE_UNAVAILABLE'},503,g.headers);}
 }
