@@ -1,5 +1,6 @@
 import {isValidTransaction,type Transaction} from './finance';
 import {loadTransactions,saveTransaction} from './storage';
+import {potentialCrossChannelDuplicates} from './duplicateReview';
 
 const SESSION='ngoentoday-line-session-v1';
 const SEEN='ngoentoday-line-seen-v1';
@@ -36,9 +37,9 @@ function seenIDs():Set<string>{
     return new Set(Array.isArray(parsed)?parsed.filter(x=>typeof x==='string'&&x.startsWith('line-')):[]);
   }catch{return new Set();}
 }
-export async function syncLineInbox():Promise<{imported:number;received:number}>{
+export async function syncLineInbox():Promise<{imported:number;received:number;possibleDuplicates:number}>{
   const host=base(),token=localStorage.getItem(SESSION)||'';
-  if(!host||!/^[0-9A-F]{64}$/.test(token))return {imported:0,received:0};
+  if(!host||!/^[0-9A-F]{64}$/.test(token))return {imported:0,received:0,possibleDuplicates:0};
   const res=await fetch(host+'/api/line/inbox',{
     headers:{authorization:'Bearer '+token},
     cache:'no-store'
@@ -48,16 +49,19 @@ export async function syncLineInbox():Promise<{imported:number;received:number}>
   const data=await res.json() as {transactions?:unknown};
   if(!Array.isArray(data.transactions))throw new Error('ข้อมูลรายการจาก LINE ไม่ถูกต้อง');
   const incoming=data.transactions.filter(isValidTransaction) as Transaction[];
-  const have=new Set((await loadTransactions()).map(x=>x.id));
+  const current=await loadTransactions();
+  const have=new Set(current.map(x=>x.id));
   const seen=seenIDs();
-  let imported=0;
+  let imported=0,possibleDuplicates=0;
   for(const row of incoming){
     if(!row.id.startsWith('line-')||seen.has(row.id)||have.has(row.id))continue;
+    // Advisory only: a same-amount transfer may be legitimate. Do not drop it.
+    if(potentialCrossChannelDuplicates(row,current,'line').length>0)possibleDuplicates++;
     await saveTransaction(row);
-    seen.add(row.id);have.add(row.id);
+    seen.add(row.id);have.add(row.id);current.push(row);
     imported++;
     // Persist only after each successful local write.
     localStorage.setItem(SEEN,JSON.stringify([...seen].slice(-5000)));
   }
-  return {imported,received:incoming.length};
+  return {imported,received:incoming.length,possibleDuplicates};
 }

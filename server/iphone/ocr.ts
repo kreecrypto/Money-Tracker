@@ -1,7 +1,7 @@
 import {createWorker} from 'tesseract.js';
-import {parseBankNotice} from '../line/bank';
-import {parseSlipText} from '../../src/lib/slip';
-import type {EntryType} from '../../src/lib/finance';
+import {parseBankNotice} from '../line/bank.js';
+import {parseSlipText} from '../../src/lib/slip.js';
+import type {EntryType} from '../../src/lib/finance.js';
 
 export type OCRDraft={
   type:EntryType|null;amount_satang:number|null;transaction_date:string|null;
@@ -23,10 +23,12 @@ export function extractBankDraft(raw:string):OCRDraft {
     bank_fingerprint:notice?.fingerprintSource||null
   };
 }
-export async function ocrImage(bytes:Uint8Array):Promise<OCRDraft>{
+/** OCR runs only on the server. Preserve text for private review separately from extracted fields. */
+export async function ocrImage(bytes:Uint8Array):Promise<OCRDraft & {ocr_text:string}>{
   const worker=await createWorker(['tha','eng'],1);
   try{
     const {data}=await worker.recognize(Buffer.from(bytes));
-    return extractBankDraft(data.text.slice(0,20000));
+    const text=data.text.slice(0,20000);
+    return {...extractBankDraft(text),ocr_text:text};
   }finally{await worker.terminate();}
 }

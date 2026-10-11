@@ -1,0 +1,41 @@
+name: iPhone WebKit Mobile Smoke
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'src/**'
+      - 'scripts/iphone-webkit-smoke.mjs'
+      - '.github/workflows/iphone-webkit-smoke.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  webkit-mobile:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10
+      - name: Install dependencies
+        run: |
+          pnpm install --no-frozen-lockfile
+          pnpm add -D playwright@1.56.1 --no-lockfile
+      - name: Install WebKit engine and dependencies
+        run: pnpm exec playwright install --with-deps webkit
+      - name: Run WebKit mobile smoke (not physical iPhone certification)
+        run: node scripts/iphone-webkit-smoke.mjs
+      - name: Upload emulated iPhone QA evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: money-tracker-iphone-webkit-qa
+          path: audit-artifacts/iphone-webkit/
+          if-no-files-found: warn
+          retention-days: 7
