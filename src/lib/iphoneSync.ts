@@ -5,6 +5,8 @@ export type IPhoneDraft={
   id:string;amountSatang:number|null;type:'income'|'expense'|null;
   date:string|null;category:string;note:string;method:'bank'|'cash'|'card'|'wallet';
   source:string;createdAt:string;
+  /** Private OCR evidence stored by the API, visible only after Review Token authorization. */
+  ocrText?:string|null;
   image?:{status:'none'|'uploading'|'available'|'upload_failed'|'deleting'|'deleted'|'delete_failed';available:boolean;expiresAt:string|null};
 };
 const TOKEN_KEY='money-tracker-iphone-review-token-v1';
