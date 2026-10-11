@@ -64,7 +64,8 @@ describe('OCR conservative bank parsing',()=>{
 vi.mock('../server/iphone/ocr',async importOriginal=>({...await importOriginal<typeof import('../server/iphone/ocr')>(),ocrImage:vi.fn(async()=>({
   amount_satang:11900,type:'expense',transaction_date:'2026-10-09',
   category:'อื่น ๆ',note:'KBank review',method:'bank',
-  source_label:'KBank',bank_fingerprint:'test-event'
+  source_label:'KBank',bank_fingerprint:'test-event',
+  ocr_text:'K PLUS\\nจำนวนเงิน 119.00 บาท\\nข้อความ OCR ต้นฉบับ'
 }))}));
 vi.mock('../server/iphone/bridge',async importOriginal=>{
   const original=await importOriginal<typeof import('../server/iphone/bridge')>();
@@ -84,6 +85,7 @@ vi.mock('../server/iphone/imageStorage',async importOriginal=>{
     readDraft:vi.fn(async()=>null)
   };
 });
+import * as backend from '../server/iphone/bridge';
 import {POST as upload} from '../api/iphone/upload';
 import {GET as drafts,POST as review} from '../api/iphone/drafts';
 import {GET as ledger} from '../api/iphone/ledger';
@@ -109,6 +111,28 @@ describe('HTTP Shortcuts upload and app review flow',()=>{
   it('accepts an authorized PNG into PENDING queue, never saves directly',async()=>{
     const r=await upload(requestUpload());expect(r.status).toBe(202);
     expect(await r.json()).toMatchObject({status:'pending',reviewRequired:true});
+    expect(vi.mocked(backend.saveDraft)).toHaveBeenCalledWith(expect.objectContaining({
+      ocr_text:'K PLUS\\nจำนวนเงิน 119.00 บาท\\nข้อความ OCR ต้นฉบับ'
+    }));
+  });
+  it('does not expose raw OCR text in the upload response',async()=>{
+    const r=await upload(requestUpload());
+    const body=await r.text();
+    expect(body).not.toContain('ข้อความ OCR ต้นฉบับ');
+    expect(body).not.toContain('ocr_text');
+  });
+  it('returns stored text only to the authorized reviewer',async()=>{
+    vi.mocked(backend.pendingDrafts).mockResolvedValueOnce([{
+      id:'38dbeb1a-df38-43bc-b4b3-ea3f74f198c9',owner_key:'a'.repeat(64),
+      image_digest:'b'.repeat(64),bank_fingerprint:null,status:'pending',
+      type:'expense',amount_satang:11900,transaction_date:'2026-10-09',
+      category:'อื่น ๆ',note:'ทดสอบ',method:'bank',source_label:'KBank',
+      created_at:'2026-10-11T10:00:00Z',reviewed_at:null,
+      ocr_text:'จำนวนเงิน 119.00 บาท'
+    }]);
+    const r=await drafts(appRequest('/api/iphone/drafts'));
+    expect(r.status).toBe(200);
+    expect((await r.json()).drafts[0].ocrText).toBe('จำนวนเงิน 119.00 บาท');
   });
   it('rejects unauthorized web origins even with a valid token',async()=>{
     const r=await drafts(appRequest('/api/iphone/drafts',owner,'https://evil.test'));
