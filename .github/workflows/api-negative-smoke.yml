@@ -1,6 +1,15 @@
 name: API Negative Security Smoke
 on:
   workflow_dispatch:
+    inputs:
+      api_base_url:
+        description: "Allowlisted API URL: Preview branch or production"
+        type: string
+        required: true
+      web_origin:
+        description: "Exact allowed Money Tracker web origin"
+        type: string
+        required: true
 
 permissions:
   contents: read
@@ -9,14 +18,18 @@ jobs:
   api-negative-smoke:
     runs-on: ubuntu-latest
     timeout-minutes: 5
+    env:
+      RELEASE_API_BASE_URL: ${{ inputs.api_base_url }}
+      RELEASE_APP_ORIGIN: ${{ inputs.web_origin }}
+      VERCEL_AUTOMATION_BYPASS_SECRET: ${{ secrets.MONEY_TRACKER_API_PREVIEW_BYPASS }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
-      - name: Negative security checks against approved production API
+      - name: Verify negative API security with fake tokens (no files or user rows)
         run: node scripts/release-api-smoke.mjs
-      - name: Upload non-sensitive status evidence
+      - name: Upload sanitized status-only evidence
         if: always()
         uses: actions/upload-artifact@v4
         with:
