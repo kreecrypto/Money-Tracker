@@ -1,4 +1,4 @@
-import type {EntryType,Method} from '../../src/lib/finance';
+import type {EntryType,Method} from '../../src/lib/finance.js';
 export type LineRow={
   line_event_id:string;line_user_id:string;type:EntryType;amount_satang:number;
   category:string;note:string;method:Method;transaction_date:string;
