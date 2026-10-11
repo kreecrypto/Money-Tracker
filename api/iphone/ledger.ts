@@ -1,4 +1,4 @@
-import {auth,appCors,json,options,confirmedDrafts} from '../../server/iphone/bridge';
+import {auth,appCors,json,options,confirmedDrafts} from '../../server/iphone/bridge.js';
 export const maxDuration=15;
 export {options as OPTIONS};
 export async function GET(request:Request){

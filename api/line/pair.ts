@@ -1,5 +1,5 @@
-import {claimPairCode} from '../../server/line/link';
-import {cors,json,options} from '../../server/line/cors';
+import {claimPairCode} from '../../server/line/link.js';
+import {cors,json,options} from '../../server/line/cors.js';
 
 export const maxDuration=15;
 export {options as OPTIONS};

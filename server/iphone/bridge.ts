@@ -1,5 +1,5 @@
 import {createHash,timingSafeEqual} from 'node:crypto';
-import type {EntryType,Method} from '../../src/lib/finance';
+import type {EntryType,Method} from '../../src/lib/finance.js';
 
 export type IPhoneDraft={
   id:string;owner_key:string;image_digest:string;bank_fingerprint:string|null;

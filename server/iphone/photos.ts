@@ -1,5 +1,5 @@
-import {parseBankNotice} from '../line/bank';
-import {parseSlipText} from '../../src/lib/slip';
+import {parseBankNotice} from '../line/bank.js';
+import {parseSlipText} from '../../src/lib/slip.js';
 
 /** Client first extracts text on iOS. Send ONLY receipt-like OCR text, not private photos. */
 const THAI_DIGITS='๐๑๒๓๔๕๖๗๘๙';
