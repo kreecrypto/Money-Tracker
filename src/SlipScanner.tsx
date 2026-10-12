@@ -96,7 +96,7 @@ export default function SlipScanner({onApply,onClose}:Props){
     </div>
     <input ref={galleryRef} aria-label="เลือกรูปสลิป" type="file" className="visually-hidden" accept="image/png,image/jpeg,image/webp" onChange={e=>void scan(e)}/>
     <input ref={cameraRef} aria-label="ถ่ายรูปสลิป" type="file" className="visually-hidden" accept="image/*" capture="environment" onChange={e=>void scan(e)}/>
-    {preview&&<figure className="slip-preview"><img src={preview} alt="ตัวอย่างสลิปโอนเงินที่เลือกสำหรับตรวจทาน"/><figcaption>{filename}</figcaption></figure>}
+    {preview&&<figure className="slip-preview"><img src={preview} alt="ภาพสลิปโอนเงินที่กำลังอ่านและบันทึก"/><figcaption>{filename}</figcaption></figure>}
     {busy&&<div className="slip-progress" role="status" aria-live="polite"><div className="slip-progress-track"><div style={{width:`${progress}%`}}/></div><span>กำลังอ่านข้อความในรูป… {stage==='save'?'กำลังบันทึกธุรกรรม…':stage==='retry'?`กำลังปรับภาพและอ่านซ้ำ… ${progress}%`:stage==='recognize'?`${progress}%`:'กำลังโหลดชุด OCR ภาษาไทย/อังกฤษ'}</span></div>}
     {error&&<p className="error-message" role="alert">{error}</p>}
     {result&&error&&<div className="slip-result" aria-live="polite"><strong>ผลอ่านสลิป (ตรวจสอบจากภาพอีกครั้ง)</strong><dl><div><dt>ประเภท</dt><dd>{result.direction==='income'?'รายรับ / เงินเข้า':result.direction==='expense'?'รายจ่าย / เงินออก':'ยังไม่สามารถระบุได้'}</dd></div><div><dt>จำนวนเงิน</dt><dd>{result.amountSatang!==null?`฿${baht(result.amountSatang)}`:'อ่านไม่สำเร็จ'}</dd></div><div><dt>วันที่</dt><dd>{result.date||'อ่านไม่สำเร็จ'}</dd></div><div><dt>เวลา</dt><dd>{result.time?`${result.time} น.`:'อ่านไม่สำเร็จ'}</dd></div><div><dt>ชื่อผู้รับ</dt><dd>{result.recipient||'ไม่พบข้อมูล'}</dd></div></dl>
