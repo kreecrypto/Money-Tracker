@@ -1,4 +1,4 @@
-import {toSatang} from './finance.js';
+import {toSatang,type EntryType} from './finance.js';
 
 /** OCR parsing is intentionally conservative: uncertain values stay empty for human review. */
 export type SlipFields = {
@@ -6,6 +6,9 @@ export type SlipFields = {
   date: string | null;
   time: string | null;
   recipient: string | null;
+  /** Null when the receipt cannot reliably establish the user's cash-flow direction. */
+  direction: EntryType | null;
+  directionReason: string;
   rawText: string;
   warnings: string[];
 };
@@ -177,6 +180,25 @@ function parseRecipient(lines:string[]):string|null {
   return billRecipient(lines);
 }
 
+
+/**
+ * Classify only explicit payment or incoming/outgoing transaction language.
+ * A generic transfer confirmation is not proof of the uploader's direction:
+ * the same receipt can be saved by the sender (expense) or receiver (income).
+ */
+export function inferSlipDirection(rawText:string):{direction:EntryType|null;directionReason:string} {
+  const lines=normalizeSlipOcrText(rawText).split(/\r?\n/u).map(x=>x.trim()).filter(Boolean);
+  // Keep detection in the transaction header. Do not interpret beneficiary names,
+  // bank descriptions, fee labels, or a transfer reference as account direction.
+  const header=lines.slice(0,5).join(' ');
+  const incoming=/(?:รับ\s*โอน(?:\s*เงิน)?\s*สำเร็จ|รับ\s*เงิน\s*สำเร็จ|ได้รับ\s*เงิน|โอน\s*เงิน\s*เข้า|โอน\s*เข้า\s*บัญชี|เงิน\s*เข้า(?:\s*บัญชี)?|ยอด\s*เงิน\s*เข้า|incoming\s*(?:transfer|payment)|money\s*received|payment\s*received|transfer\s*received)/iu.test(header);
+  const outgoing=/(?:จ่าย\s*บิล(?:\s*สำเร็จ)?|ชำระ\s*(?:บิล|เงิน)(?:\s*สำเร็จ)?|จ่าย\s*เงิน\s*สำเร็จ|โอน\s*เงิน\s*ออก|โอน\s*ออก(?:\s*สำเร็จ)?|เงิน\s*ออก(?:\s*จาก\s*บัญชี)?|ถอน\s*เงิน\s*สำเร็จ|bill\s*payment\s*(?:success|complete|paid)|paid\s*successfully|payment\s*successful|outgoing\s*transfer)/iu.test(header);
+  if(incoming&&outgoing)return {direction:null,directionReason:'พบข้อความทั้งเงินเข้าและเงินออกในสลิป กรุณาตรวจสอบและเลือกเอง'};
+  if(incoming)return {direction:'income',directionReason:'พบข้อความระบุการรับเงินหรือโอนเงินเข้าบัญชี'};
+  if(outgoing)return {direction:'expense',directionReason:'พบข้อความระบุการจ่ายบิล ชำระเงิน หรือเงินออกจากบัญชี'};
+  return {direction:null,directionReason:'สลิปไม่ระบุชัดว่าเป็นเงินเข้าหรือเงินออก โปรดเลือกตามบัญชีของคุณ'};
+}
+
 export function parseSlipText(rawText:string):SlipFields {
   const lines=normalizeSlipOcrText(rawText).split(/\r?\n/u)
     .map(x=>x.replace(/^[0◯○•●@]\s+(?=[A-Z])/u,'').trim())
@@ -185,13 +207,14 @@ export function parseSlipText(rawText:string):SlipFields {
   const date=parseDate(lines);
   const time=parseTime(lines);
   const recipient=parseRecipient(lines);
+  const {direction,directionReason}=inferSlipDirection(rawText);
   const warnings:string[]=[];
   if(!lines.length)warnings.push('ไม่พบตัวอักษรในรูปภาพ ลองถ่ายใหม่ให้ชัดขึ้น');
   if(amountSatang===null)warnings.push('ไม่สามารถระบุยอดโอนได้อย่างมั่นใจ กรุณากรอกยอดเอง');
   if(date===null)warnings.push('อ่านวันที่ไม่ชัดเจน กรุณาตรวจและกรอกวันที่ก่อนบันทึก');
   if(time===null)warnings.push('อ่านเวลาไม่ชัดเจน กรุณากรอกเวลาตามสลิป');
   if(recipient===null)warnings.push('อ่านชื่อผู้รับไม่ชัดเจน กรุณาตรวจและกรอกชื่อผู้รับ');
-  return {amountSatang,date,time,recipient,rawText,warnings};
+  return {amountSatang,date,time,recipient,direction,directionReason,rawText,warnings};
 }
 
 
@@ -216,11 +239,13 @@ export function mergeSlipOcrReadings(first:SlipFields,second:SlipFields):SlipFie
   const date=select('วันที่',first.date,second.date);
   const time=select('เวลา',first.time,second.time);
   const recipient=select('ชื่อผู้รับ',first.recipient,second.recipient);
+  const direction=select('ประเภทรายรับรายจ่าย',first.direction,second.direction);
+  const directionReason=direction?(first.direction===direction?first.directionReason:second.directionReason):'สลิปยังไม่สามารถระบุรายรับหรือรายจ่ายได้ชัดเจน กรุณาเลือกเอง';
   const warnings=[...conflicts];
   if(amountSatang===null&&!conflicts.some(x=>x.includes('จำนวนเงิน')))warnings.push('อ่านจำนวนเงินไม่ได้ กรุณากรอกเอง');
   if(date===null&&!conflicts.some(x=>x.includes('วันที่')))warnings.push('อ่านวันที่ไม่ได้ กรุณากรอกเอง');
   if(time===null&&!conflicts.some(x=>x.includes('เวลา')))warnings.push('อ่านเวลาไม่ได้ กรุณากรอกเอง');
   if(recipient===null&&!conflicts.some(x=>x.includes('ชื่อผู้รับ')))warnings.push('อ่านชื่อผู้รับไม่ได้ กรุณากรอกเอง');
-  return {amountSatang,date,time,recipient,warnings,rawText:
+  return {amountSatang,date,time,recipient,direction,directionReason,warnings,rawText:
     first.rawText+'\n\n--- รอบปรับภาพ ---\n'+second.rawText};
 }
