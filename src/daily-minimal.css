@@ -216,3 +216,8 @@ body,.app-shell{background:var(--mobile-canvas);color:var(--mobile-ink)}
   .slip-panel-primary .slip-actions{flex-direction:column}
   .slip-panel-primary .slip-actions .btn{width:100%;max-width:none}
 }
+
+/* Direction classification from K PLUS slip: clear evidence, no silent financial guess. */
+.slip-direction-detected{display:flex;align-items:flex-start;gap:8px;padding:12px;border-radius:12px;background:#eef7f1;color:#184f3c;font-size:12px;line-height:1.65;margin:12px 0}
+.slip-direction-detected svg{flex:none;margin-top:2px}
+.slip-inference{color:#215c49;font-size:12px;line-height:1.6;margin:10px 0}
