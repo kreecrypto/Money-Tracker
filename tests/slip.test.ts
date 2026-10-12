@@ -6,12 +6,14 @@ describe('Thai bank transfer slip parser',()=>{
     const result=parseSlipText('โอนเงินสำเร็จ\nวันที่ 10 ต.ค. 2569 15:40\nถึง นาย สมชาย ใจดี\nเลขอ้างอิง 123456789012345\nจำนวนเงิน\n1,234.50 บาท\nค่าธรรมเนียม 0.00 บาท');
     expect(result.amountSatang).toBe(123450);
     expect(result.date).toBe('2026-10-10');
+    expect(result.time).toBe('15:40');
     expect(result.recipient).toBe('นาย สมชาย ใจดี');
   });
   it('reads English amount and ISO date',()=>{
     const result=parseSlipText('Bank transfer\nDate: 2026-10-09 08:00\nTo: Coffee House\nAmount: THB 129.75');
     expect(result.amountSatang).toBe(12975);
     expect(result.date).toBe('2026-10-09');
+    expect(result.time).toBe('08:00');
     expect(result.recipient).toBe('Coffee House');
   });
   it('handles numeric BE dates and Thai digits',()=>{
@@ -39,5 +41,43 @@ describe('Thai bank transfer slip parser',()=>{
     expect(result.amountSatang).toBeNull();
     expect(result.date).toBeNull();
     expect(result.recipient).toBeNull();
+  });
+
+  it('extracts exactly the four core fields from a K PLUS bill-payment layout',()=>{
+    const screenshotStyle=[
+      'จ่ายบิลสำเร็จ',
+      '12 ต.ค. 69 13:15 น.',
+      'นาย ผู้ชำระเงิน',
+      'ธ.กสิกรไทย',
+      'xxx-x-x0000-x',
+      'SYNPHAET BANGNA',
+      'CO.,LTD.',
+      '000000000000000',
+      'SAMPLE-BILL-REFERENCE',
+      'จำนวน:',
+      '2,948.00 บาท',
+      'ค่าธรรมเนียม: 0.00 บาท',
+      'เลขที่รายการ: SAMPLE-TRANSACTION-REF'
+    ].join('\n');
+    const result=parseSlipText(screenshotStyle);
+    expect(result.date).toBe('2026-10-12');
+    expect(result.time).toBe('13:15');
+    expect(result.amountSatang).toBe(294800);
+    expect(result.recipient).toBe('SYNPHAET BANGNA CO.,LTD.');
+    expect(result.warnings).toEqual([]);
+  });
+  it('does not misidentify the payer as the recipient when the biller block is missing',()=>{
+    const result=parseSlipText('จ่ายบิลสำเร็จ\n12 ต.ค. 69 13:15 น.\nนาย ผู้ชำระเงิน\nธ.กสิกรไทย\nจำนวน: 2,948.00 บาท');
+    expect(result.recipient).toBeNull();
+    expect(result.warnings.some(x=>x.includes('ชื่อผู้รับ'))).toBe(true);
+  });
+  it('does not treat fees or transaction references as payment times',()=>{
+    const result=parseSlipText('วันที่ 12 ต.ค. 69\nจำนวน: 2,948.00 บาท\nค่าธรรมเนียม 0.00 บาท\nเลขที่รายการ SAMPLE-TRANSACTION-REF');
+    expect(result.time).toBeNull();
+    expect(result.amountSatang).toBe(294800);
+  });
+  it('rejects out-of-range clock times',()=>{
+    expect(parseSlipText('วันที่ 12 ต.ค. 69 24:90 น.').time).toBeNull();
+    expect(parseSlipText('วันที่ 12 ต.ค. 69 เวลา 23:59 น.').time).toBe('23:59');
   });
 });

@@ -10,14 +10,14 @@ Mobile-first, Thai-language, offline-first **daily income and expense tracker** 
 - Reports and category summaries, JSON backup/restore, and Excel-friendly UTF-8 CSV export.
 - Installable Progressive Web App (PWA); offline usage after the first load.
 - Financial amounts stored in **integer satang**, dates stored as **local calendar dates**.
-- **Slip-first entry**: Upload a KBank / K PLUS slip from the main action (JPG, PNG, WebP, max 10 MB), or capture a new photo. Client-side Tesseract.js attempts to fill amount/date/recipient; choose income or expense and review every field before saving. Manual entry remains accessible as a secondary option. No auto-import or automatic save.
+- **Slip-first entry**: Upload a KBank / K PLUS slip from the main action (JPG, PNG, WebP, max 10 MB), or capture a new photo. Client-side Tesseract.js attempts to extract **date, local time, amount and recipient name**. K PLUS bill-payment layouts are parsed from the masked sender account and biller block where an explicit payee label is absent. Confirm income or expense and review all four fields before saving. Manual entry remains accessible as a secondary option. No auto-import or automatic save.
 - No account, server, bank access, tracking scripts, or analytics by default.
 
 ## Slip OCR privacy and limitations
 
 - Image OCR runs inside the browser using Tesseract.js (Thai + English). On the **first scan**, the OCR engine and language files must be downloaded from their configured external CDNs; without those assets the scan does not work offline. The selected image and raw OCR text are only held in memory during scanning, and are **not uploaded to our server** or saved in IndexedDB.
 - OCR results are estimates, not bank-verified transaction records. Account numbers, transfer references, and fee/balance lines must not be treated as the payment amount. Ambiguous fields remain blank; always verify against the original image.
-- Only the explicitly confirmed form fields are saved. The image is not attached to the transaction. For photos in HEIC format, convert to JPG before scanning.
+- Only the explicitly confirmed form fields (including time and recipient when supplied) are saved. The image is not attached to the transaction. For photos in HEIC format, convert to JPG before scanning.
 
 ## Quick start
 
@@ -48,12 +48,14 @@ type Transaction = {
   category: string;
   note: string;
   date: string; // YYYY-MM-DD in user's local time
+  time?: string; // HH:mm printed on the slip; optional for older/manual records
+  recipient?: string; // payee printed on the slip
   method: 'cash' | 'bank' | 'card' | 'wallet';
   createdAt: number;
 };
 ```
 
-The store is **IndexedDB**, isolated to the site's origin. **It does not sync across devices**. Removing site data, using private mode, or changing domains/browsers may cause data loss. **Download a JSON backup regularly.** A restore replaces all current transactions only after a confirmation. This is not encrypted storage: anyone with access to the unlocked browser profile/device may access the local data. Avoid importing backups from untrusted sources.
+The store is **IndexedDB**, isolated to the site's origin. CSV exports include dedicated Date, Time, Amount and Recipient columns; JSON backup/restore preserves these fields and supports older records. **It does not sync across devices**. Removing site data, using private mode, or changing domains/browsers may cause data loss. **Download a JSON backup regularly.** A restore replaces all current transactions only after a confirmation. This is not encrypted storage: anyone with access to the unlocked browser profile/device may access the local data. Avoid importing backups from untrusted sources.
 
 **Net cash flow** = recorded income − recorded expenses; this is *not* your bank balance and does not represent debts or assets. Expense categories include debt payments, but the app does not manage full loan balances or double-entry accounting.
 

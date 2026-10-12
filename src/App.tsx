@@ -28,8 +28,8 @@ function TransactionRow({entry,onEdit,onDelete}:{entry:Transaction;onEdit:(t:Tra
   const [actionsOpen,setActionsOpen]=useState(false);
   return <div className="transaction-row">
     <div className={`transaction-emoji ${entry.type}`} aria-hidden="true">{entry.category.slice(0,1)}</div>
-    <div className="transaction-copy"><strong>{entry.note||entry.category}</strong><span>{entry.category} <i>·</i> {METHODS[entry.method]}</span></div>
-    <div className="transaction-end"><b className={entry.type==='income'?'positive':'negative'}>{entry.type==='income'?'+':'−'}฿{baht(entry.amountSatang)}</b><span>{dateText(entry.date)}</span></div>
+    <div className="transaction-copy"><strong>{entry.recipient||entry.note||entry.category}</strong><span>{entry.category}{entry.note&&entry.recipient?` · ${entry.note}`:""} <i>·</i> {METHODS[entry.method]}</span></div>
+    <div className="transaction-end"><b className={entry.type==='income'?'positive':'negative'}>{entry.type==='income'?'+':'−'}฿{baht(entry.amountSatang)}</b><span>{dateText(entry.date)}{entry.time?` · ${entry.time} น.`:""}</span></div>
     <div className="transaction-actions"><button aria-label={`แก้ไข ${entry.note||entry.category}`} title="แก้ไข" className="icon-btn" onClick={()=>onEdit(entry)}><Pencil size={17}/></button><button aria-label={`ลบ ${entry.note||entry.category}`} title="ลบ" className="icon-btn danger" onClick={()=>onDelete(entry)}><Trash2 size={17}/></button></div>
     <div className="mobile-row-actions"><button className="icon-btn mobile-row-more" title="จัดการรายการ" aria-label={`จัดการ ${entry.note||entry.category}`} aria-expanded={actionsOpen} onClick={()=>setActionsOpen(!actionsOpen)}><MoreHorizontal size={21}/></button>
       {actionsOpen&&<div className="mobile-row-menu" role="group" aria-label="ตัวเลือกรายการ">
@@ -47,6 +47,8 @@ function EntryModal({initial,existing,startWithScanner,close,submit}:{initial:Tr
   const [type,setType]=useState<EntryType>(initial?.type||'expense');
   const [amount,setAmount]=useState(initial?String(initial.amountSatang/100):'');
   const [date,setDate]=useState(initial?.date||todayLocal());
+  const [time,setTime]=useState(initial?.time||'');
+  const [recipient,setRecipient]=useState(initial?.recipient||'');
   const [category,setCategory]=useState(initial?.category||EXPENSE_CATEGORIES[0]);
   const [method,setMethod]=useState<Method>(initial?.method||'cash');
   const [note,setNote]=useState(initial?.note||'');
@@ -83,16 +85,19 @@ function EntryModal({initial,existing,startWithScanner,close,submit}:{initial:Tr
   useEffect(()=>setDuplicateAcknowledged(false),[type,amount,date,method]);
   const save=async(e:FormEvent)=>{e.preventDefault();
     if(slipApplied&&!directionVerified){setError('กรุณาเลือก เงินเข้า หรือ เงินออก ก่อนบันทึก');return;}
+    if(slipApplied&&(!time||!recipient.trim())){setError('กรุณาตรวจและกรอกเวลาทำรายการกับชื่อผู้รับตามสลิป');return;}
+    if(time&&!/^([01]\d|2[0-3]):[0-5]\d$/.test(time)){setError('เวลาทำรายการไม่ถูกต้อง');return;}
     if(similar.length&&!duplicateAcknowledged){setError('พบรายการคล้ายกัน กรุณายืนยันก่อนบันทึกซ้ำ');return;}
     const sats=toSatang(amount);if(!sats){setError('กรุณากรอกจำนวนเงินมากกว่า 0 และทศนิยมไม่เกิน 2 ตำแหน่ง');return;}
     if(!/^\d{4}-\d\d-\d\d$/.test(date)){setError('กรุณาเลือกวันที่');return;}
-    setPending(true);setError('');try{await submit({id:initial?.id||uuid(),type,amountSatang:sats,date,category,note:note.trim().slice(0,500),method,createdAt:initial?.createdAt||Date.now()});close();}catch(err){setError(err instanceof Error?err.message:'บันทึกไม่สำเร็จ');setPending(false);}
+    setPending(true);setError('');try{await submit({id:initial?.id||uuid(),type,amountSatang:sats,date,time:time||undefined,recipient:recipient.trim()||undefined,category,note:note.trim().slice(0,500),method,createdAt:initial?.createdAt||Date.now()});close();}catch(err){setError(err instanceof Error?err.message:'บันทึกไม่สำเร็จ');setPending(false);}
   };
   const switchType=(newType:EntryType)=>{setType(newType);setCategory(newType==='expense'?EXPENSE_CATEGORIES[0]:INCOME_CATEGORIES[0]);if(slipApplied){setDirectionVerified(true);setError('');}};
   const applySlip=(data:SlipFields)=>{setSlipApplied(true);setDirectionVerified(false);setDuplicateAcknowledged(false);
     setAmount(data.amountSatang!==null?(data.amountSatang/100).toFixed(2):'');
     setDate(data.date||''); // Never silently treat an unreadable slip date as today's transaction.
-    if(data.recipient)setNote(`โอนเงิน: ${data.recipient}`.slice(0,500));
+    setTime(data.time||'');
+    setRecipient(data.recipient||'');
     setMethod('bank');
     setError('');
     setScannerOpen(false);
@@ -112,9 +117,10 @@ function EntryModal({initial,existing,startWithScanner,close,submit}:{initial:Tr
   <div className="type-switch" role="group" aria-label="ประเภทรายการ"><button type="button" aria-pressed={type==='expense'&&(!slipApplied||directionVerified)} className={type==='expense'&&(!slipApplied||directionVerified)?'selected expense':''} onClick={()=>switchType('expense')}><ArrowUpRight size={16}/> เงินออก / รายจ่าย</button><button type="button" aria-pressed={type==='income'&&(!slipApplied||directionVerified)} className={type==='income'&&(!slipApplied||directionVerified)?'selected income':''} onClick={()=>switchType('income')}><ArrowDownLeft size={16}/> เงินเข้า / รายรับ</button></div>
   <label className="field-label" htmlFor="amount">จำนวนเงิน (บาท)</label><div className="amount-input"><span>฿</span><input id="amount" ref={first} inputMode="decimal" autoComplete="off" placeholder="0.00" value={amount} onChange={e=>setAmount(e.target.value)} required /></div>
   {similar.length>0&&<div className="duplicate-warning" role="status"><strong>พบ {similar.length} รายการที่อาจซ้ำ</strong><p>มียอด {amount} บาท วันที่ {date} และช่องทางเดียวกัน</p><label><input type="checkbox" checked={duplicateAcknowledged} onChange={e=>setDuplicateAcknowledged(e.target.checked)}/> ยืนยันว่าต้องการบันทึกรายการนี้ซ้ำ</label></div>}
-  <div className="field-grid"><div><label className="field-label" htmlFor="entry-date">วันที่</label><input id="entry-date" type="date" value={date} onChange={e=>setDate(e.target.value)} required/></div><div><label className="field-label" htmlFor="category">หมวดหมู่</label><select id="category" value={category} onChange={e=>setCategory(e.target.value)}>{categories.map(c=><option key={c} value={c}>{c}</option>)}</select></div></div>
+  <div className="field-grid slip-date-time"><div><label className="field-label" htmlFor="entry-date">วันที่ทำรายการ</label><input id="entry-date" type="date" value={date} onChange={e=>setDate(e.target.value)} required/></div><div><label className="field-label" htmlFor="entry-time">เวลาทำรายการ {slipApplied?'':'(ถ้ามี)'}</label><input id="entry-time" type="time" value={time} onChange={e=>setTime(e.target.value)} required={slipApplied}/></div></div>
+  <label className="field-label" htmlFor="recipient">ชื่อผู้รับ {slipApplied?'(ตามสลิป)':'(ถ้ามี)'}</label><input id="recipient" maxLength={160} placeholder="เช่น SYNPHAET BANGNA CO., LTD." value={recipient} onChange={e=>setRecipient(e.target.value)} required={slipApplied}/>
+  <div className="field-grid"><div><label className="field-label" htmlFor="category">หมวดหมู่</label><select id="category" value={category} onChange={e=>setCategory(e.target.value)}>{categories.map(c=><option key={c} value={c}>{c}</option>)}</select></div><div><label className="field-label" htmlFor="method">ช่องทางชำระเงิน / รับเงิน</label><select id="method" value={method} onChange={e=>setMethod(e.target.value as Method)}>{Object.entries(METHODS).map(([key,label])=><option key={key} value={key}>{label}</option>)}</select></div></div>
   <label className="field-label" htmlFor="note">รายละเอียด <span className="subtle">(ไม่บังคับ)</span></label><input id="note" maxLength={500} placeholder="เช่น กาแฟตอนเช้า" value={note} onChange={e=>setNote(e.target.value)}/>
-  <label className="field-label" htmlFor="method">ช่องทางชำระเงิน / รับเงิน</label><select id="method" value={method} onChange={e=>setMethod(e.target.value as Method)}>{Object.entries(METHODS).map(([key,label])=><option key={key} value={key}>{label}</option>)}</select>
   {error&&<p className="error-message" role="alert">{error}</p>}
   <div className="modal-footer"><button type="button" className="btn btn-ghost" disabled={pending} onClick={close}>ยกเลิก</button><button type="submit" className="btn btn-primary" disabled={pending}><Check size={17}/>{pending?'กำลังบันทึก...':'บันทึกรายการ'}</button></div></>}</form></section></div>;
 }
@@ -137,7 +143,7 @@ export default function App(){
   const allSums=useMemo(()=>summarize(items),[items]);
   const byCategory=useMemo(()=>expenseByCategory(selected),[selected]);
   const usedBudget=percent(sums.expense,settings.monthlyBudgetSatang);
-  const filtered=useMemo(()=>selected.filter(x=>(filter==='all'||x.type===filter) && (!search.trim()||`${x.category} ${x.note} ${METHODS[x.method]}`.toLocaleLowerCase('th-TH').includes(search.trim().toLocaleLowerCase('th-TH')))),[selected,filter,search]);
+  const filtered=useMemo(()=>selected.filter(x=>(filter==='all'||x.type===filter) && (!search.trim()||`${x.category} ${x.note} ${x.recipient||''} ${x.time||''} ${METHODS[x.method]}`.toLocaleLowerCase('th-TH').includes(search.trim().toLocaleLowerCase('th-TH')))),[selected,filter,search]);
   const history=useMemo(()=>{const [y,m]=month.split('-').map(Number);return lastMonths(6,new Date(y,m-1,1)).map(period=>({...period,...summarize(monthly(items,period.key))}));},[items,month]);
   const maxBar=Math.max(1,...history.map(x=>Math.max(x.income,x.expense)));
   const openAdd=()=>{setScanOnOpen(true);setEditing(null);setModalOpen(true)};

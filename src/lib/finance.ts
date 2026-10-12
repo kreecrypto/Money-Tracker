@@ -7,6 +7,10 @@ export type Transaction = {
   category: string;
   note: string;
   date: string;
+  /** Local transaction clock time, HH:mm. Optional for older/manual transactions. */
+  time?: string;
+  /** Payee printed on the slip; never inferred from the sender. */
+  recipient?: string;
   method: Method;
   createdAt: number;
 };
@@ -57,6 +61,8 @@ export function isValidTransaction(x:unknown):x is Transaction {
     typeof t.note==='string' && t.note.length<=500 && typeof t.date==='string' &&
     /^\d{4}-(0[1-9]|1[0-2])-(0[1-9]|[12]\d|3[01])$/.test(t.date) &&
     !Number.isNaN(new Date(`${t.date}T12:00:00`).getTime()) && todayLocal(new Date(`${t.date}T12:00:00`))===t.date &&
+    (t.time===undefined || (typeof t.time==='string' && /^([01]\d|2[0-3]):[0-5]\d$/.test(t.time))) &&
+    (t.recipient===undefined || (typeof t.recipient==='string' && t.recipient.length<=160)) &&
     (t.method==='cash'||t.method==='bank'||t.method==='card'||t.method==='wallet') &&
     typeof t.createdAt==='number' && Number.isFinite(t.createdAt);
 }
