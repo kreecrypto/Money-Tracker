@@ -23,3 +23,5 @@ export function summarizeSlipBatch(rows:SlipBatchRow[]) {
     errors:rows.filter(r=>r.status==='error').length,
   };
 }
+
+export type SlipBatchSummary=ReturnType<typeof summarizeSlipBatch>;
