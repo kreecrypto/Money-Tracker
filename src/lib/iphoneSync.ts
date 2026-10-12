@@ -31,7 +31,10 @@ async function call(path:string,method:'GET'|'POST',data?:object){
   const r=await fetch(base+path,{method,headers:{
     authorization:'Bearer '+token,...(data?{'content-type':'application/json'}:{})
   },body:data?JSON.stringify(data):undefined,cache:'no-store'});
-  if(r.status===401){iphoneDisconnect();throw new Error('รหัสเชื่อมหมดอายุหรือไม่ถูกต้อง');}
+  if(r.status===401){iphoneDisconnect();throw new Error('Review Token ไม่ถูกต้อง กรุณาเชื่อมใหม่');}
+  if(r.status===403)throw new Error('เว็บ Money Tracker ไม่ได้รับอนุญาตให้เชื่อม API (ตรวจ Allowed App Origin)');
+  if(r.status===503)throw new Error('Backend หรือฐานข้อมูลยังไม่พร้อม กรุณาตรวจการตั้งค่า Vercel/Supabase');
+  if(r.status===429)throw new Error('ส่งคำขอบ่อยเกินไป กรุณาลองใหม่ภายหลัง');
   if(!r.ok)throw new Error(r.status===409?'รายการนี้ถูกจัดการไปแล้ว':'ไม่สามารถเชื่อมต่อ iPhone Inbox ได้');
   return await r.json() as Record<string,unknown>;
 }
