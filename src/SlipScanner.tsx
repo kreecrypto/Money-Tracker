@@ -87,7 +87,7 @@ export default function SlipScanner({onApply,onClose}:Props){
 
   return <section className="slip-panel slip-panel-primary" aria-label="อัปโหลดสลิปธนาคาร">
     <div className="slip-head"><div><ScanLine size={18}/><strong>อัปโหลดสลิป KBank / K PLUS</strong></div><button type="button" className="slip-close" disabled={busy} onClick={onClose} aria-label="กลับไปกรอกข้อมูลเอง"><X size={18}/></button></div>
-    <p className="slip-hint">เลือกรูปจากคลังภาพหรือถ่ายสลิป เลือกรูปสลิป K PLUS ระบบจะอ่านข้อมูลและบันทึกรายรับ–รายจ่ายอัตโนมัติทันทีเมื่อข้อมูลครบ โดยไม่ต้องกดยืนยัน</p>
+    <p className="slip-hint">เลือกรูปจากคลังภาพหรือถ่ายสลิป K PLUS ระบบจะอ่านและบันทึกให้อัตโนมัติเมื่อข้อมูลครบและระบุรายรับ–รายจ่ายได้ชัดเจน</p>
     <div className="slip-upload-box">
       <div className="slip-upload-icon" aria-hidden="true"><FileImage size={28}/></div>
       <strong>เลือกรูปสลิปเพื่อบันทึกทันที</strong>
