@@ -186,4 +186,8 @@ describe('Thai bank transfer slip parser',()=>{
     expect(combined.direction).toBeNull();
     expect(combined.warnings.some(w=>w.includes('ประเภทรายรับรายจ่าย'))).toBe(true);
   });
+  it('does not treat a payee label containing the word income as evidence of money received',()=>{
+    const result=inferSlipDirection('โอนเงินสำเร็จ\nผู้รับ: เงินเข้าบัญชี จำกัด\nวันที่ 12 ต.ค. 69\nจำนวนเงิน 100.00 บาท');
+    expect(result.direction).toBeNull();
+  });
 });
