@@ -49,15 +49,15 @@ describe('Thai bank transfer slip parser',()=>{
       '12 ต.ค. 69 13:15 น.',
       'นาย ผู้ชำระเงิน',
       'ธ.กสิกรไทย',
-      'xxx-x-x5839-x',
+      'xxx-x-x0000-x',
       'SYNPHAET BANGNA',
       'CO.,LTD.',
-      '000002206186967',
-      '471554458KK8GX000000',
+      '000000000000000',
+      'SAMPLE-BILL-REFERENCE',
       'จำนวน:',
       '2,948.00 บาท',
       'ค่าธรรมเนียม: 0.00 บาท',
-      'เลขที่รายการ: 016285131509APM16324'
+      'เลขที่รายการ: SAMPLE-TRANSACTION-REF'
     ].join('\n');
     const result=parseSlipText(screenshotStyle);
     expect(result.date).toBe('2026-10-12');
@@ -72,7 +72,7 @@ describe('Thai bank transfer slip parser',()=>{
     expect(result.warnings.some(x=>x.includes('ชื่อผู้รับ'))).toBe(true);
   });
   it('does not treat fees or transaction references as payment times',()=>{
-    const result=parseSlipText('วันที่ 12 ต.ค. 69\nจำนวน: 2,948.00 บาท\nค่าธรรมเนียม 0.00 บาท\nเลขที่รายการ 016285131509APM16324');
+    const result=parseSlipText('วันที่ 12 ต.ค. 69\nจำนวน: 2,948.00 บาท\nค่าธรรมเนียม 0.00 บาท\nเลขที่รายการ SAMPLE-TRANSACTION-REF');
     expect(result.time).toBeNull();
     expect(result.amountSatang).toBe(294800);
   });
