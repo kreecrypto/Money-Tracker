@@ -12,6 +12,19 @@ describe('finance math',()=>{
 });
 describe('backup',()=>{
  it('roundtrips',()=>expect(parseBackup(createBackup([e],{monthlyBudgetSatang:20000})).transactions).toEqual([e]));
+ it('roundtrips four extracted K PLUS fields without changing legacy backups',()=>{
+   const receipt={...e,date:'2026-10-12',time:'13:15',amountSatang:294800,recipient:'SYNPHAET BANGNA CO.,LTD.',method:'bank' as const};
+   const restored=parseBackup(createBackup([receipt,e],{monthlyBudgetSatang:20000})).transactions;
+   expect(restored).toEqual([receipt,e]);
+   expect(toCsv([receipt])).toContain('"13:15"');
+   expect(toCsv([receipt])).toContain('"SYNPHAET BANGNA CO.,LTD."');
+   expect(isValidTransaction(e)).toBe(true);
+ });
+ it('rejects malformed clock time and payee payloads',()=>{
+   expect(isValidTransaction({...e,time:'25:99'})).toBe(false);
+   expect(isValidTransaction({...e,recipient:12})).toBe(false);
+   expect(isValidTransaction({...e,recipient:'x'.repeat(161)})).toBe(false);
+ });
  it('rejects invalid transaction',()=>expect(isValidTransaction({...e,amountSatang:-10})).toBe(false));
  it('rejects duplicated ids',()=>expect(()=>parseBackup(createBackup([e,e],{monthlyBudgetSatang:0}))).toThrow());
  it('guards spreadsheet formulas',()=>expect(toCsv([{...e,note:'=HYPERLINK("bad")'}])).toContain("'=HYPERLINK"));
