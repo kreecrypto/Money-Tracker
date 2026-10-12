@@ -9,6 +9,7 @@ import LineSyncSettings from './LineSyncSettings';
 import {lineLinked,syncLineInbox} from './lib/lineSync';
 import type {SlipFields} from './lib/slip';
 import {prepareAutoSlip} from './lib/slipAutoSave';
+import type {SlipBatchOutcome,SlipBatchSummary} from './lib/slipBatch';
 
 type Page='home'|'transactions'|'reports'|'settings';
 type Filter='all'|'income'|'expense';
@@ -44,7 +45,7 @@ function TxList({items,onEdit,onDelete,limit}:{items:Transaction[];onEdit:(t:Tra
   const visible=limit?items.slice(0,limit):items;
   return <div className="tx-list">{visible.map(x=><TransactionRow key={x.id} entry={x} onEdit={onEdit} onDelete={onDelete}/>)}</div>;
 }
-function EntryModal({initial,existing,startWithScanner,close,submit}:{initial:Transaction|null;existing:Transaction[];startWithScanner:boolean;close:()=>void;submit:(t:Transaction)=>Promise<void>}){
+function EntryModal({initial,existing,startWithScanner,close,submit,notifyBatch}:{initial:Transaction|null;existing:Transaction[];startWithScanner:boolean;close:()=>void;submit:(t:Transaction)=>Promise<void>;notifyBatch:(summary:SlipBatchSummary)=>void}){
   const [type,setType]=useState<EntryType>(initial?.type||'expense');
   const [amount,setAmount]=useState(initial?String(initial.amountSatang/100):'');
   const [date,setDate]=useState(initial?.date||todayLocal());
@@ -54,6 +55,7 @@ function EntryModal({initial,existing,startWithScanner,close,submit}:{initial:Tr
   const [method,setMethod]=useState<Method>(initial?.method||'cash');
   const [note,setNote]=useState(initial?.note||'');
   const [pending,setPending]=useState(false);
+  const [batchBusy,setBatchBusy]=useState(false);
   const [scannerOpen,setScannerOpen]=useState(startWithScanner&&!initial);
   const [duplicateAcknowledged,setDuplicateAcknowledged]=useState(false);
   const [error,setError]=useState('');
@@ -90,27 +92,31 @@ function EntryModal({initial,existing,startWithScanner,close,submit}:{initial:Tr
     setPending(true);setError('');try{await submit({id:initial?.id||uuid(),type,amountSatang:sats,date,time:time||undefined,recipient:recipient.trim()||undefined,category,note:note.trim().slice(0,500),method,createdAt:initial?.createdAt||Date.now()});close();}catch(err){setError(err instanceof Error?err.message:'บันทึกไม่สำเร็จ');setPending(false);}
   };
   const switchType=(newType:EntryType)=>{setType(newType);setCategory(newType==='expense'?EXPENSE_CATEGORIES[0]:INCOME_CATEGORIES[0]);setError('');};
-  const autoImportSlip=async(data:SlipFields)=>{
+  const autoImportSlip=async(data:SlipFields):Promise<SlipBatchOutcome>=>{
     // Re-query IndexedDB: another tab or inbox sync might have added the same payment.
     const latest=await loadTransactions();
     const decision=prepareAutoSlip(data,latest,uuid(),Date.now());
-    if(decision.status!=='ready')throw new Error(decision.reason);
+    if(decision.status!=='ready')return {status:decision.status,reason:decision.reason};
     setPending(true);
     try{
       await submit(decision.transaction);
-      close();
+      return {status:'saved'};
     }finally{setPending(false);}
   };
-  return <div className="modal-backdrop" onMouseDown={e=>{if(e.target===e.currentTarget&&!pending)close();}}><section ref={dialogRef} tabIndex={-1} className="modal" role="dialog" aria-modal="true" aria-labelledby="modal-title"><div className="modal-heading"><div><span className="eyebrow">SLIP-FIRST ENTRY</span><h2 id="modal-title">{initial?'แก้ไขรายการ':scannerOpen?'อัปโหลดสลิป':'กรอกรายการเอง'}</h2></div><button className="icon-btn" title="ปิด" aria-label="ปิด" disabled={pending} onClick={close}><X size={21}/></button></div>
+  const finishBatch=(summary:SlipBatchSummary)=>{
+    notifyBatch(summary);
+    if(summary.saved>0&&summary.duplicate===0&&summary.incomplete===0&&summary.errors===0)close();
+  };
+  return <div className="modal-backdrop" onMouseDown={e=>{if(e.target===e.currentTarget&&!pending&&!batchBusy)close();}}><section ref={dialogRef} tabIndex={-1} className="modal" role="dialog" aria-modal="true" aria-labelledby="modal-title"><div className="modal-heading"><div><span className="eyebrow">SLIP-FIRST ENTRY</span><h2 id="modal-title">{initial?'แก้ไขรายการ':scannerOpen?'อัปโหลดสลิป':'กรอกรายการเอง'}</h2></div><button className="icon-btn" title="ปิด" aria-label="ปิด" disabled={pending||batchBusy} onClick={close}><X size={21}/></button></div>
   <form onSubmit={save}>
   {!initial&&<div className="slip-entry slip-entry-first">
     {scannerOpen&&<div className="slip-flow" aria-label="ขั้นตอนบันทึกสลิป"><span className="current">1 เลือกสลิป</span><span>2 บันทึกอัตโนมัติ</span></div>}
     <div className="slip-mode-picker" role="group" aria-label="วิธีเพิ่มรายการ">
-      <button type="button" aria-pressed={scannerOpen} className={scannerOpen?'active':''} onClick={()=>setScannerOpen(true)}><ScanLine size={17}/> อัปโหลดสลิป</button>
-      <button type="button" aria-pressed={!scannerOpen} className={!scannerOpen?'active':''} onClick={()=>{setScannerOpen(false);setError('');}}><Plus size={17}/> กรอกเอง</button>
+      <button type="button" aria-pressed={scannerOpen} className={scannerOpen?'active':''} disabled={batchBusy} onClick={()=>setScannerOpen(true)}><ScanLine size={17}/> อัปโหลดสลิป</button>
+      <button type="button" aria-pressed={!scannerOpen} className={!scannerOpen?'active':''} disabled={batchBusy} onClick={()=>{setScannerOpen(false);setError('');}}><Plus size={17}/> กรอกเอง</button>
     </div>
   </div>}
-  {scannerOpen?<SlipScanner onApply={autoImportSlip} onClose={()=>setScannerOpen(false)}/>:<>
+  {scannerOpen?<SlipScanner onApply={autoImportSlip} onBusyChange={setBatchBusy} onComplete={finishBatch} onClose={()=>setScannerOpen(false)}/>:<>
   <div className="type-switch" role="group" aria-label="ประเภทรายการ"><button type="button" aria-pressed={type==='expense'} className={type==='expense'?'selected expense':''} onClick={()=>switchType('expense')}><ArrowUpRight size={16}/> เงินออก / รายจ่าย</button><button type="button" aria-pressed={type==='income'} className={type==='income'?'selected income':''} onClick={()=>switchType('income')}><ArrowDownLeft size={16}/> เงินเข้า / รายรับ</button></div>
   <label className="field-label" htmlFor="amount">จำนวนเงิน (บาท)</label><div className="amount-input"><span>฿</span><input id="amount" ref={first} inputMode="decimal" autoComplete="off" placeholder="0.00" value={amount} onChange={e=>setAmount(e.target.value)} required /></div>
   {similar.length>0&&<div className="duplicate-warning" role="status"><strong>พบ {similar.length} รายการที่อาจซ้ำ</strong><p>มียอด {amount} บาท วันที่ {date} และช่องทางเดียวกัน</p><label><input type="checkbox" checked={duplicateAcknowledged} onChange={e=>setDuplicateAcknowledged(e.target.checked)}/> ยืนยันว่าต้องการบันทึกรายการนี้ซ้ำ</label></div>}
@@ -201,7 +207,9 @@ export default function App(){
     </main><footer className="app-footer">© {new Date().getFullYear()} เงินวันนี้ · เล็กน้อยทุกวัน เปลี่ยนการเงินได้</footer></div>
     <button aria-label="อัปโหลดสลิป" title="อัปโหลดสลิป" className={`mobile-fab ${view==='home'?'home-fab':''}`} onClick={openAdd}><ScanLine size={25}/></button><nav className="mobile-bottom-nav" aria-label="เมนูมือถือ">{navItems.map(({key,label,icon:Icon})=><button key={key} className={view===key?'active':''} aria-current={view===key?'page':undefined} onClick={()=>setView(key)}><Icon size={21}/><span>{label}</span></button>)}</nav>
     {toast&&<div className="toast" role="status"><Check size={17}/>{toast}</div>}
-    {modalOpen&&<EntryModal initial={editing} existing={items} startWithScanner={scanOnOpen} close={()=>setModalOpen(false)} submit={onSave}/>}
+    {modalOpen&&<EntryModal initial={editing} existing={items} startWithScanner={scanOnOpen} close={()=>setModalOpen(false)} submit={onSave} notifyBatch={summary=>{
+      if(summary.saved>0)setToast('บันทึกสลิปสำเร็จ '+summary.saved+' รูป'+(summary.duplicate+summary.incomplete+summary.errors?' · ข้าม '+(summary.duplicate+summary.incomplete+summary.errors)+' รูป':''));
+    }}/>}
     {pendingRestore&&<RestoreDialog existingCount={items.length} importedCount={pendingRestore.transactions.length} busy={restoreBusy} onBackup={exportJson} onConfirm={()=>{void confirmRestore();}} onClose={()=>setPendingRestore(null)}/>}
   </div>;
 }

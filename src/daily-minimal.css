@@ -224,3 +224,26 @@ body,.app-shell{background:var(--mobile-canvas);color:var(--mobile-ink)}
 
 /* Slips save immediately; manual entry appears only when automatic import cannot complete. */
 .slip-manual-fallback{width:100%;min-height:44px;justify-content:center;margin-top:8px}
+
+/* Batch OCR: compact, accessible status instead of full-screen review dialogs. */
+.slip-batch-progress,.slip-batch-summary,.slip-batch-results{margin:12px 0;border:1px solid #d7e9dd;border-radius:12px;padding:12px;background:#f8fcf9}
+.slip-batch-counter{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:5px;font-size:12px;color:#254f3e;margin-bottom:10px}
+.slip-batch-counter span,.slip-batch-stage{font-size:11px;color:#526d60}
+.slip-batch-stage{display:block;margin-top:8px}
+.slip-batch-summary{background:#eaf7ef;color:#174e3a}
+.slip-batch-summary-title{display:flex;align-items:center;gap:8px;margin-bottom:9px}
+.slip-batch-counts{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:7px}
+.slip-batch-counts span{min-width:0;background:#fff;border-radius:9px;padding:10px 6px;font-size:11px;text-align:center}
+.slip-batch-counts b{display:block;font-size:20px;color:#155d44;margin-top:3px}
+.slip-batch-note{font-size:12px;line-height:1.5;margin:11px 0;color:#38584b}
+.slip-batch-finish{width:100%;min-height:44px;margin-top:10px}
+.slip-batch-results>strong{font-size:13px;color:#204c39}
+.slip-batch-results ul{list-style:none;margin:9px 0 0;padding:0;max-height:240px;overflow:auto}
+.slip-batch-results li{display:flex;flex-wrap:wrap;gap:4px 8px;align-items:center;padding:10px 0;border-top:1px solid #e3eee7;font-size:12px}
+.slip-batch-file{min-width:0;flex:1;overflow-wrap:anywhere;font-weight:600;color:#244536}
+.slip-batch-status{border-radius:7px;padding:5px 7px;font-size:11px;font-weight:700;background:#e8eee9;color:#3f5a49;white-space:nowrap}
+.slip-batch-status.saved{background:#e0f3e7;color:#14583e}
+.slip-batch-status.duplicate{background:#f0f0f0;color:#494c4a}
+.slip-batch-status.incomplete,.slip-batch-status.error{background:#fff2de;color:#754910}
+.slip-batch-results li small{display:block;width:100%;line-height:1.45;color:#5d645c;overflow-wrap:anywhere}
+@media(max-width:350px){.slip-batch-counts{grid-template-columns:1fr}.slip-batch-counts span{display:flex;justify-content:space-between;align-items:center}.slip-batch-counts b{margin-top:0}}
