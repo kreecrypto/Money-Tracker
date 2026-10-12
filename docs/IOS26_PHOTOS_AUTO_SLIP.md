@@ -51,9 +51,10 @@ flowchart TD
 4. Add **Repeat with Each** photo returned by Find Photos.
 5. Inside Repeat, add **Extract Text from Image** and provide **Repeat Item**. This first-stage OCR runs on the iPhone; no picture is sent to Money Tracker.
 6. Filter text **locally**, using If and nested conditions:
-   - Condition A: OCR contains **โอน** OR **สลิป** OR **โอนเงินสำเร็จ** OR **รับโอน** OR **transfer**.
-   - Condition B: OCR contains **จำนวนเงิน** OR **ยอดโอน** OR **ยอดชำระ** OR **amount**.
-   - To prevent unrelated photos uploading, require **both** A AND B; when not met, end the iteration. For multiple OR cases build nested If conditions or collect matches into a boolean variable; action labels differ slightly by language/iOS version.
+   - Condition A: OCR contains **K PLUS** OR **กสิกร/ธ.กสิกรไทย** OR **KBank**.
+   - Condition B: OCR contains transaction language such as **โอนเงินสำเร็จ** OR **รายการโอน/ถอน** OR **รับโอน**.
+   - Condition C: OCR contains an amount label such as **จำนวนเงิน** OR **จำนวน:** OR **ยอดโอน** OR **ยอดชำระ**.
+   - To prevent unrelated photos uploading, require **A AND B AND C**; when not met, end the iteration. For multiple OR cases build nested If conditions or collect matches into a boolean variable; action labels differ slightly by language/iOS version.
 7. For matched photos only, use **Get Contents of URL**:
    - URL: \`https://<public-bridge-host>/api/iphone/photos\`
    - Method: **POST**
@@ -105,7 +106,7 @@ Press **ยืนยันบันทึก**; confirmed records become availab
 - [ ] Exact same OCR text sent twice creates one pending item.
 - [ ] Confirmed item appears in Money Tracker transactions/reports exactly once.
 - [ ] Background operation is tested when unlocked and locked.
-- [ ] No raw image, bank account number, bank balance, or OCR text appears in database or logs.
+- [ ] No raw image, bank account number, bank balance, transaction reference or OCR text appears in database or logs; only reference hashes are persisted.
 - [ ] Offline/failed API calls do not present a false success notification.
 
 **Critical:** The current implementation is a **single-owner MVP**, not a public multi-user authorization design. The backend/token/db/deployment and physical iPhone QA must complete before calling it operational.
