@@ -221,3 +221,6 @@ body,.app-shell{background:var(--mobile-canvas);color:var(--mobile-ink)}
 .slip-direction-detected{display:flex;align-items:flex-start;gap:8px;padding:12px;border-radius:12px;background:#eef7f1;color:#184f3c;font-size:12px;line-height:1.65;margin:12px 0}
 .slip-direction-detected svg{flex:none;margin-top:2px}
 .slip-inference{color:#215c49;font-size:12px;line-height:1.6;margin:10px 0}
+
+/* Slips save immediately; manual entry appears only when automatic import cannot complete. */
+.slip-manual-fallback{width:100%;min-height:44px;justify-content:center;margin-top:8px}
