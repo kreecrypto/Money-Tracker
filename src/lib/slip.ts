@@ -115,7 +115,7 @@ function parseDate(lines:string[]):string|null {
 
 function extractTime(line:string):string|null {
   // Only colon-separated clock values; never treat the cents in a money amount as a time.
-  const match=line.match(/(?:^|[^\\d])([01]?\\d|2[0-3])\\s*[:：]\\s*([0-5]\\d)(?!\\d)/u);
+  const match=line.match(/(?:^|[^\d])([01]?\d|2[0-3])\s*[:：]\s*([0-5]\d)(?!\d)/u);
   return match?`${match[1].padStart(2,'0')}:${match[2]}`:null;
 }
 
@@ -130,7 +130,7 @@ function parseTime(lines:string[]):string|null {
   }
   // Standalone times must be clearly marked so we don't misread reference numbers.
   for(const line of lines){
-    if(!/(?:เวลา|time|\\bน\\.)/iu.test(line))continue;
+    if(!/(?:เวลา|time|\bน\.)/iu.test(line))continue;
     const value=extractTime(line);if(value)return value;
   }
   return null;
@@ -139,21 +139,21 @@ function parseTime(lines:string[]):string|null {
 function billRecipient(lines:string[]):string|null {
   // K PLUS bill-payment slips place the biller AFTER the sender's masked account,
   // not after a "ถึง" label. Prefer this block over the sender name above it.
-  if(!lines.some(line=>/(?:จ่าย\\s*บิล\\s*สำเร็จ|ชำระ\\s*บิล\\s*สำเร็จ|bill\\s*pay(?:ment)?\\s*(?:success|complete|paid))/iu.test(line)))return null;
+  if(!lines.some(line=>/(?:จ่าย\s*บิล\s*สำเร็จ|ชำระ\s*บิล\s*สำเร็จ|bill\s*pay(?:ment)?\s*(?:success|complete|paid))/iu.test(line)))return null;
   const amountIndex=lines.findIndex(line=>AMOUNT_LABEL.test(line)&&!EXCLUDED_AMOUNT.test(line));
   const beforeAmount=lines.slice(0,amountIndex<0?lines.length:amountIndex);
-  const accountIndex=beforeAmount.findIndex(line=>/(?:[xX*]{2,}[-xX*\\d]{3,}|\\*{3,}\\d{2,})/u.test(line));
+  const accountIndex=beforeAmount.findIndex(line=>/(?:[xX*]{2,}[-xX*\d]{3,}|\*{3,}\d{2,})/u.test(line));
   if(accountIndex<0)return null; // Do not guess a recipient from an unstructured receipt.
   const biller=beforeAmount.slice(accountIndex+1);
   const selected:string[]=[];
   for(const line of biller){
-    if(/^(?:\\d[\\d A-Za-z-]{5,}|(?:เลข|รหัส|อ้างอิง|reference|ref|account|บัญชี|ค่าธรรมเนียม))/iu.test(line))break;
-    if(/[\\d]/u.test(line)||!/[\\p{L}]/u.test(line))break;
-    if(line.length>70||/^(?:ธ\\.|ธนาคาร|bank|จำนวน|amount|ยอด|บาท|สำเร็จ)/iu.test(line))break;
+    if(/^(?:\d[\d A-Za-z-]{5,}|(?:เลข|รหัส|อ้างอิง|reference|ref|account|บัญชี|ค่าธรรมเนียม))/iu.test(line))break;
+    if(/[\d]/u.test(line)||!/[\p{L}]/u.test(line))break;
+    if(line.length>70||/^(?:ธ\.|ธนาคาร|bank|จำนวน|amount|ยอด|บาท|สำเร็จ)/iu.test(line))break;
     selected.push(line);
     if(selected.length===3)break;
   }
-  const name=selected.join(' ').replace(/\\s+/gu,' ').trim();
+  const name=selected.join(' ').replace(/\s+/gu,' ').trim();
   return name.length>=3&&name.length<=160?name:null;
 }
 
