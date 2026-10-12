@@ -85,12 +85,12 @@ export default function SlipScanner({onApply,onClose}:Props){
     }finally{if(mountedRef.current)setBusy(false);}
   };
 
-  return <section className="slip-panel slip-panel-primary" aria-label="อัปโหลดสลิปธนาคาร">
-    <div className="slip-head"><div><ScanLine size={18}/><strong>อัปโหลดสลิป KBank / K PLUS</strong></div><button type="button" className="slip-close" disabled={busy} onClick={onClose} aria-label="กลับไปกรอกข้อมูลเอง"><X size={18}/></button></div>
-    <p className="slip-hint">เลือกรูปจากคลังภาพหรือถ่ายสลิป K PLUS ระบบจะอ่านและบันทึกให้อัตโนมัติเมื่อข้อมูลครบและระบุรายรับ–รายจ่ายได้ชัดเจน</p>
+  return <section className="slip-panel slip-panel-primary" aria-label="อัปโหลดสลิปหรือใบเสร็จ">
+    <div className="slip-head"><div><ScanLine size={18}/><strong>อัปโหลดสลิป / ใบเสร็จ</strong></div><button type="button" className="slip-close" disabled={busy} onClick={onClose} aria-label="กลับไปกรอกข้อมูลเอง"><X size={18}/></button></div>
+    <p className="slip-hint">รองรับ K PLUS, ใบเสร็จ 7-Eleven/7Delivery และเป๋าตัง เลือกรูปแล้วระบบจะอ่านยอดจ่ายจริงและบันทึกทันทีเมื่อข้อมูลครบ</p>
     <div className="slip-upload-box">
       <div className="slip-upload-icon" aria-hidden="true"><FileImage size={28}/></div>
-      <strong>เลือกรูปสลิปเพื่อบันทึกทันที</strong>
+      <strong>เลือกรูปสลิปหรือใบเสร็จ</strong>
       <span>รองรับ JPG, PNG, WebP · ขนาดไม่เกิน 10 MB</span>
       <div className="slip-actions"><button type="button" className="btn btn-primary slip-pick" disabled={busy} onClick={()=>galleryRef.current?.click()}><Upload size={18}/> เลือกภาพสลิป</button><button type="button" className="btn btn-secondary" disabled={busy} onClick={()=>cameraRef.current?.click()}><Camera size={18}/> ถ่ายรูป</button></div>
     </div>
