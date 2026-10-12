@@ -29,6 +29,15 @@ const THAI_MONTHS = new Map<string,number>([
 ]);
 const MONTH_RE = /\b(january|february|march|april|may|june|july|august|september|october|november|december|sept|jan|feb|mar|apr|jun|jul|aug|sep|oct|nov|dec)\b|(?:มกราคม|กุมภาพันธ์|มีนาคม|เมษายน|พฤษภาคม|มิถุนายน|กรกฎาคม|สิงหาคม|กันยายน|ตุลาคม|พฤศจิกายน|ธันวาคม|ม\.ค\.|ก\.พ\.|มี\.ค\.|เม\.ย\.|พ\.ค\.|มิ\.ย\.|ก\.ค\.|ส\.ค\.|ก\.ย\.|ต\.ค\.|พ\.ย\.|ธ\.ค\.)/iu;
 
+/** OCR can emit Thai sara-am as combining nikhahit + sara-aa. Normalize before matching labels. */
+export function normalizeSlipOcrText(text:string):string {
+  return text.normalize('NFC')
+    .replace(/\u0e4d\s*\u0e32/gu,'ำ')
+    .replace(/[\u00a0\u200b\u200c\ufeff]/gu,' ')
+    .replace(/[：]/gu,':')
+    .replace(/[๐-๙]/gu,d=>String('๐๑๒๓๔๕๖๗๘๙'.indexOf(d)));
+}
+
 function toAscii(text:string):string {
   return text.replace(/[๐-๙]/g,d=>String('๐๑๒๓๔๕๖๗๘๙'.indexOf(d)));
 }
@@ -59,10 +68,14 @@ function parseAmount(lines:string[]):number|null {
     if(!candidates.length)candidates=parseMoney(line.slice(0,label?.index??0));
     if(candidates.length===1)return candidates[0];
     if(candidates.length>1)continue;
-    const next=lines[i+1]||'';
-    if(!EXCLUDED_AMOUNT.test(next)){
+    // A receipt's amount can be separated from its label by a blank/icon line.
+    // Never read through a fee or reference label.
+    for(let offset=1;offset<=3;offset++){
+      const next=lines[i+offset]||'';
+      if(!next||EXCLUDED_AMOUNT.test(next))break;
       candidates=parseMoney(next);
       if(candidates.length===1)return candidates[0];
+      if(candidates.length>1)break;
     }
   }
   // Without an amount label, use only a single explicit currency value.
@@ -169,7 +182,9 @@ function parseRecipient(lines:string[]):string|null {
 }
 
 export function parseSlipText(rawText:string):SlipFields {
-  const lines=toAscii(rawText).split(/\r?\n/u).map(x=>x.trim()).filter(Boolean);
+  const lines=normalizeSlipOcrText(rawText).split(/\r?\n/u)
+    .map(x=>x.replace(/^[0◯○•●@]\s+(?=[A-Z])/u,'').trim())
+    .filter(Boolean);
   const amountSatang=parseAmount(lines);
   const date=parseDate(lines);
   const time=parseTime(lines);
@@ -181,4 +196,35 @@ export function parseSlipText(rawText:string):SlipFields {
   if(time===null)warnings.push('อ่านเวลาไม่ชัดเจน กรุณากรอกเวลาตามสลิป');
   if(recipient===null)warnings.push('อ่านชื่อผู้รับไม่ชัดเจน กรุณาตรวจและกรอกชื่อผู้รับ');
   return {amountSatang,date,time,recipient,rawText,warnings};
+}
+
+
+/** Only run a recovery OCR pass when one of the four user-required fields is missing. */
+export function needsSlipOcrRecovery(result:SlipFields):boolean {
+  return result.date===null||result.time===null||result.amountSatang===null||result.recipient===null;
+}
+
+/** Merge two readings of the SAME photo without inventing conflicting financial data. */
+export function mergeSlipOcrReadings(first:SlipFields,second:SlipFields):SlipFields {
+  const conflicts:string[]=[];
+  const select=<T extends string|number>(label:string,a:T|null,b:T|null):T|null=>{
+    if(a===null)return b;
+    if(b===null)return a;
+    const norm=(v:T)=>typeof v==='string'
+      ? normalizeSlipOcrText(v).toLocaleLowerCase('en').replace(/[\s.,\-]/gu,'')
+      : v;
+    if(norm(a)!==norm(b)){conflicts.push('OCR อ่าน'+label+'ต่างกันระหว่างสองรอบ กรุณาตรวจสอบจากสลิป');return null;}
+    return a;
+  };
+  const amountSatang=select('จำนวนเงิน',first.amountSatang,second.amountSatang);
+  const date=select('วันที่',first.date,second.date);
+  const time=select('เวลา',first.time,second.time);
+  const recipient=select('ชื่อผู้รับ',first.recipient,second.recipient);
+  const warnings=[...conflicts];
+  if(amountSatang===null&&!conflicts.some(x=>x.includes('จำนวนเงิน')))warnings.push('อ่านจำนวนเงินไม่ได้ กรุณากรอกเอง');
+  if(date===null&&!conflicts.some(x=>x.includes('วันที่')))warnings.push('อ่านวันที่ไม่ได้ กรุณากรอกเอง');
+  if(time===null&&!conflicts.some(x=>x.includes('เวลา')))warnings.push('อ่านเวลาไม่ได้ กรุณากรอกเอง');
+  if(recipient===null&&!conflicts.some(x=>x.includes('ชื่อผู้รับ')))warnings.push('อ่านชื่อผู้รับไม่ได้ กรุณากรอกเอง');
+  return {amountSatang,date,time,recipient,warnings,rawText:
+    first.rawText+'\n\n--- รอบปรับภาพ ---\n'+second.rawText};
 }
