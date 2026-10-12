@@ -1,10 +1,10 @@
 import {useEffect,useRef,useState,type ChangeEvent} from 'react';
-import {Camera,Check,FileImage,ScanLine,ShieldCheck,Upload,X} from 'lucide-react';
+import {Camera,FileImage,ScanLine,ShieldCheck,Upload,X} from 'lucide-react';
 import {baht} from './lib/finance';
 import {parseSlipText,mergeSlipOcrReadings,needsSlipOcrRecovery,type SlipFields} from './lib/slip';
 import {prepareSlipRecoveryImage} from './lib/slipImage';
 
-type Props={onApply:(data:SlipFields)=>void;onClose:()=>void};
+type Props={onApply:(data:SlipFields)=>Promise<void>;onClose:()=>void};
 const MAX_FILE_BYTES=10*1024*1024;
 const SUPPORTED_TYPES=new Set(['image/jpeg','image/png','image/webp']);
 
@@ -18,7 +18,7 @@ export default function SlipScanner({onApply,onClose}:Props){
   const [result,setResult]=useState<SlipFields|null>(null);
   const [busy,setBusy]=useState(false);
   const [progress,setProgress]=useState(0);
-  const [stage,setStage]=useState<'download'|'recognize'|'retry'>('download');
+  const [stage,setStage]=useState<'download'|'recognize'|'retry'|'save'>('download');
   const [error,setError]=useState('');
   useEffect(()=>{
     mountedRef.current=true;
@@ -67,36 +67,44 @@ export default function SlipScanner({onApply,onClose}:Props){
             // Keep partial fields from original OCR and let the user correct them.
           }
         }
-        if(mountedRef.current)setResult(reading);
+        if(mountedRef.current){
+          setStage('save');setProgress(100);
+          try{
+            await onApply(reading);
+          }catch(err){
+            if(mountedRef.current)setResult(reading);
+            throw err;
+          }
+        }
       }finally{
         workerRef.current=null;
         await worker.terminate();
       }
     }catch(err){
-      if(mountedRef.current)setError(err instanceof Error?`อ่านสลิปไม่สำเร็จ: ${err.message}`:'อ่านสลิปไม่สำเร็จ กรุณาลองอีกครั้ง');
+      if(mountedRef.current)setError(err instanceof Error?err.message:'อ่านสลิปไม่สำเร็จ กรุณาลองภาพใหม่หรือกรอกเอง');
     }finally{if(mountedRef.current)setBusy(false);}
   };
 
   return <section className="slip-panel slip-panel-primary" aria-label="อัปโหลดสลิปธนาคาร">
-    <div className="slip-head"><div><ScanLine size={18}/><strong>อัปโหลดสลิป KBank / K PLUS</strong></div><button type="button" className="slip-close" onClick={onClose} aria-label="กลับไปกรอกข้อมูลเอง"><X size={18}/></button></div>
-    <p className="slip-hint">เลือกรูปจากคลังภาพหรือถ่ายสลิป ระบบจะปรับภาพและอ่านซ้ำเฉพาะเมื่อข้อมูลไม่ครบ จากนั้นให้คุณตรวจทั้ง 4 ช่องก่อนบันทึก</p>
+    <div className="slip-head"><div><ScanLine size={18}/><strong>อัปโหลดสลิป KBank / K PLUS</strong></div><button type="button" className="slip-close" disabled={busy} onClick={onClose} aria-label="กลับไปกรอกข้อมูลเอง"><X size={18}/></button></div>
+    <p className="slip-hint">เลือกรูปจากคลังภาพหรือถ่ายสลิป เลือกรูปสลิป K PLUS ระบบจะอ่านข้อมูลและบันทึกรายรับ–รายจ่ายอัตโนมัติทันทีเมื่อข้อมูลครบ โดยไม่ต้องกดยืนยัน</p>
     <div className="slip-upload-box">
       <div className="slip-upload-icon" aria-hidden="true"><FileImage size={28}/></div>
-      <strong>เลือกรูปสลิปเพื่อเริ่มต้น</strong>
+      <strong>เลือกรูปสลิปเพื่อบันทึกทันที</strong>
       <span>รองรับ JPG, PNG, WebP · ขนาดไม่เกิน 10 MB</span>
       <div className="slip-actions"><button type="button" className="btn btn-primary slip-pick" disabled={busy} onClick={()=>galleryRef.current?.click()}><Upload size={18}/> เลือกภาพสลิป</button><button type="button" className="btn btn-secondary" disabled={busy} onClick={()=>cameraRef.current?.click()}><Camera size={18}/> ถ่ายรูป</button></div>
     </div>
     <input ref={galleryRef} aria-label="เลือกรูปสลิป" type="file" className="visually-hidden" accept="image/png,image/jpeg,image/webp" onChange={e=>void scan(e)}/>
     <input ref={cameraRef} aria-label="ถ่ายรูปสลิป" type="file" className="visually-hidden" accept="image/*" capture="environment" onChange={e=>void scan(e)}/>
     {preview&&<figure className="slip-preview"><img src={preview} alt="ตัวอย่างสลิปโอนเงินที่เลือกสำหรับตรวจทาน"/><figcaption>{filename}</figcaption></figure>}
-    {busy&&<div className="slip-progress" role="status" aria-live="polite"><div className="slip-progress-track"><div style={{width:`${progress}%`}}/></div><span>กำลังอ่านข้อความในรูป… {stage==='retry'?`กำลังปรับภาพและอ่านซ้ำ… ${progress}%`:stage==='recognize'?`${progress}%`:'กำลังโหลดชุด OCR ภาษาไทย/อังกฤษ'}</span></div>}
+    {busy&&<div className="slip-progress" role="status" aria-live="polite"><div className="slip-progress-track"><div style={{width:`${progress}%`}}/></div><span>กำลังอ่านข้อความในรูป… {stage==='save'?'กำลังบันทึกธุรกรรม…':stage==='retry'?`กำลังปรับภาพและอ่านซ้ำ… ${progress}%`:stage==='recognize'?`${progress}%`:'กำลังโหลดชุด OCR ภาษาไทย/อังกฤษ'}</span></div>}
     {error&&<p className="error-message" role="alert">{error}</p>}
-    {result&&<div className="slip-result" aria-live="polite"><strong>ผลอ่านสลิป (ตรวจสอบจากภาพอีกครั้ง)</strong><dl><div><dt>ประเภท</dt><dd>{result.direction==='income'?'รายรับ / เงินเข้า':result.direction==='expense'?'รายจ่าย / เงินออก':'ยังไม่สามารถระบุได้'}</dd></div><div><dt>จำนวนเงิน</dt><dd>{result.amountSatang!==null?`฿${baht(result.amountSatang)}`:'อ่านไม่สำเร็จ'}</dd></div><div><dt>วันที่</dt><dd>{result.date||'อ่านไม่สำเร็จ'}</dd></div><div><dt>เวลา</dt><dd>{result.time?`${result.time} น.`:'อ่านไม่สำเร็จ'}</dd></div><div><dt>ชื่อผู้รับ</dt><dd>{result.recipient||'ไม่พบข้อมูล'}</dd></div></dl>
+    {result&&error&&<div className="slip-result" aria-live="polite"><strong>ผลอ่านสลิป (ตรวจสอบจากภาพอีกครั้ง)</strong><dl><div><dt>ประเภท</dt><dd>{result.direction==='income'?'รายรับ / เงินเข้า':result.direction==='expense'?'รายจ่าย / เงินออก':'ยังไม่สามารถระบุได้'}</dd></div><div><dt>จำนวนเงิน</dt><dd>{result.amountSatang!==null?`฿${baht(result.amountSatang)}`:'อ่านไม่สำเร็จ'}</dd></div><div><dt>วันที่</dt><dd>{result.date||'อ่านไม่สำเร็จ'}</dd></div><div><dt>เวลา</dt><dd>{result.time?`${result.time} น.`:'อ่านไม่สำเร็จ'}</dd></div><div><dt>ชื่อผู้รับ</dt><dd>{result.recipient||'ไม่พบข้อมูล'}</dd></div></dl>
       {result.amountSatang===null&&result.date===null&&result.recipient===null&&<p className="slip-warning" role="status">ยังอ่านข้อมูลสำคัญไม่ได้ คุณสามารถไปกรอกข้อมูลเองในหน้าถัดไปได้</p>}
       <p className={result.direction?'slip-inference':'slip-warning'} role="status">{result.direction?'✓ ':'⚠ '}{result.directionReason}</p>
       {result.warnings.map((warning,i)=><p key={i} className="slip-warning">⚠ {warning}</p>)}
       <details className="slip-raw"><summary>ดูข้อความ OCR เพื่อเทียบกับสลิป</summary><pre>{result.rawText||'ไม่มีข้อความ'}</pre></details>
-      <button type="button" className="btn btn-primary slip-apply" onClick={()=>onApply(result)}><Check size={17}/> ตรวจทานและบันทึกรายการ <span aria-hidden="true">→</span></button>
+      <button type="button" className="btn btn-secondary slip-manual-fallback" onClick={onClose}>กรอกรายการเองแทน</button>
     </div>}
     <p className="slip-privacy"><ShieldCheck size={14}/> รูปสลิปประมวลผลในเครื่อง ไม่อัปโหลดไปยังเซิร์ฟเวอร์และไม่แนบเก็บกับรายการ (ครั้งแรกต้องใช้อินเทอร์เน็ตดาวน์โหลด OCR) ผลอ่านอาจคลาดเคลื่อน</p>
   </section>;
