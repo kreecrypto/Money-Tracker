@@ -15,8 +15,8 @@ export function parseBackup(text:string){
 }
 function safeCsvCell(s:string){const safe=/^[\s]*[=+\-@\t\r]/.test(s)?`'${s}`:s; return `"${safe.replaceAll('"','""')}"`;}
 export function toCsv(items:Transaction[]){
-  const headers=['วันที่','ประเภท','จำนวน (บาท)','หมวดหมู่','หมายเหตุ','ช่องทาง','รหัสรายการ'];
-  const rows=items.map(x=>[x.date,x.type==='income'?'รายรับ':'รายจ่าย',baht(x.amountSatang),x.category,x.note,METHODS[x.method],x.id]);
+  const headers=['วันที่','เวลา','ประเภท','จำนวน (บาท)','ชื่อผู้รับ','หมวดหมู่','หมายเหตุ','ช่องทาง','รหัสรายการ'];
+  const rows=items.map(x=>[x.date,x.time||'',x.type==='income'?'รายรับ':'รายจ่าย',baht(x.amountSatang),x.recipient||'',x.category,x.note,METHODS[x.method],x.id]);
   return '\uFEFF'+[headers,...rows].map(r=>r.map(v=>safeCsvCell(String(v))).join(',')).join('\r\n');
 }
 export function downloadText(filename:string,text:string,type:string){const a=document.createElement('a');const url=URL.createObjectURL(new Blob([text],{type}));a.href=url;a.download=filename;document.body.appendChild(a);a.click();a.remove();window.setTimeout(()=>URL.revokeObjectURL(url),1500);}
