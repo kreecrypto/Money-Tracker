@@ -58,7 +58,7 @@ describe('Thai bank transfer slip parser',()=>{
       '2,948.00 บาท',
       'ค่าธรรมเนียม: 0.00 บาท',
       'เลขที่รายการ: 016285131509APM16324'
-    ].join('\\n');
+    ].join('\n');
     const result=parseSlipText(screenshotStyle);
     expect(result.date).toBe('2026-10-12');
     expect(result.time).toBe('13:15');
@@ -67,12 +67,12 @@ describe('Thai bank transfer slip parser',()=>{
     expect(result.warnings).toEqual([]);
   });
   it('does not misidentify the payer as the recipient when the biller block is missing',()=>{
-    const result=parseSlipText('จ่ายบิลสำเร็จ\\n12 ต.ค. 69 13:15 น.\\nนาย ผู้ชำระเงิน\\nธ.กสิกรไทย\\nจำนวน: 2,948.00 บาท');
+    const result=parseSlipText('จ่ายบิลสำเร็จ\n12 ต.ค. 69 13:15 น.\nนาย ผู้ชำระเงิน\nธ.กสิกรไทย\nจำนวน: 2,948.00 บาท');
     expect(result.recipient).toBeNull();
     expect(result.warnings.some(x=>x.includes('ชื่อผู้รับ'))).toBe(true);
   });
   it('does not treat fees or transaction references as payment times',()=>{
-    const result=parseSlipText('วันที่ 12 ต.ค. 69\\nจำนวน: 2,948.00 บาท\\nค่าธรรมเนียม 0.00 บาท\\nเลขที่รายการ 016285131509APM16324');
+    const result=parseSlipText('วันที่ 12 ต.ค. 69\nจำนวน: 2,948.00 บาท\nค่าธรรมเนียม 0.00 บาท\nเลขที่รายการ 016285131509APM16324');
     expect(result.time).toBeNull();
     expect(result.amountSatang).toBe(294800);
   });
