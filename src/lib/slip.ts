@@ -190,7 +190,9 @@ export function inferSlipDirection(rawText:string):{direction:EntryType|null;dir
   const lines=normalizeSlipOcrText(rawText).split(/\r?\n/u).map(x=>x.trim()).filter(Boolean);
   // Keep detection in the transaction header. Do not interpret beneficiary names,
   // bank descriptions, fee labels, or a transfer reference as account direction.
-  const header=lines.slice(0,5).join(' ');
+  const header=lines.slice(0,6)
+    .filter(line=>!/^(?:ผู้รับ|ชื่อผู้รับ|ผู้จ่าย|ชื่อผู้จ่าย|ผู้โอน|ชื่อผู้โอน|จาก(?:บัญชี)?|ถึง|โอนไปยัง|เลข(?:บัญชี|ที่)|บัญชี|ธ[.]|ธนาคาร|recipient\s*[:：]|to\s*[:：]|from\s*[:：])/iu.test(line))
+    .join(' ');
   const incoming=/(?:รับ\s*โอน(?:\s*เงิน)?\s*สำเร็จ|รับ\s*เงิน\s*สำเร็จ|ได้รับ\s*เงิน|โอน\s*เงิน\s*เข้า|โอน\s*เข้า\s*บัญชี|เงิน\s*เข้า(?:\s*บัญชี)?|ยอด\s*เงิน\s*เข้า|incoming\s*(?:transfer|payment)|money\s*received|payment\s*received|transfer\s*received)/iu.test(header);
   const outgoing=/(?:จ่าย\s*บิล(?:\s*สำเร็จ)?|ชำระ\s*(?:บิล|เงิน)(?:\s*สำเร็จ)?|จ่าย\s*เงิน\s*สำเร็จ|โอน\s*เงิน\s*ออก|โอน\s*ออก(?:\s*สำเร็จ)?|เงิน\s*ออก(?:\s*จาก\s*บัญชี)?|ถอน\s*เงิน\s*สำเร็จ|bill\s*payment\s*(?:success|complete|paid)|paid\s*successfully|payment\s*successful|outgoing\s*transfer)/iu.test(header);
   if(incoming&&outgoing)return {direction:null,directionReason:'พบข้อความทั้งเงินเข้าและเงินออกในสลิป กรุณาตรวจสอบและเลือกเอง'};
