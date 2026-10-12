@@ -45,7 +45,7 @@ function TxList({items,onEdit,onDelete,limit}:{items:Transaction[];onEdit:(t:Tra
   const visible=limit?items.slice(0,limit):items;
   return <div className="tx-list">{visible.map(x=><TransactionRow key={x.id} entry={x} onEdit={onEdit} onDelete={onDelete}/>)}</div>;
 }
-function EntryModal({initial,existing,startWithScanner,close,submit}:{initial:Transaction|null;existing:Transaction[];startWithScanner:boolean;close:()=>void;submit:(t:Transaction)=>Promise<void>}){
+function EntryModal({initial,existing,startWithScanner,close,submit,notifyBatch}:{initial:Transaction|null;existing:Transaction[];startWithScanner:boolean;close:()=>void;submit:(t:Transaction)=>Promise<void>;notifyBatch:(summary:SlipBatchSummary)=>void}){
   const [type,setType]=useState<EntryType>(initial?.type||'expense');
   const [amount,setAmount]=useState(initial?String(initial.amountSatang/100):'');
   const [date,setDate]=useState(initial?.date||todayLocal());
@@ -104,9 +104,7 @@ function EntryModal({initial,existing,startWithScanner,close,submit}:{initial:Tr
     }finally{setPending(false);}
   };
   const finishBatch=(summary:SlipBatchSummary)=>{
-    if(summary.saved>0){
-      setToast('บันทึกสลิปสำเร็จ '+summary.saved+' รูป'+(summary.duplicate+summary.incomplete+summary.errors?' · ข้าม '+(summary.duplicate+summary.incomplete+summary.errors)+' รูป':''));
-    }
+    notifyBatch(summary);
     if(summary.saved>0&&summary.duplicate===0&&summary.incomplete===0&&summary.errors===0)close();
   };
   return <div className="modal-backdrop" onMouseDown={e=>{if(e.target===e.currentTarget&&!pending&&!batchBusy)close();}}><section ref={dialogRef} tabIndex={-1} className="modal" role="dialog" aria-modal="true" aria-labelledby="modal-title"><div className="modal-heading"><div><span className="eyebrow">SLIP-FIRST ENTRY</span><h2 id="modal-title">{initial?'แก้ไขรายการ':scannerOpen?'อัปโหลดสลิป':'กรอกรายการเอง'}</h2></div><button className="icon-btn" title="ปิด" aria-label="ปิด" disabled={pending||batchBusy} onClick={close}><X size={21}/></button></div>
@@ -209,7 +207,9 @@ export default function App(){
     </main><footer className="app-footer">© {new Date().getFullYear()} เงินวันนี้ · เล็กน้อยทุกวัน เปลี่ยนการเงินได้</footer></div>
     <button aria-label="อัปโหลดสลิป" title="อัปโหลดสลิป" className={`mobile-fab ${view==='home'?'home-fab':''}`} onClick={openAdd}><ScanLine size={25}/></button><nav className="mobile-bottom-nav" aria-label="เมนูมือถือ">{navItems.map(({key,label,icon:Icon})=><button key={key} className={view===key?'active':''} aria-current={view===key?'page':undefined} onClick={()=>setView(key)}><Icon size={21}/><span>{label}</span></button>)}</nav>
     {toast&&<div className="toast" role="status"><Check size={17}/>{toast}</div>}
-    {modalOpen&&<EntryModal initial={editing} existing={items} startWithScanner={scanOnOpen} close={()=>setModalOpen(false)} submit={onSave}/>}
+    {modalOpen&&<EntryModal initial={editing} existing={items} startWithScanner={scanOnOpen} close={()=>setModalOpen(false)} submit={onSave} notifyBatch={summary=>{
+      if(summary.saved>0)setToast('บันทึกสลิปสำเร็จ '+summary.saved+' รูป'+(summary.duplicate+summary.incomplete+summary.errors?' · ข้าม '+(summary.duplicate+summary.incomplete+summary.errors)+' รูป':''));
+    }}/>}
     {pendingRestore&&<RestoreDialog existingCount={items.length} importedCount={pendingRestore.transactions.length} busy={restoreBusy} onBackup={exportJson} onConfirm={()=>{void confirmRestore();}} onClose={()=>setPendingRestore(null)}/>}
   </div>;
 }
