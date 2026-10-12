@@ -175,7 +175,7 @@ body,.app-shell{background:var(--mobile-canvas);color:var(--mobile-ink)}
 
 /* Slip-first entry: image upload is the prominent action; manual entry is the fallback. */
 .slip-entry.slip-entry-first{display:block;margin:16px 0 17px}
-.slip-flow{display:flex;align-items:center;gap:6px;margin:0 0 14px;width:100%;color:#718078;font-size:11px;font-weight:650}
+.slip-flow{display:flex;align-items:center;gap:6px;margin:0 0 14px;width:100%;color:#435b50;font-size:11px;font-weight:650}
 .slip-flow span{flex:1;text-align:center;padding:8px 2px;border-bottom:2px solid #e5ece8;white-space:nowrap}
 .slip-flow span.current{color:var(--mobile-accent);border-color:var(--mobile-accent)}
 .slip-mode-picker{display:grid;grid-template-columns:1fr 1fr;gap:7px;background:#f4f7f5;border-radius:12px;padding:5px}
