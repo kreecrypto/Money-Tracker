@@ -1,7 +1,8 @@
 import {useEffect,useRef,useState,type ChangeEvent} from 'react';
 import {Camera,Check,FileImage,ScanLine,ShieldCheck,Upload,X} from 'lucide-react';
 import {baht} from './lib/finance';
-import {parseSlipText,type SlipFields} from './lib/slip';
+import {parseSlipText,mergeSlipOcrReadings,needsSlipOcrRecovery,type SlipFields} from './lib/slip';
+import {prepareSlipRecoveryImage} from './lib/slipImage';
 
 type Props={onApply:(data:SlipFields)=>void;onClose:()=>void};
 const MAX_FILE_BYTES=10*1024*1024;
@@ -17,7 +18,7 @@ export default function SlipScanner({onApply,onClose}:Props){
   const [result,setResult]=useState<SlipFields|null>(null);
   const [busy,setBusy]=useState(false);
   const [progress,setProgress]=useState(0);
-  const [stage,setStage]=useState<'download'|'recognize'>('download');
+  const [stage,setStage]=useState<'download'|'recognize'|'retry'>('download');
   const [error,setError]=useState('');
   useEffect(()=>{
     mountedRef.current=true;
@@ -40,18 +41,33 @@ export default function SlipScanner({onApply,onClose}:Props){
     setBusy(true);
     try{
       // Lazily load OCR so the initial app bundle stays small. Recognition runs locally.
-      const {createWorker}=await import('tesseract.js');
+      const {createWorker,PSM}=await import('tesseract.js');
       if(!mountedRef.current)return;
       const worker=await createWorker(['tha','eng'],1,{
         logger:message=>{
-          if(mountedRef.current&&message.status==='recognizing text'){setStage('recognize');setProgress(Math.round((message.progress||0)*100));}
+          if(mountedRef.current&&message.status==='recognizing text'){setStage(current=>current==='retry'?'retry':'recognize');setProgress(Math.round((message.progress||0)*100));}
         },
       });
       if(!mountedRef.current){await worker.terminate();return;}
       workerRef.current=worker;
       try{
         const {data}=await worker.recognize(file);
-        if(mountedRef.current)setResult(parseSlipText(data.text));
+        let reading=parseSlipText(data.text);
+        if(needsSlipOcrRecovery(reading)&&mountedRef.current){
+          // Best-effort second reading; a preprocessing failure must not discard original OCR.
+          setStage('retry');setProgress(0);
+          try{
+            const enhanced=await prepareSlipRecoveryImage(file);
+            if(mountedRef.current){
+              await worker.setParameters({tessedit_pageseg_mode:PSM.SPARSE_TEXT});
+              const retry=await worker.recognize(enhanced);
+              reading=mergeSlipOcrReadings(reading,parseSlipText(retry.data.text));
+            }
+          }catch{
+            // Keep partial fields from original OCR and let the user correct them.
+          }
+        }
+        if(mountedRef.current)setResult(reading);
       }finally{
         workerRef.current=null;
         await worker.terminate();
@@ -63,7 +79,7 @@ export default function SlipScanner({onApply,onClose}:Props){
 
   return <section className="slip-panel slip-panel-primary" aria-label="อัปโหลดสลิปธนาคาร">
     <div className="slip-head"><div><ScanLine size={18}/><strong>อัปโหลดสลิป KBank / K PLUS</strong></div><button type="button" className="slip-close" onClick={onClose} aria-label="กลับไปกรอกข้อมูลเอง"><X size={18}/></button></div>
-    <p className="slip-hint">เลือกรูปจากคลังภาพหรือถ่ายสลิป ระบบจะอ่านข้อความและช่วยเติมข้อมูล จากนั้นให้คุณตรวจสอบก่อนบันทึก</p>
+    <p className="slip-hint">เลือกรูปจากคลังภาพหรือถ่ายสลิป ระบบจะปรับภาพและอ่านซ้ำเฉพาะเมื่อข้อมูลไม่ครบ จากนั้นให้คุณตรวจทั้ง 4 ช่องก่อนบันทึก</p>
     <div className="slip-upload-box">
       <div className="slip-upload-icon" aria-hidden="true"><FileImage size={28}/></div>
       <strong>เลือกรูปสลิปเพื่อเริ่มต้น</strong>
@@ -73,9 +89,9 @@ export default function SlipScanner({onApply,onClose}:Props){
     <input ref={galleryRef} aria-label="เลือกรูปสลิป" type="file" className="visually-hidden" accept="image/png,image/jpeg,image/webp" onChange={e=>void scan(e)}/>
     <input ref={cameraRef} aria-label="ถ่ายรูปสลิป" type="file" className="visually-hidden" accept="image/*" capture="environment" onChange={e=>void scan(e)}/>
     {preview&&<figure className="slip-preview"><img src={preview} alt="ตัวอย่างสลิปโอนเงินที่เลือกสำหรับตรวจทาน"/><figcaption>{filename}</figcaption></figure>}
-    {busy&&<div className="slip-progress" role="status" aria-live="polite"><div className="slip-progress-track"><div style={{width:`${progress}%`}}/></div><span>กำลังอ่านข้อความในรูป… {stage==='recognize'?`${progress}%`:'กำลังโหลดชุด OCR ภาษาไทย/อังกฤษ'}</span></div>}
+    {busy&&<div className="slip-progress" role="status" aria-live="polite"><div className="slip-progress-track"><div style={{width:`${progress}%`}}/></div><span>กำลังอ่านข้อความในรูป… {stage==='retry'?`กำลังปรับภาพและอ่านซ้ำ… ${progress}%`:stage==='recognize'?`${progress}%`:'กำลังโหลดชุด OCR ภาษาไทย/อังกฤษ'}</span></div>}
     {error&&<p className="error-message" role="alert">{error}</p>}
-    {result&&<div className="slip-result" aria-live="polite"><strong>ผลอ่านสลิปเบื้องต้น</strong><dl><div><dt>จำนวนเงิน</dt><dd>{result.amountSatang!==null?`฿${baht(result.amountSatang)}`:'อ่านไม่สำเร็จ'}</dd></div><div><dt>วันที่</dt><dd>{result.date||'อ่านไม่สำเร็จ'}</dd></div><div><dt>เวลา</dt><dd>{result.time?`${result.time} น.`:'อ่านไม่สำเร็จ'}</dd></div><div><dt>ชื่อผู้รับ</dt><dd>{result.recipient||'ไม่พบข้อมูล'}</dd></div></dl>
+    {result&&<div className="slip-result" aria-live="polite"><strong>ผลอ่านสลิป (ตรวจสอบจากภาพอีกครั้ง)</strong><dl><div><dt>จำนวนเงิน</dt><dd>{result.amountSatang!==null?`฿${baht(result.amountSatang)}`:'อ่านไม่สำเร็จ'}</dd></div><div><dt>วันที่</dt><dd>{result.date||'อ่านไม่สำเร็จ'}</dd></div><div><dt>เวลา</dt><dd>{result.time?`${result.time} น.`:'อ่านไม่สำเร็จ'}</dd></div><div><dt>ชื่อผู้รับ</dt><dd>{result.recipient||'ไม่พบข้อมูล'}</dd></div></dl>
       {result.amountSatang===null&&result.date===null&&result.recipient===null&&<p className="slip-warning" role="status">ยังอ่านข้อมูลสำคัญไม่ได้ คุณสามารถไปกรอกข้อมูลเองในหน้าถัดไปได้</p>}
       {result.warnings.map((warning,i)=><p key={i} className="slip-warning">⚠ {warning}</p>)}
       <details className="slip-raw"><summary>ดูข้อความ OCR เพื่อเทียบกับสลิป</summary><pre>{result.rawText||'ไม่มีข้อความ'}</pre></details>
