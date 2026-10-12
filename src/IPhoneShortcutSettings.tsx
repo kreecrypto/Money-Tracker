@@ -74,7 +74,7 @@ export default function IPhoneShortcutSettings({onImported}:{onImported:()=>Prom
     setRows(drafts);
     const result=await iphoneSync();
     await onImported();
-    return result;
+    return {...result,pending:drafts.length};
   },[onImported]);
   const connect=async()=>{
     setBusy(true);setNote('');
@@ -87,7 +87,7 @@ export default function IPhoneShortcutSettings({onImported}:{onImported:()=>Prom
   };
   const sync=async()=>{
     setBusy(true);setNote('');
-    try{const result=await refresh();setNote('รายการใหม่ '+result.imported+' · รอตรวจสอบ '+rows.length+' รายการ');}
+    try{const result=await refresh();setNote('รายการใหม่ '+result.imported+' · รอตรวจสอบ '+result.pending+' รายการ');}
     catch(e){setLinked(iphoneConnected());setNote(e instanceof Error?e.message:'ซิงก์ไม่สำเร็จ');}
     finally{setBusy(false);}
   };
@@ -98,12 +98,12 @@ export default function IPhoneShortcutSettings({onImported}:{onImported:()=>Prom
   return <section className="surface settings-card iphone-card" aria-label="iPhone Shortcut">
     <div className="settings-icon green"><Smartphone size={23}/></div>
     <h3>iPhone Photos → เงินวันนี้</h3>
-    <p>Photos Auto Slip Sync สำหรับ iOS 26: เมื่อปิดแอปธนาคาร Shortcuts สามารถค้นหารูปล่าสุด อ่านข้อความบน iPhone แล้วส่งเฉพาะข้อความที่คล้ายสลิปเข้าระบบเพื่อรอยืนยัน โดยไม่ต้องเชื่อม LINE OA ของธนาคาร</p>
+    <p>Photos Auto Slip Sync สำหรับ iOS 26/27 (K PLUS เท่านั้น): เมื่อปิดแอปธนาคาร Shortcuts สามารถค้นหารูปล่าสุด อ่านข้อความบน iPhone แล้วส่งเฉพาะข้อความที่คล้ายสลิปเข้าระบบเพื่อรอยืนยัน โดยไม่ต้องเชื่อม LINE OA ของธนาคาร</p>
     <details className="iphone-photos-setup">
       <summary>วิธีเปิด Auto Slip Sync บน iPhone (iOS 26)</summary>
       <ol>
         <li>สร้าง Shortcut: Find Photos (รูปล่าสุด) → Repeat with Each → Extract Text from Image</li>
-        <li>กรองข้อความบน iPhone ให้พบคำเกี่ยวกับการโอน <strong>และ</strong> ป้ายยอดเงินธุรกรรมก่อนส่ง</li>
+        <li>กรองข้อความบน iPhone ให้พบ K PLUS/กสิกร <strong>และ</strong> คำว่าทำรายการสำเร็จ <strong>และ</strong> ป้ายยอดเงิน (รวมถึง จำนวน:) ก่อนส่ง</li>
         <li>ส่งเฉพาะข้อความ OCR ไปยัง API ผ่าน POST JSON โดยใช้ Upload Token เฉพาะเครื่อง</li>
         <li>Shortcuts → Automation → App → เลือก K PLUS → Is Closed → Run Immediately → เลือก Shortcut นี้</li>
         <li>กลับมาหน้านี้เพื่อตรวจยอด เลือกเงินเข้า/ออกและยืนยัน</li>
@@ -131,7 +131,7 @@ export default function IPhoneShortcutSettings({onImported}:{onImported:()=>Prom
         </div>
         <h4 className="iphone-pending-heading">รอตรวจสอบ {rows.length} รายการ</h4>
         {rows.length?rows.map(row=><Draft key={row.id} draft={row} onReviewed={afterReview}/>):
-          <p className="iphone-empty">ไม่มีรายการรอตรวจสอบ · ส่งภาพจาก Shortcut แล้วกดตรวจรายการใหม่</p>}
+          <p className="iphone-empty">ไม่มีรายการรอตรวจสอบ · ส่งข้อความจาก Shortcut แล้วกดตรวจรายการใหม่</p>}
       </>}
     {note&&<p className="line-status" role="status">{note}</p>}
     <small className="hint">ใช้ได้เมื่อ API พร้อมและตั้งค่ารหัสใน Vercel แล้ว รายการที่ยืนยันจะเก็บใน IndexedDB ของเบราว์เซอร์นี้ (ยังไม่ใช่ Cloud Sync สองทาง)</small>
