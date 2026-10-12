@@ -68,7 +68,7 @@ function EntryModal({initial,existing,startWithScanner,close,submit}:{initial:Tr
       if(e.key==='Escape'&&!pendingRef.current){e.preventDefault();closeRef.current();}
       if(e.key!=='Tab')return;
       const controls=Array.from(dialogRef.current?.querySelectorAll<HTMLElement>('button:not([disabled]), input:not([disabled]), select:not([disabled]), [tabindex]:not([tabindex="-1"])')||[])
-      .filter(el=>el.getClientRects().length>0&&getComputedStyle(el).visibility!=='hidden');
+      .filter(el=>el.getClientRects().length>0&&getComputedStyle(el).visibility!=='hidden'&&!el.classList.contains('visually-hidden'));
       if(!controls.length){e.preventDefault();return;}
       const idx=controls.indexOf(document.activeElement as HTMLElement);
       if(e.shiftKey&&idx<=0){e.preventDefault();controls[controls.length-1].focus();}
