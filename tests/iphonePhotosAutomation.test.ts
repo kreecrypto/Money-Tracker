@@ -42,6 +42,20 @@ describe('iOS 26 Photos on-device OCR receipt classifier',()=>{
     expect(x).toMatchObject({accept:true,amountSatang:11900,type:'expense',date:'2026-10-09'});
     expect(x.note).not.toContain('400,070');
   });
+  it('rejects other bank OCR text even with transfer and amount labels',()=>{
+    const scb=inspectPhotosOCR('SCB ไทยพาณิชย์\nโอนเงินสำเร็จ\nจำนวนเงิน 199.00 บาท');
+    expect(scb).toMatchObject({accept:false,reason:'unsupported_bank'});
+    const ktb=inspectPhotosOCR('Krungthai กรุงไทย\nโอนเงินสำเร็จ\nจำนวนเงิน 199.00 บาท');
+    expect(ktb).toMatchObject({accept:false,reason:'unsupported_bank'});
+  });
+  it('uses explicit K PLUS transaction references for stable deduplication',()=>{
+    const first=inspectPhotosOCR(KPLUS_IOS27_PHOTO_TEXT);
+    const second=inspectPhotosOCR(KPLUS_IOS27_PHOTO_TEXT.replace('นาย ตัวอย่าง','คุณ ตัวอย่าง'));
+    expect(first.accept).toBe(true);
+    expect(first.fingerprint).toBeTruthy();
+    expect(first.fingerprint).toEqual(second.fingerprint);
+    expect(first.note).not.toContain('016284210922BTF06060');
+  });
   it('rejects personal photos that contain money amounts but no bank transaction',()=>{
     expect(inspectPhotosOCR('อาหาร 119 บาท ร้านอาหาร วันนี้ 9 ต.ค. 69').accept).toBe(false);
   });
@@ -106,6 +120,11 @@ describe('Photos Automation OCR text API',()=>{
   it('skips non-slip OCR without writing to database',async()=>{
     const r=await POST(post('วันนี้ซื้อของกิน 119 บาท ร้านกาแฟ'));
     expect((await r.json())).toMatchObject({status:'skipped',reason:'not_receipt'});
+    expect(mock.save).not.toHaveBeenCalled();
+  });
+  it('never stores unsupported bank transactions',async()=>{
+    const r=await POST(post('SCB ไทยพาณิชย์\nโอนเงินสำเร็จ\nจำนวนเงิน 199.00 บาท'));
+    expect((await r.json())).toMatchObject({status:'skipped',reason:'unsupported_bank'});
     expect(mock.save).not.toHaveBeenCalled();
   });
   it('stages only parsed private values; no raw OCR or balances in db payload',async()=>{
