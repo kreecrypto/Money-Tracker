@@ -1,6 +1,6 @@
 # เงินวันนี้ · Daily Money Tracker
 
-Mobile-first, Thai-language, offline-first **daily income and expense tracker** (MVP v0.4.0). Uses a responsive React + TypeScript + Vite frontend and IndexedDB for local data storage.
+Mobile-first, Thai-language, offline-first **daily income and expense tracker** (slip-first UI, October 2026). Uses a responsive React + TypeScript + Vite frontend and IndexedDB for local data storage.
 
 ## ✨ Features
 
@@ -10,7 +10,7 @@ Mobile-first, Thai-language, offline-first **daily income and expense tracker** 
 - Reports and category summaries, JSON backup/restore, and Excel-friendly UTF-8 CSV export.
 - Installable Progressive Web App (PWA); offline usage after the first load.
 - Financial amounts stored in **integer satang**, dates stored as **local calendar dates**.
-- **Slip OCR**: from the Add Transaction form, capture or select a Thai/English bank transfer slip (JPG, PNG, WebP, max 10 MB). Tesseract.js extracts the amount, date (including Buddhist Era), and recipient when detectable. Review and edit fields before explicitly saving. No background auto-import.
+- **Slip-first entry**: Upload a KBank / K PLUS slip from the main action (JPG, PNG, WebP, max 10 MB), or capture a new photo. Client-side Tesseract.js attempts to fill amount/date/recipient; choose income or expense and review every field before saving. Manual entry remains accessible as a secondary option. No auto-import or automatic save.
 - No account, server, bank access, tracking scripts, or analytics by default.
 
 ## Slip OCR privacy and limitations
@@ -57,11 +57,11 @@ The store is **IndexedDB**, isolated to the site's origin. **It does not sync ac
 
 **Net cash flow** = recorded income − recorded expenses; this is *not* your bank balance and does not represent debts or assets. Expense categories include debt payments, but the app does not manage full loan balances or double-entry accounting.
 
-## Mobile-first Minimal UI v0.4.0
+## Mobile-first Slip-first UI
 
-- Redesigned home layout for 320px-first mobile use: top-level recorded net cash flow, quick Add/Scan Slip shortcuts and recent transactions, with charts below.
+- Redesigned home layout for 320px-first mobile use: upload slip as the prominent action, manual entry as the alternative, recent transactions and financial summary.
 - Simplified colors, flatter cards, clearer Thai typography, unobtrusive per-row action menu and bottom navigation.
-- OCR can be opened directly from the home screen without first entering the manual-entry form.
+- All default Add actions now open slip selection first; the review form requires choosing money in/out after OCR. A missing OCR date is never filled with today's date silently. Shortcut settings and polling have been disabled in the app, without deleting legacy backend routes.
 - See [Mobile-first design specification](docs/MOBILE_FIRST_DESIGN.md).
 - GitHub's automated Chromium UX audit now covers 320, 375, 390, 430, 768 and 1280px.
 
