@@ -4,6 +4,7 @@ import {toSatang} from './finance.js';
 export type SlipFields = {
   amountSatang: number | null;
   date: string | null;
+  time: string | null;
   recipient: string | null;
   rawText: string;
   warnings: string[];
@@ -111,6 +112,51 @@ function parseDate(lines:string[]):string|null {
   return null;
 }
 
+
+function extractTime(line:string):string|null {
+  // Only colon-separated clock values; never treat the cents in a money amount as a time.
+  const match=line.match(/(?:^|[^\\d])([01]?\\d|2[0-3])\\s*[:：]\\s*([0-5]\\d)(?!\\d)/u);
+  return match?`${match[1].padStart(2,'0')}:${match[2]}`:null;
+}
+
+function parseTime(lines:string[]):string|null {
+  // K PLUS puts the successful payment date and time together near the header.
+  const labelled=/(?:วันที่|เวลา|date|time|สำเร็จ)/iu;
+  for(let i=0;i<lines.length;i++){
+    if(!labelled.test(lines[i])&&!parseDateLine(lines[i]))continue;
+    const same=extractTime(lines[i]);if(same)return same;
+    const next=extractTime(lines[i+1]||'');
+    if(next)return next;
+  }
+  // Standalone times must be clearly marked so we don't misread reference numbers.
+  for(const line of lines){
+    if(!/(?:เวลา|time|\\bน\\.)/iu.test(line))continue;
+    const value=extractTime(line);if(value)return value;
+  }
+  return null;
+}
+
+function billRecipient(lines:string[]):string|null {
+  // K PLUS bill-payment slips place the biller AFTER the sender's masked account,
+  // not after a "ถึง" label. Prefer this block over the sender name above it.
+  if(!lines.some(line=>/(?:จ่าย\\s*บิล\\s*สำเร็จ|ชำระ\\s*บิล\\s*สำเร็จ|bill\\s*pay(?:ment)?\\s*(?:success|complete|paid))/iu.test(line)))return null;
+  const amountIndex=lines.findIndex(line=>AMOUNT_LABEL.test(line)&&!EXCLUDED_AMOUNT.test(line));
+  const beforeAmount=lines.slice(0,amountIndex<0?lines.length:amountIndex);
+  const accountIndex=beforeAmount.findIndex(line=>/(?:[xX*]{2,}[-xX*\\d]{3,}|\\*{3,}\\d{2,})/u.test(line));
+  if(accountIndex<0)return null; // Do not guess a recipient from an unstructured receipt.
+  const biller=beforeAmount.slice(accountIndex+1);
+  const selected:string[]=[];
+  for(const line of biller){
+    if(/^(?:\\d[\\d A-Za-z-]{5,}|(?:เลข|รหัส|อ้างอิง|reference|ref|account|บัญชี|ค่าธรรมเนียม))/iu.test(line))break;
+    if(/[\\d]/u.test(line)||!/[\\p{L}]/u.test(line))break;
+    if(line.length>70||/^(?:ธ\\.|ธนาคาร|bank|จำนวน|amount|ยอด|บาท|สำเร็จ)/iu.test(line))break;
+    selected.push(line);
+    if(selected.length===3)break;
+  }
+  const name=selected.join(' ').replace(/\\s+/gu,' ').trim();
+  return name.length>=3&&name.length<=160?name:null;
+}
+
 function parseRecipient(lines:string[]):string|null {
   const label=/^(?:ถึง|ผู้รับ(?:เงิน|โอน)?|โอนไปยัง|ร้านค้า|recipient|to|merchant)\s*[:：\-]?\s*(.+)$/iu;
   for(const line of lines){
@@ -119,17 +165,20 @@ function parseRecipient(lines:string[]):string|null {
     const raw=match[1].replace(/(?:\b\d[\d\s*xX*\-]{6,}\b|\b\d{6,}\b).*/u,'').replace(/\s{2,}/g,' ').trim();
     if(/[\p{L}]/u.test(raw)&&raw.length>=2&&!/^(?:ธนาคาร|bank|account|บัญชี)$/iu.test(raw))return raw.slice(0,80);
   }
-  return null;
+  return billRecipient(lines);
 }
 
 export function parseSlipText(rawText:string):SlipFields {
   const lines=toAscii(rawText).split(/\r?\n/u).map(x=>x.trim()).filter(Boolean);
   const amountSatang=parseAmount(lines);
   const date=parseDate(lines);
+  const time=parseTime(lines);
   const recipient=parseRecipient(lines);
   const warnings:string[]=[];
   if(!lines.length)warnings.push('ไม่พบตัวอักษรในรูปภาพ ลองถ่ายใหม่ให้ชัดขึ้น');
   if(amountSatang===null)warnings.push('ไม่สามารถระบุยอดโอนได้อย่างมั่นใจ กรุณากรอกยอดเอง');
-  if(date===null)warnings.push('อ่านวันที่ไม่ชัดเจน จะใช้วันที่ในฟอร์มเดิม');
-  return {amountSatang,date,recipient,rawText,warnings};
+  if(date===null)warnings.push('อ่านวันที่ไม่ชัดเจน กรุณาตรวจและกรอกวันที่ก่อนบันทึก');
+  if(time===null)warnings.push('อ่านเวลาไม่ชัดเจน กรุณากรอกเวลาตามสลิป');
+  if(recipient===null)warnings.push('อ่านชื่อผู้รับไม่ชัดเจน กรุณาตรวจและกรอกชื่อผู้รับ');
+  return {amountSatang,date,time,recipient,rawText,warnings};
 }
