@@ -222,7 +222,7 @@ export function parseSlipText(rawText:string):SlipFields {
 
 /** Only run a recovery OCR pass when one of the four user-required fields is missing. */
 export function needsSlipOcrRecovery(result:SlipFields):boolean {
-  return result.date===null||result.time===null||result.amountSatang===null||result.recipient===null;
+  return result.date===null||result.time===null||result.amountSatang===null||result.recipient===null||result.direction===null;
 }
 
 /** Merge two readings of the SAME photo without inventing conflicting financial data. */

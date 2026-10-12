@@ -10,14 +10,14 @@ Mobile-first, Thai-language, offline-first **daily income and expense tracker** 
 - Reports and category summaries, JSON backup/restore, and Excel-friendly UTF-8 CSV export.
 - Installable Progressive Web App (PWA); offline usage after the first load.
 - Financial amounts stored in **integer satang**, dates stored as **local calendar dates**.
-- **Slip-first entry**: Upload a KBank / K PLUS slip from the main action (JPG, PNG, WebP, max 10 MB), or capture a new photo. Client-side Tesseract.js attempts to extract **date, local time, amount and recipient name**. K PLUS bill-payment layouts are parsed from the masked sender account and biller block where an explicit payee label is absent. The app also detects **income versus expense** when the receipt explicitly says that money was received, paid, or transferred out; it preselects the detected type in Review with an explanation, which can be changed before saving. Generic transfer confirmations stay unclassified until the user chooses. Review all four OCR fields before explicitly saving. Manual entry remains accessible as a secondary option. No auto-import or automatic save.
+- **Slip-first entry**: Upload a KBank / K PLUS slip from the main action (JPG, PNG, WebP, max 10 MB), or capture a new photo. Client-side Tesseract.js attempts to extract **date, local time, amount and recipient name**. K PLUS bill-payment layouts are parsed from the masked sender account and biller block where an explicit payee label is absent. The app also detects **income versus expense** when the receipt explicitly says that money was received, paid, or transferred out; it automatically saves an income or expense once the direction, amount, date, time and recipient are all clearly extracted. **No Review screen or second confirmation is required for a complete slip.** Generic transfers with unclear direction, missing/conflicting fields and duplicate-like slips are not auto-saved; the app explains why and allows retry or manual entry. Manual entry and editing saved items are still supported.
 - No account, server, bank access, tracking scripts, or analytics by default.
 
 ## Slip OCR privacy and limitations
 
 - Image OCR runs inside the browser using Tesseract.js (Thai + English). On the **first scan**, the OCR engine and language files must be downloaded from their configured external CDNs; without those assets the scan does not work offline. The selected image and raw OCR text are only held in memory during scanning, and are **not uploaded to our server** or saved in IndexedDB.
-- OCR results are estimates, not bank-verified transaction records. Account numbers, transfer references, and fee/balance lines must not be treated as the payment amount. Ambiguous fields remain blank; always verify against the original image.
-- Only the explicitly confirmed form fields (including the reviewed income/expense type, time and recipient when supplied) are saved. The image is not attached to the transaction. For photos in HEIC format, convert to JPG before scanning.
+- OCR results are estimates, not bank-verified transaction records. Account numbers, transfer references, and fee/balance lines must not be treated as the payment amount. **Complete, clearly classified K PLUS slips are saved immediately without review**, so occasionally incorrect OCR may still require editing the saved transaction. Missing or contradictory values block auto-save.
+- Only the extracted transaction fields (direction, date, time, amount and recipient) are saved automatically when all validation gates pass. The image is not attached to the transaction. For photos in HEIC format, convert to JPG before scanning.
 
 ## Quick start
 
@@ -63,13 +63,13 @@ The store is **IndexedDB**, isolated to the site's origin. CSV exports include d
 
 - Redesigned home layout for 320px-first mobile use: upload slip as the prominent action, manual entry as the alternative, recent transactions and financial summary.
 - Simplified colors, flatter cards, clearer Thai typography, unobtrusive per-row action menu and bottom navigation.
-- All default Add actions now open slip selection first; the review form requires choosing money in/out after OCR. A missing OCR date is never filled with today's date silently. Shortcut settings and polling have been disabled in the app, without deleting legacy backend routes.
+- All default Add actions now open slip selection first, with automatic saving when every required field is valid and direction is explicit. A missing OCR date or cash-flow direction never defaults silently. Duplicate-like slips are blocked. Shortcut settings and polling remain disabled in the app.
 - See [Mobile-first design specification](docs/MOBILE_FIRST_DESIGN.md).
 - GitHub's automated Chromium UX audit now covers 320, 375, 390, 430, 768 and 1280px.
 
 ## UX/UI fixes v0.3.0
 
-- Slip OCR now requires an explicit incoming/outgoing classification after recognition. No transfer is auto-saved. OCR review appears as a dedicated step inside the Add dialog.
+- Historical UX fix: early Slip OCR used a separate review step; the current slip-first experience auto-saves valid, confidently classified receipts and keeps an error/manual fallback for ambiguous ones.
 - Duplicate-like entries (same date, direction, amount, payment method) require explicit acknowledgment.
 - Keyboard focus is trapped in the dialog, previous focus is restored, and background scrolling is locked.
 - Budget and six-month charts respect the selected calendar month; the Dashboard prompts for JSON backups after multiple entries.

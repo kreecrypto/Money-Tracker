@@ -8,6 +8,7 @@ import RestoreDialog from './RestoreDialog';
 import LineSyncSettings from './LineSyncSettings';
 import {lineLinked,syncLineInbox} from './lib/lineSync';
 import type {SlipFields} from './lib/slip';
+import {prepareAutoSlip} from './lib/slipAutoSave';
 
 type Page='home'|'transactions'|'reports'|'settings';
 type Filter='all'|'income'|'expense';
@@ -54,10 +55,6 @@ function EntryModal({initial,existing,startWithScanner,close,submit}:{initial:Tr
   const [note,setNote]=useState(initial?.note||'');
   const [pending,setPending]=useState(false);
   const [scannerOpen,setScannerOpen]=useState(startWithScanner&&!initial);
-  const [slipApplied,setSlipApplied]=useState(false);
-  const [directionVerified,setDirectionVerified]=useState(false);
-  const [autoDirection,setAutoDirection]=useState<EntryType|null>(null);
-  const [directionReason,setDirectionReason]=useState('');
   const [duplicateAcknowledged,setDuplicateAcknowledged]=useState(false);
   const [error,setError]=useState('');
   const first=useRef<HTMLInputElement>(null);
@@ -86,45 +83,39 @@ function EntryModal({initial,existing,startWithScanner,close,submit}:{initial:Tr
   const similar=existing.filter(x=>x.id!==initial?.id&&x.date===date&&x.type===type&&x.method===method&&parsedAmount!==null&&x.amountSatang===parsedAmount);
   useEffect(()=>setDuplicateAcknowledged(false),[type,amount,date,method]);
   const save=async(e:FormEvent)=>{e.preventDefault();
-    if(slipApplied&&!directionVerified){setError('กรุณาเลือก เงินเข้า หรือ เงินออก ก่อนบันทึก');return;}
-    if(slipApplied&&(!time||!recipient.trim())){setError('กรุณาตรวจและกรอกเวลาทำรายการกับชื่อผู้รับตามสลิป');return;}
     if(time&&!/^([01]\d|2[0-3]):[0-5]\d$/.test(time)){setError('เวลาทำรายการไม่ถูกต้อง');return;}
     if(similar.length&&!duplicateAcknowledged){setError('พบรายการคล้ายกัน กรุณายืนยันก่อนบันทึกซ้ำ');return;}
     const sats=toSatang(amount);if(!sats){setError('กรุณากรอกจำนวนเงินมากกว่า 0 และทศนิยมไม่เกิน 2 ตำแหน่ง');return;}
     if(!/^\d{4}-\d\d-\d\d$/.test(date)){setError('กรุณาเลือกวันที่');return;}
     setPending(true);setError('');try{await submit({id:initial?.id||uuid(),type,amountSatang:sats,date,time:time||undefined,recipient:recipient.trim()||undefined,category,note:note.trim().slice(0,500),method,createdAt:initial?.createdAt||Date.now()});close();}catch(err){setError(err instanceof Error?err.message:'บันทึกไม่สำเร็จ');setPending(false);}
   };
-  const switchType=(newType:EntryType)=>{setType(newType);setCategory(newType==='expense'?EXPENSE_CATEGORIES[0]:INCOME_CATEGORIES[0]);if(slipApplied){setAutoDirection(null);setDirectionVerified(true);setError('');}};
-  const applySlip=(data:SlipFields)=>{setSlipApplied(true);setDirectionVerified(data.direction!==null);setDuplicateAcknowledged(false);
-    setAutoDirection(data.direction);
-    setDirectionReason(data.directionReason);
-    if(data.direction){setType(data.direction);setCategory(data.direction==='expense'?EXPENSE_CATEGORIES[0]:INCOME_CATEGORIES[0]);}
-    setAmount(data.amountSatang!==null?(data.amountSatang/100).toFixed(2):'');
-    setDate(data.date||''); // Never silently treat an unreadable slip date as today's transaction.
-    setTime(data.time||'');
-    setRecipient(data.recipient||'');
-    setMethod('bank');
-    setError('');
-    setScannerOpen(false);
+  const switchType=(newType:EntryType)=>{setType(newType);setCategory(newType==='expense'?EXPENSE_CATEGORIES[0]:INCOME_CATEGORIES[0]);setError('');};
+  const autoImportSlip=async(data:SlipFields)=>{
+    // Re-query IndexedDB: another tab or inbox sync might have added the same payment.
+    const latest=await loadTransactions();
+    const decision=prepareAutoSlip(data,latest,uuid(),Date.now());
+    if(decision.status!=='ready')throw new Error(decision.reason);
+    setPending(true);
+    try{
+      await submit(decision.transaction);
+      close();
+    }finally{setPending(false);}
   };
-  return <div className="modal-backdrop" onMouseDown={e=>{if(e.target===e.currentTarget&&!pending)close();}}><section ref={dialogRef} tabIndex={-1} className="modal" role="dialog" aria-modal="true" aria-labelledby="modal-title"><div className="modal-heading"><div><span className="eyebrow">SLIP-FIRST ENTRY</span><h2 id="modal-title">{initial?'แก้ไขรายการ':scannerOpen?'อัปโหลดสลิป':slipApplied?'ตรวจทานข้อมูลสลิป':'กรอกรายการเอง'}</h2></div><button className="icon-btn" title="ปิด" aria-label="ปิด" disabled={pending} onClick={close}><X size={21}/></button></div>
+  return <div className="modal-backdrop" onMouseDown={e=>{if(e.target===e.currentTarget&&!pending)close();}}><section ref={dialogRef} tabIndex={-1} className="modal" role="dialog" aria-modal="true" aria-labelledby="modal-title"><div className="modal-heading"><div><span className="eyebrow">SLIP-FIRST ENTRY</span><h2 id="modal-title">{initial?'แก้ไขรายการ':scannerOpen?'อัปโหลดสลิป':'กรอกรายการเอง'}</h2></div><button className="icon-btn" title="ปิด" aria-label="ปิด" disabled={pending} onClick={close}><X size={21}/></button></div>
   <form onSubmit={save}>
   {!initial&&<div className="slip-entry slip-entry-first">
-    <div className="slip-flow" aria-label="ขั้นตอนบันทึกสลิป"><span className={scannerOpen?'current':''}>1 เลือกสลิป</span><span className={!scannerOpen?'current':''}>2 ตรวจทาน</span><span>3 บันทึก</span></div>
+    {scannerOpen&&<div className="slip-flow" aria-label="ขั้นตอนบันทึกสลิป"><span className="current">1 เลือกสลิป</span><span>2 บันทึกอัตโนมัติ</span></div>}
     <div className="slip-mode-picker" role="group" aria-label="วิธีเพิ่มรายการ">
       <button type="button" aria-pressed={scannerOpen} className={scannerOpen?'active':''} onClick={()=>setScannerOpen(true)}><ScanLine size={17}/> อัปโหลดสลิป</button>
-      <button type="button" aria-pressed={!scannerOpen&&!slipApplied} className={!scannerOpen&&!slipApplied?'active':''} onClick={()=>{setScannerOpen(false);setSlipApplied(false);setDirectionVerified(false);setAutoDirection(null);setDirectionReason('');setError('');}}><Plus size={17}/> กรอกเอง</button>
+      <button type="button" aria-pressed={!scannerOpen} className={!scannerOpen?'active':''} onClick={()=>{setScannerOpen(false);setError('');}}><Plus size={17}/> กรอกเอง</button>
     </div>
-    {slipApplied&&!scannerOpen&&<p className="slip-review-message" role="status"><Check size={16}/> อ่านสลิปแล้ว โปรดตรวจสอบและแก้ไขข้อมูลก่อนบันทึก หากอ่านยอดไม่ครบสามารถกรอกเองได้</p>}
   </div>}
-  {scannerOpen?<SlipScanner onApply={applySlip} onClose={()=>setScannerOpen(false)}/>:<>
-  {slipApplied&&autoDirection&&<p className="slip-direction-detected" role="status"><Check size={16}/> <span><strong>ระบบตรวจพบ: {autoDirection==='income'?'รายรับ / เงินเข้า':'รายจ่าย / เงินออก'}</strong> — {directionReason} โปรดตรวจสอบก่อนบันทึก หากไม่ถูกต้องสามารถเปลี่ยนประเภทด้านล่างได้</span></p>}
-  {slipApplied&&!directionVerified&&<p className="direction-warning" role="alert">{directionReason||'ยังไม่สามารถระบุประเภทรายการได้'} กรุณาเลือก <strong>เงินเข้า</strong> หรือ <strong>เงินออก</strong> ก่อนบันทึก</p>}
-  <div className="type-switch" role="group" aria-label="ประเภทรายการ"><button type="button" aria-pressed={type==='expense'&&(!slipApplied||directionVerified)} className={type==='expense'&&(!slipApplied||directionVerified)?'selected expense':''} onClick={()=>switchType('expense')}><ArrowUpRight size={16}/> เงินออก / รายจ่าย</button><button type="button" aria-pressed={type==='income'&&(!slipApplied||directionVerified)} className={type==='income'&&(!slipApplied||directionVerified)?'selected income':''} onClick={()=>switchType('income')}><ArrowDownLeft size={16}/> เงินเข้า / รายรับ</button></div>
+  {scannerOpen?<SlipScanner onApply={autoImportSlip} onClose={()=>setScannerOpen(false)}/>:<>
+  <div className="type-switch" role="group" aria-label="ประเภทรายการ"><button type="button" aria-pressed={type==='expense'} className={type==='expense'?'selected expense':''} onClick={()=>switchType('expense')}><ArrowUpRight size={16}/> เงินออก / รายจ่าย</button><button type="button" aria-pressed={type==='income'} className={type==='income'?'selected income':''} onClick={()=>switchType('income')}><ArrowDownLeft size={16}/> เงินเข้า / รายรับ</button></div>
   <label className="field-label" htmlFor="amount">จำนวนเงิน (บาท)</label><div className="amount-input"><span>฿</span><input id="amount" ref={first} inputMode="decimal" autoComplete="off" placeholder="0.00" value={amount} onChange={e=>setAmount(e.target.value)} required /></div>
   {similar.length>0&&<div className="duplicate-warning" role="status"><strong>พบ {similar.length} รายการที่อาจซ้ำ</strong><p>มียอด {amount} บาท วันที่ {date} และช่องทางเดียวกัน</p><label><input type="checkbox" checked={duplicateAcknowledged} onChange={e=>setDuplicateAcknowledged(e.target.checked)}/> ยืนยันว่าต้องการบันทึกรายการนี้ซ้ำ</label></div>}
-  <div className="field-grid slip-date-time"><div><label className="field-label" htmlFor="entry-date">วันที่ทำรายการ</label><input id="entry-date" type="date" value={date} onChange={e=>setDate(e.target.value)} required/></div><div><label className="field-label" htmlFor="entry-time">เวลาทำรายการ {slipApplied?'':'(ถ้ามี)'}</label><input id="entry-time" type="time" value={time} onChange={e=>setTime(e.target.value)} required={slipApplied}/></div></div>
-  <label className="field-label" htmlFor="recipient">ชื่อผู้รับ {slipApplied?'(ตามสลิป)':'(ถ้ามี)'}</label><input id="recipient" maxLength={160} placeholder="เช่น SYNPHAET BANGNA CO., LTD." value={recipient} onChange={e=>setRecipient(e.target.value)} required={slipApplied}/>
+  <div className="field-grid slip-date-time"><div><label className="field-label" htmlFor="entry-date">วันที่ทำรายการ</label><input id="entry-date" type="date" value={date} onChange={e=>setDate(e.target.value)} required/></div><div><label className="field-label" htmlFor="entry-time">เวลาทำรายการ (ถ้ามี)</label><input id="entry-time" type="time" value={time} onChange={e=>setTime(e.target.value)} /></div></div>
+  <label className="field-label" htmlFor="recipient">ชื่อผู้รับ (ถ้ามี)</label><input id="recipient" maxLength={160} placeholder="เช่น SYNPHAET BANGNA CO., LTD." value={recipient} onChange={e=>setRecipient(e.target.value)} />
   <div className="field-grid"><div><label className="field-label" htmlFor="category">หมวดหมู่</label><select id="category" value={category} onChange={e=>setCategory(e.target.value)}>{categories.map(c=><option key={c} value={c}>{c}</option>)}</select></div><div><label className="field-label" htmlFor="method">ช่องทางชำระเงิน / รับเงิน</label><select id="method" value={method} onChange={e=>setMethod(e.target.value as Method)}>{Object.entries(METHODS).map(([key,label])=><option key={key} value={key}>{label}</option>)}</select></div></div>
   <label className="field-label" htmlFor="note">รายละเอียด <span className="subtle">(ไม่บังคับ)</span></label><input id="note" maxLength={500} placeholder="เช่น กาแฟตอนเช้า" value={note} onChange={e=>setNote(e.target.value)}/>
   {error&&<p className="error-message" role="alert">{error}</p>}
@@ -154,7 +145,7 @@ export default function App(){
   const maxBar=Math.max(1,...history.map(x=>Math.max(x.income,x.expense)));
   const openAdd=()=>{setScanOnOpen(true);setEditing(null);setModalOpen(true)};
   const openManual=()=>{setScanOnOpen(false);setEditing(null);setModalOpen(true)};
-  const onSave=async(t:Transaction)=>{await saveTransaction(t);await reload();setToast(editing?'แก้ไขรายการเรียบร้อย':'เพิ่มรายการเรียบร้อย');};
+  const onSave=async(t:Transaction)=>{await saveTransaction(t);await reload();setToast(editing?'แก้ไขรายการเรียบร้อย':`บันทึก${t.type==='income'?'รายรับ':'รายจ่าย'} ฿${baht(t.amountSatang)} สำเร็จ`);};
   const onDelete=async(t:Transaction)=>{if(!window.confirm(`ต้องการลบรายการ “${t.note||t.category}” ฿${baht(t.amountSatang)} ใช่หรือไม่?`))return;try{await deleteTransaction(t.id);await reload();setToast('ลบรายการแล้ว');}catch(e){setToast(e instanceof Error?e.message:'ลบรายการไม่สำเร็จ');}};
   const onEdit=(t:Transaction)=>{setScanOnOpen(false);setEditing(t);setModalOpen(true);};
   const changeMonth=(n:number)=>{const [y,m]=month.split('-').map(Number);setMonth(monthLocal(new Date(y,m-1+n,1)));};
@@ -182,7 +173,7 @@ export default function App(){
   return <div className="app-shell"><aside className="sidebar"><Logo/><div className="workspace-label">WORKSPACE</div><nav aria-label="เมนูหลัก">{navItems.map(({key,label,icon:Icon})=><button key={key} className={`nav-item ${view===key?'active':''}`} aria-label={label} aria-current={view===key?'page':undefined} onClick={()=>setView(key)}><Icon size={19} strokeWidth={1.9}/><span>{label}</span>{view===key&&<span className="nav-active-indicator"/>}</button>)}</nav><div className="sidebar-spacer"/><div className="privacy-card"><div className="privacy-graphic"><ShieldCheck size={24}/></div><strong>ข้อมูลเป็นของคุณ</strong><p>รายการเก็บไว้บนอุปกรณ์นี้ ไม่ส่งขึ้นคลาวด์</p><span><CloudOff size={13}/> LOCAL FIRST</span></div><p className="sidebar-version">เงินวันนี้ · เวอร์ชัน 0.5.0</p></aside>
     <div className="app-body"><header className="topbar"><div className="topbar-left"><span className="greeting">เงินวันนี้ <span className="mobile-today">· {dateText(todayLocal())}</span></span><h1>{pageLabels[view]}</h1></div><div className="topbar-actions"><div className="today-chip"><CalendarDays size={16}/><span>{dateText(todayLocal())}</span></div><button className="btn btn-primary top-add" onClick={openAdd}><ScanLine size={18}/> <span>อัปโหลดสลิป</span></button></div></header>
     <main className="main-content">
-      {view!=='settings' && <div className={`view-topline ${view==='home'?'home-topline':''}`}><div><span className="eyebrow">FINANCIAL OVERVIEW</span><h2>{view==='home'?'บันทึกทุกวัน ดูง่ายในหน้าเดียว':view==='reports'?'มองเห็นภาพรวมการใช้เงิน':'ประวัติการเงินของคุณ'}</h2><p>{view==='home'?'อัปโหลดสลิป K PLUS แล้วตรวจทานก่อนบันทึก หรือกรอกเองได้':view==='reports'?'รู้ว่าเงินของคุณไปอยู่ที่ไหนบ้าง':'ค้นหาและจัดการรายการที่บันทึกไว้ได้ง่าย ๆ'}</p></div><div className="month-picker"><button aria-label="เดือนก่อนหน้า" title="เดือนก่อนหน้า" onClick={()=>changeMonth(-1)}><ChevronLeft size={18}/></button><span>{monthText(month)}</span><button aria-label="เดือนถัดไป" title="เดือนถัดไป" onClick={()=>changeMonth(1)}><ChevronRight size={18}/></button></div></div>}
+      {view!=='settings' && <div className={`view-topline ${view==='home'?'home-topline':''}`}><div><span className="eyebrow">FINANCIAL OVERVIEW</span><h2>{view==='home'?'บันทึกทุกวัน ดูง่ายในหน้าเดียว':view==='reports'?'มองเห็นภาพรวมการใช้เงิน':'ประวัติการเงินของคุณ'}</h2><p>{view==='home'?'อัปโหลดสลิป K PLUS แล้วบันทึกอัตโนมัติ ไม่ต้องผ่านหน้าตรวจทาน':view==='reports'?'รู้ว่าเงินของคุณไปอยู่ที่ไหนบ้าง':'ค้นหาและจัดการรายการที่บันทึกไว้ได้ง่าย ๆ'}</p></div><div className="month-picker"><button aria-label="เดือนก่อนหน้า" title="เดือนก่อนหน้า" onClick={()=>changeMonth(-1)}><ChevronLeft size={18}/></button><span>{monthText(month)}</span><button aria-label="เดือนถัดไป" title="เดือนถัดไป" onClick={()=>changeMonth(1)}><ChevronRight size={18}/></button></div></div>}
       {view==='home'&&<div className="home-dashboard">
         {items.length>=5&&Date.now()-lastBackupAt>30*24*60*60*1000&&<div className="backup-alert" role="status"><div><strong>อย่าลืมสำรองข้อมูลการเงิน</strong><span>ข้อมูลเก็บไว้ในเครื่องนี้เท่านั้น หากล้างข้อมูลเบราว์เซอร์อาจสูญหาย</span></div><button type="button" className="btn btn-secondary" onClick={exportJson}>สำรองข้อมูล JSON</button></div>}
         <section className="summary-grid" aria-label="ยอดรวมรายเดือน"><div className="hero-card"><div className="hero-pattern"/><div className="hero-kicker"><span className="hero-dot"/> เงินสุทธิจากรายการที่บันทึก</div><div className="hero-value"><span>฿</span>{baht(sums.net)}</div><p>รายรับ − รายจ่าย · ไม่ใช่ยอดบัญชีธนาคาร</p><div className="hero-line"/><div className="hero-bottom"><div><span><ArrowDownLeft size={17}/> รายรับ</span><strong>฿{baht(sums.income)}</strong></div><div><span><ArrowUpRight size={17}/> รายจ่าย</span><strong>฿{baht(sums.expense)}</strong></div></div></div>
@@ -195,11 +186,11 @@ export default function App(){
               <div className="budget-linear-meta"><span>ใช้ไป ฿{baht(sums.expense)}</span><span>จาก ฿{baht(settings.monthlyBudgetSatang)}</span></div></>}
           </div></section>
         <section className="mobile-quick-actions" aria-label="บันทึกเงินอย่างรวดเร็ว">
-          <button type="button" className="mobile-action-scan" onClick={openAdd}><span className="quick-action-symbol"><ScanLine size={22}/></span><span><strong>อัปโหลดสลิป K PLUS</strong><small>เลือกภาพ → ตรวจทาน → บันทึก</small></span><ArrowRight size={17}/></button>
+          <button type="button" className="mobile-action-scan" onClick={openAdd}><span className="quick-action-symbol"><ScanLine size={22}/></span><span><strong>อัปโหลดสลิป K PLUS</strong><small>เลือกรูป → OCR → บันทึกทันที</small></span><ArrowRight size={17}/></button>
           <button type="button" className="mobile-action-add" onClick={openManual}><span className="quick-action-symbol"><Plus size={20}/></span><span><strong>กรอกรายการเอง</strong><small>เมื่อไม่มีสลิป</small></span><ArrowRight size={17}/></button>
         </section>
         {settings.monthlyBudgetSatang>0&&sums.expense>settings.monthlyBudgetSatang&&<div className="budget-alert" role="status">⚠️ รายจ่ายเดือนนี้เกินงบที่ตั้งไว้ ฿{baht(sums.expense-settings.monthlyBudgetSatang)}</div>}
-        <section className="surface transactions-surface"><div className="section-header"><div><span className="card-overline">RECENT ACTIVITY</span><h3>รายการล่าสุด</h3></div><button className="text-action" onClick={()=>setView('transactions')}>ดูทั้งหมด <ArrowRight size={16}/></button></div>{selected.length?<TxList items={selected} onEdit={onEdit} onDelete={onDelete} limit={6}/>:<Empty title="เริ่มต้นด้วยสลิปใบแรก" description="อัปโหลดสลิป K PLUS เพื่อตรวจยอดและบันทึกรายการ หรือเลือกกรอกเองได้" add={openAdd}/>}</section>
+        <section className="surface transactions-surface"><div className="section-header"><div><span className="card-overline">RECENT ACTIVITY</span><h3>รายการล่าสุด</h3></div><button className="text-action" onClick={()=>setView('transactions')}>ดูทั้งหมด <ArrowRight size={16}/></button></div>{selected.length?<TxList items={selected} onEdit={onEdit} onDelete={onDelete} limit={6}/>:<Empty title="เริ่มต้นด้วยสลิปใบแรก" description="อัปโหลดสลิป K PLUS เพื่อบันทึกอัตโนมัติ ไม่ต้องตรวจทีละช่อง" add={openAdd}/>}</section>
         <div className="home-report-link"><button type="button" className="btn btn-ghost bordered" onClick={()=>setView('reports')}><BarChart3 size={17}/> ดูรายงานและกราฟทั้งหมด <ArrowRight size={16}/></button></div>
       </div>}
       {view==='transactions'&&<section className="surface transaction-page"><div className="list-tools"><div className="search-box"><Search size={19}/><input aria-label="ค้นหารายการ" placeholder="ค้นหาจากรายละเอียด หมวดหมู่ หรือช่องทาง..." value={search} onChange={e=>setSearch(e.target.value)}/></div><div className="filter-tabs" aria-label="กรองประเภทรายการ">{([['all','ทั้งหมด'],['income','รายรับ'],['expense','รายจ่าย']] as const).map(([key,label])=><button key={key} className={filter===key?'selected':''} onClick={()=>setFilter(key)}>{label}</button>)}</div></div><div className="list-count"><SlidersHorizontal size={16}/> {filtered.length} รายการ <span>· {monthText(month)}</span></div>{filtered.length?<TxList items={filtered} onEdit={onEdit} onDelete={onDelete}/>:<Empty icon="🔎" title="ไม่พบรายการ" description="ลองเปลี่ยนเดือน คำค้นหา หรือตัวกรองอีกครั้ง" add={selected.length===0?openAdd:undefined}/>}</section>}

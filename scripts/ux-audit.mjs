@@ -82,7 +82,9 @@ try {
     await add.click({timeout:3500});
     const slipDefault=await page.locator('.modal .slip-panel').isVisible();
     const uploadPrimary=await page.getByRole('button',{name:'เลือกภาพสลิป'}).isVisible();
-    record('slip-first-default',name,{slipDefault,uploadPrimary,pageErrors:errors});
+    const autoSaveNext=await page.getByText('2 บันทึกอัตโนมัติ').isVisible();
+    const reviewButtonCount=await page.getByRole('button',{name:/ตรวจทานและบันทึก/}).count();
+    record('slip-first-default',name,{slipDefault,uploadPrimary,autoSaveNext,reviewButtonCount,pageErrors:errors});
     await scan(page,'slip-first-entry',name);
     await page.getByRole('button',{name:'กรอกเอง',exact:true}).click();
     const manualAvailable=await page.locator('#amount').isVisible();
@@ -135,7 +137,7 @@ try {
   const critical=findings.filter(x=>x.view==='navigation-obstruction'
     ||x.overflowPx>0
     ||(x.axe?.violations?.length||0)>0
-    ||(x.view==='slip-first-default'&&(!x.slipDefault||!x.uploadPrimary||x.pageErrors?.length))
+    ||(x.view==='slip-first-default'&&(!x.slipDefault||!x.uploadPrimary||!x.autoSaveNext||x.reviewButtonCount>0||x.pageErrors?.length))
     ||(x.view==='manual-entry-alternative'&&(!x.manualAvailable||x.pageErrors?.length))
     ||(x.view==='save-smoke'&&(!x.savedVisible||x.pageErrors?.length))
     ||(x.view==='restore-smoke'&&(!x.initiallyDisabled||!x.enabledAfterAcknowledgement||!x.closed||x.pageErrors?.length))
