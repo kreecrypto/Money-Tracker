@@ -91,7 +91,7 @@ function EntryModal({initial,existing,startWithScanner,close,submit}:{initial:Tr
   const switchType=(newType:EntryType)=>{setType(newType);setCategory(newType==='expense'?EXPENSE_CATEGORIES[0]:INCOME_CATEGORIES[0]);if(slipApplied){setDirectionVerified(true);setError('');}};
   const applySlip=(data:SlipFields)=>{setSlipApplied(true);setDirectionVerified(false);setDuplicateAcknowledged(false);
     setAmount(data.amountSatang!==null?(data.amountSatang/100).toFixed(2):'');
-    if(data.date)setDate(data.date);
+    setDate(data.date||''); // Never silently treat an unreadable slip date as today's transaction.
     if(data.recipient)setNote(`โอนเงิน: ${data.recipient}`.slice(0,500));
     setMethod('bank');
     setError('');
