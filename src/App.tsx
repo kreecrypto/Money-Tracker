@@ -86,7 +86,7 @@ function EntryModal({initial,existing,startWithScanner,close,submit}:{initial:Tr
   const save=async(e:FormEvent)=>{e.preventDefault();
     if(slipApplied&&!directionVerified){setError('กรุณาเลือก เงินเข้า หรือ เงินออก ก่อนบันทึก');return;}
     if(slipApplied&&(!time||!recipient.trim())){setError('กรุณาตรวจและกรอกเวลาทำรายการกับชื่อผู้รับตามสลิป');return;}
-    if(time&&!/^([01]\\d|2[0-3]):[0-5]\\d$/.test(time)){setError('เวลาทำรายการไม่ถูกต้อง');return;}
+    if(time&&!/^([01]\d|2[0-3]):[0-5]\d$/.test(time)){setError('เวลาทำรายการไม่ถูกต้อง');return;}
     if(similar.length&&!duplicateAcknowledged){setError('พบรายการคล้ายกัน กรุณายืนยันก่อนบันทึกซ้ำ');return;}
     const sats=toSatang(amount);if(!sats){setError('กรุณากรอกจำนวนเงินมากกว่า 0 และทศนิยมไม่เกิน 2 ตำแหน่ง');return;}
     if(!/^\d{4}-\d\d-\d\d$/.test(date)){setError('กรุณาเลือกวันที่');return;}
