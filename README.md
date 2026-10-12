@@ -10,14 +10,21 @@ Mobile-first, Thai-language, offline-first **daily income and expense tracker** 
 - Reports and category summaries, JSON backup/restore, and Excel-friendly UTF-8 CSV export.
 - Installable Progressive Web App (PWA); offline usage after the first load.
 - Financial amounts stored in **integer satang**, dates stored as **local calendar dates**.
-- **Slip-first entry**: Upload a KBank / K PLUS slip from the main action (JPG, PNG, WebP, max 10 MB), or capture a new photo. Client-side Tesseract.js attempts to extract **date, local time, amount and recipient name**. K PLUS bill-payment layouts are parsed from the masked sender account and biller block where an explicit payee label is absent. The app also detects **income versus expense** when the receipt explicitly says that money was received, paid, or transferred out; it automatically saves an income or expense once the direction, amount, date, time and recipient are all clearly extracted. **No Review screen or second confirmation is required for a complete slip.** Generic transfers with unclear direction, missing/conflicting fields and duplicate-like slips are not auto-saved; the app explains why and allows retry or manual entry. Manual entry and editing saved items are still supported.
+- **Slip-first entry**: Upload a K PLUS slip, 7-Eleven / 7Delivery receipt or Paotang G-Wallet transaction image from the main action (JPG, PNG, WebP, max 10 MB), or capture a new photo. Client-side Tesseract.js attempts to extract **date, local time, amount and recipient name**. K PLUS bill-payment layouts are parsed from the masked sender account and biller block where an explicit payee label is absent. 7-Eleven receipts use the actual payment/tender line rather than individual item prices, and Paotang receipts use **จำนวนเงินที่ชำระ** after benefits/subsidies, not the gross goods value. The app also detects **income versus expense** when the receipt explicitly says that money was received, paid, or transferred out; it automatically saves an income or expense once the direction, amount, date, time and recipient are all clearly extracted. **No Review screen or second confirmation is required for a complete slip.** Generic transfers with unclear direction, missing/conflicting fields and duplicate-like slips are not auto-saved; the app explains why and allows retry or manual entry. Manual entry and editing saved items are still supported.
 - No account, server, bank access, tracking scripts, or analytics by default.
 
 ## Slip OCR privacy and limitations
 
 - Image OCR runs inside the browser using Tesseract.js (Thai + English). On the **first scan**, the OCR engine and language files must be downloaded from their configured external CDNs; without those assets the scan does not work offline. The selected image and raw OCR text are only held in memory during scanning, and are **not uploaded to our server** or saved in IndexedDB.
-- OCR results are estimates, not bank-verified transaction records. Account numbers, transfer references, and fee/balance lines must not be treated as the payment amount. **Complete, clearly classified K PLUS slips are saved immediately without review**, so occasionally incorrect OCR may still require editing the saved transaction. Missing or contradictory values block auto-save.
+- OCR results are estimates, not bank-verified transaction records. Account numbers, transfer references, and fee/balance lines must not be treated as the payment amount. **Complete, clearly classified supported slips and receipts are saved immediately without review**, so occasionally incorrect OCR may still require editing the saved transaction. Missing or contradictory values block auto-save.
 - Only the extracted transaction fields (direction, date, time, amount and recipient) are saved automatically when all validation gates pass. The image is not attached to the transaction. For photos in HEIC format, convert to JPG before scanning.
+
+## Supported receipt formats (October 2026)
+
+- **K PLUS**: outgoing bill/transfer or explicitly incoming receipt; amount, date, time and payee.
+- **7-Eleven / 7Delivery**: shop or branch name, receipt time and **amount actually paid** from the tender line. Line-item values and item count never become the transaction amount; a missing/mismatched tender versus net total blocks automatic saving.
+- **เป๋าตัง / G-Wallet**: merchant and payment after any benefit. For example, ฿40 goods − ฿24 subsidy means **฿16 recorded as expense**; the subsidy is not another expense.
+- New formats are local OCR text parsers, not payment-provider integrations. The image is not uploaded or stored. Incomplete/unclear/duplicate-like scans are blocked and manual entry remains available. These parsers are tested against anonymized transcriptions of sample screenshots; actual iPhone Safari OCR still requires real-device evaluation.
 
 ## Quick start
 
@@ -63,7 +70,7 @@ The store is **IndexedDB**, isolated to the site's origin. CSV exports include d
 
 - Redesigned home layout for 320px-first mobile use: upload slip as the prominent action, manual entry as the alternative, recent transactions and financial summary.
 - Simplified colors, flatter cards, clearer Thai typography, unobtrusive per-row action menu and bottom navigation.
-- All default Add actions now open slip selection first, with automatic saving when every required field is valid and direction is explicit. A missing OCR date or cash-flow direction never defaults silently. Duplicate-like slips are blocked. Shortcut settings and polling remain disabled in the app.
+- All default Add actions now open image selection first, with automatic saving when every required field is valid and direction is explicit. The parser supports K PLUS, 7-Eleven/7Delivery, and Paotang G-Wallet and captures the merchant, actual paid amount, payment method, date, and time. A missing OCR date or cash-flow direction never defaults silently. Duplicate-like slips are blocked. Shortcut settings and polling remain disabled in the app.
 - See [Mobile-first design specification](docs/MOBILE_FIRST_DESIGN.md).
 - GitHub's automated Chromium UX audit now covers 320, 375, 390, 430, 768 and 1280px.
 

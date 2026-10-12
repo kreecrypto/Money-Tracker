@@ -1,4 +1,5 @@
-import {toSatang,type EntryType} from './finance.js';
+import {toSatang,type EntryType,type Method} from './finance.js';
+import {parseSpecialReceipt,type ReceiptSource} from './receiptFormats.js';
 
 /** OCR parsing is intentionally conservative: uncertain values stay empty for human review. */
 export type SlipFields = {
@@ -9,6 +10,10 @@ export type SlipFields = {
   /** Null when the receipt cannot reliably establish the user's cash-flow direction. */
   direction: EntryType | null;
   directionReason: string;
+  /** Specialized receipt format and payment method, when reliably detected. */
+  source?: ReceiptSource;
+  method?: Method;
+  category?: string;
   rawText: string;
   warnings: string[];
 };
@@ -205,18 +210,24 @@ export function parseSlipText(rawText:string):SlipFields {
   const lines=normalizeSlipOcrText(rawText).split(/\r?\n/u)
     .map(x=>x.replace(/^[0◯○•●@]\s+(?=[A-Z])/u,'').trim())
     .filter(Boolean);
-  const amountSatang=parseAmount(lines);
+  const special=parseSpecialReceipt(lines);
+  // A confirmed bill or wallet payment requires the actual tender/paid amount,
+  // never the gross item subtotal or discount.
+  const amountSatang=special?special.amountSatang:parseAmount(lines);
   const date=parseDate(lines);
   const time=parseTime(lines);
-  const recipient=parseRecipient(lines);
-  const {direction,directionReason}=inferSlipDirection(rawText);
+  const recipient=special?special.recipient:parseRecipient(lines);
+  const {direction,directionReason}=special??inferSlipDirection(rawText);
+  const source=special?.source;
+  const method=special?.method;
+  const category=special?.category;
   const warnings:string[]=[];
   if(!lines.length)warnings.push('ไม่พบตัวอักษรในรูปภาพ ลองถ่ายใหม่ให้ชัดขึ้น');
   if(amountSatang===null)warnings.push('ไม่สามารถระบุยอดโอนได้อย่างมั่นใจ กรุณากรอกยอดเอง');
   if(date===null)warnings.push('อ่านวันที่ไม่ชัดเจน กรุณาตรวจและกรอกวันที่ก่อนบันทึก');
   if(time===null)warnings.push('อ่านเวลาไม่ชัดเจน กรุณากรอกเวลาตามสลิป');
   if(recipient===null)warnings.push('อ่านชื่อผู้รับไม่ชัดเจน กรุณาตรวจและกรอกชื่อผู้รับ');
-  return {amountSatang,date,time,recipient,direction,directionReason,rawText,warnings};
+  return {amountSatang,date,time,recipient,direction,directionReason,source,method,category,rawText,warnings};
 }
 
 
@@ -242,12 +253,17 @@ export function mergeSlipOcrReadings(first:SlipFields,second:SlipFields):SlipFie
   const time=select('เวลา',first.time,second.time);
   const recipient=select('ชื่อผู้รับ',first.recipient,second.recipient);
   const direction=select('ประเภทรายรับรายจ่าย',first.direction,second.direction);
+  const source=first.source&&second.source&&first.source!==second.source?undefined:(first.source||second.source);
+  if(first.source&&second.source&&first.source!==second.source)
+    conflicts.push('OCR อ่านประเภทสลิปต่างกันระหว่างสองรอบ กรุณาตรวจสอบ');
+  const method=source===(first.source||undefined)?first.method:(second.method||first.method);
+  const category=source===(first.source||undefined)?first.category:(second.category||first.category);
   const directionReason=direction?(first.direction===direction?first.directionReason:second.directionReason):'สลิปยังไม่สามารถระบุรายรับหรือรายจ่ายได้ชัดเจน กรุณาเลือกเอง';
   const warnings=[...conflicts];
   if(amountSatang===null&&!conflicts.some(x=>x.includes('จำนวนเงิน')))warnings.push('อ่านจำนวนเงินไม่ได้ กรุณากรอกเอง');
   if(date===null&&!conflicts.some(x=>x.includes('วันที่')))warnings.push('อ่านวันที่ไม่ได้ กรุณากรอกเอง');
   if(time===null&&!conflicts.some(x=>x.includes('เวลา')))warnings.push('อ่านเวลาไม่ได้ กรุณากรอกเอง');
   if(recipient===null&&!conflicts.some(x=>x.includes('ชื่อผู้รับ')))warnings.push('อ่านชื่อผู้รับไม่ได้ กรุณากรอกเอง');
-  return {amountSatang,date,time,recipient,direction,directionReason,warnings,rawText:
+  return {amountSatang,date,time,recipient,direction,directionReason,source,method,category,warnings,rawText:
     first.rawText+'\n\n--- รอบปรับภาพ ---\n'+second.rawText};
 }

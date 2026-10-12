@@ -26,12 +26,12 @@ export function prepareAutoSlip(
     id,
     type:slip.direction,
     amountSatang:slip.amountSatang,
-    category:'อื่น ๆ',
+    category:slip.category||'อื่น ๆ',
     note:'',
     date:slip.date,
     time:slip.time,
     recipient,
-    method:'bank',
+    method:slip.method||'bank',
     createdAt,
   };
   if(!isValidTransaction(transaction))
@@ -42,7 +42,7 @@ export function prepareAutoSlip(
     t.type===transaction.type &&
     t.amountSatang===transaction.amountSatang &&
     t.date===transaction.date &&
-    t.method==='bank' &&
+    t.method===transaction.method &&
     (t.time===undefined||t.time===transaction.time) &&
     !!t.recipient &&
     normalize(t.recipient)===normalize(recipient)
