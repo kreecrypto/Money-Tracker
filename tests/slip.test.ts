@@ -1,5 +1,5 @@
 import {describe,it,expect} from 'vitest';
-import {parseSlipText} from '../src/lib/slip';
+import {parseSlipText,normalizeSlipOcrText,needsSlipOcrRecovery,mergeSlipOcrReadings} from '../src/lib/slip';
 
 describe('Thai bank transfer slip parser',()=>{
   it('reads a Thai transfer with Buddhist Era year and ignores reference & fee',()=>{
@@ -79,5 +79,58 @@ describe('Thai bank transfer slip parser',()=>{
   it('rejects out-of-range clock times',()=>{
     expect(parseSlipText('วันที่ 12 ต.ค. 69 24:90 น.').time).toBeNull();
     expect(parseSlipText('วันที่ 12 ต.ค. 69 เวลา 23:59 น.').time).toBe('23:59');
+  });
+
+  it('normalizes decomposed Thai sara am without modifying the original OCR transcript',()=>{
+    const raw='จ่ายบิลสําเร็จ\nจํานวน:\n2,948.00 บาท';
+    expect(normalizeSlipOcrText(raw)).toContain('จ่ายบิลสำเร็จ');
+    const result=parseSlipText(raw);
+    expect(result.amountSatang).toBe(294800);
+    expect(result.rawText).toBe(raw);
+  });
+  it('extracts all four fields from anonymized OCR output of the sample K PLUS image',()=>{
+    const raw=[
+      'จ่ายบิลสําเร็จ',
+      '12 ต.ค. 69 13:15 น.',
+      'นาย ผู้โอน',
+      'ธ.กสิกรไทย',
+      'ง   XXX-X-X0000-x',
+      '๐ SYNPHAET BANGNA',
+      'CO.,LTD.',
+      '000000000000000',
+      'SAMPLE-BILL-REFERENCE',
+      'จํานวน:',
+      '2,948.00 บาท',
+      'ค่าธรรมเนียม:',
+      '0.00 บาท',
+      'เลขที่รายการ:',
+      'SAMPLE-TRANSACTION-REF'
+    ].join('\n');
+    const result=parseSlipText(raw);
+    expect(result).toMatchObject({
+      date:'2026-10-12',time:'13:15',amountSatang:294800,
+      recipient:'SYNPHAET BANGNA CO.,LTD.'
+    });
+    expect(needsSlipOcrRecovery(result)).toBe(false);
+  });
+  it('uses recovered OCR only for missing information and does not fabricate other values',()=>{
+    const first=parseSlipText('วันที่ 12 ต.ค. 69 13:15 น.\nจํานวน:\n2,948.00 บาท');
+    const second=parseSlipText('จ่ายบิลสําเร็จ\nธ.กสิกรไทย\nXXX-X-X0000-x\nSYNPHAET BANGNA\nCO.,LTD.\nจํานวน:\n2,948.00 บาท');
+    expect(needsSlipOcrRecovery(first)).toBe(true);
+    const merged=mergeSlipOcrReadings(first,second);
+    expect(merged).toMatchObject({date:'2026-10-12',time:'13:15',amountSatang:294800,recipient:'SYNPHAET BANGNA CO.,LTD.'});
+    expect(merged.warnings).toEqual([]);
+  });
+  it('does not silently choose conflicting OCR amounts',()=>{
+    const first=parseSlipText('ยอดเงิน: 2,948.00 บาท\nวันที่ 12 ต.ค. 69 13:15 น.');
+    const second=parseSlipText('ยอดเงิน: 2,943.00 บาท\nวันที่ 12 ต.ค. 69 13:15 น.');
+    const merged=mergeSlipOcrReadings(first,second);
+    expect(merged.amountSatang).toBeNull();
+    expect(merged.warnings.some(x=>x.includes('จำนวนเงิน'))).toBe(true);
+  });
+  it('ignores noisy account and fee lines while recovering a multi-line recipient',()=>{
+    const result=parseSlipText('จ่ายบิลสําเร็จ\n12 ต.ค. 69 13:15 น.\nธ.กสิกรไทย\nXXX-X-X0000-x\nSYNPHAET BANGNA\nCO.,LTD.\n000000000000000\nจํานวน:\n2,948.00 บาท\nค่าธรรมเนียม:\n0.00 บาท');
+    expect(result.recipient).toBe('SYNPHAET BANGNA CO.,LTD.');
+    expect(result.amountSatang).toBe(294800);
   });
 });
