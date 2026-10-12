@@ -1,5 +1,5 @@
 import {describe,it,expect} from 'vitest';
-import {parseSlipText,normalizeSlipOcrText,needsSlipOcrRecovery,mergeSlipOcrReadings} from '../src/lib/slip';
+import {parseSlipText,normalizeSlipOcrText,needsSlipOcrRecovery,mergeSlipOcrReadings,inferSlipDirection} from '../src/lib/slip';
 
 describe('Thai bank transfer slip parser',()=>{
   it('reads a Thai transfer with Buddhist Era year and ignores reference & fee',()=>{
@@ -132,5 +132,62 @@ describe('Thai bank transfer slip parser',()=>{
     const result=parseSlipText('จ่ายบิลสําเร็จ\n12 ต.ค. 69 13:15 น.\nธ.กสิกรไทย\nXXX-X-X0000-x\nSYNPHAET BANGNA\nCO.,LTD.\n000000000000000\nจํานวน:\n2,948.00 บาท\nค่าธรรมเนียม:\n0.00 บาท');
     expect(result.recipient).toBe('SYNPHAET BANGNA CO.,LTD.');
     expect(result.amountSatang).toBe(294800);
+  });
+
+  it('recognizes the K PLUS bill-payment sample as an expense with explicit evidence',()=>{
+    const result=parseSlipText('จ่ายบิลสำเร็จ\n12 ต.ค. 69 13:15 น.\nชื่อผู้จ่าย\nxxx-x-x0000-x\nSYNPHAET BANGNA\nCO.,LTD.\nจำนวน:\n2,948.00 บาท');
+    expect(result.direction).toBe('expense');
+    expect(result.directionReason).toContain('จ่ายบิล');
+  });
+  it.each([
+    'จ่ายบิลสําเร็จ\n12 ต.ค. 69',
+    'ชำระเงินสำเร็จ\nยอดเงิน 120.00 บาท',
+    'โอนออกสำเร็จ\nวันที่ 12 ต.ค. 69',
+    'เงินออกจากบัญชี\nจำนวนเงิน 50.00 บาท',
+    'Bill payment complete\nDate: 2026-10-12',
+  ])('classifies explicit outgoing signals as expense: %s',text=>{
+    expect(inferSlipDirection(text).direction).toBe('expense');
+  });
+  it.each([
+    'รับโอนเงินสำเร็จ\n12 ต.ค. 69 13:15 น.',
+    'รับเงินสำเร็จ\nยอดเงิน 200.00 บาท',
+    'ได้รับเงิน\nวันที่ 12 ต.ค. 69',
+    'เงินเข้าบัญชี\nยอดเงิน 500.00 บาท',
+    'Incoming transfer\nDate: 2026-10-12',
+  ])('classifies explicit incoming signals as income: %s',text=>{
+    expect(inferSlipDirection(text).direction).toBe('income');
+  });
+  it.each([
+    'โอนเงินสำเร็จ\nถึง ร้านกาแฟ\nจำนวนเงิน 60.00 บาท',
+    'โอนเงินสำเร็จ\nเลขอ้างอิง 12345678',
+    'Bank transfer\nTo: Coffee House\nAmount THB 129.75',
+    'วันที่ 12 ต.ค. 69\nจำนวนเงิน 100.00 บาท',
+  ])('does not guess direction from generic or incomplete transfer slips: %s',text=>{
+    const result=inferSlipDirection(text);
+    expect(result.direction).toBeNull();
+    expect(result.directionReason).toContain('โปรดเลือก');
+  });
+  it('rejects contradictory cashflow labels instead of choosing a direction',()=>{
+    const result=inferSlipDirection('จ่ายบิลสำเร็จ\nเงินเข้าบัญชี\nวันที่ 12 ต.ค. 69');
+    expect(result.direction).toBeNull();
+    expect(result.directionReason).toContain('ทั้งเงินเข้าและเงินออก');
+  });
+  it('recovers direction from a second OCR pass when the first missed the header',()=>{
+    const first=parseSlipText('วันที่ 12 ต.ค. 69 13:15 น.\nจำนวนเงิน 100.00 บาท');
+    const second=parseSlipText('รับเงินสำเร็จ\nวันที่ 12 ต.ค. 69 13:15 น.\nจำนวนเงิน 100.00 บาท');
+    const combined=mergeSlipOcrReadings(first,second);
+    expect(combined.direction).toBe('income');
+    expect(combined.directionReason).toContain('รับเงิน');
+  });
+  it('rejects conflicting income/expense classifications across OCR passes',()=>{
+    const first=parseSlipText('จ่ายบิลสำเร็จ\nวันที่ 12 ต.ค. 69 13:15 น.\nยอดเงิน 100.00 บาท');
+    const second=parseSlipText('รับเงินสำเร็จ\nวันที่ 12 ต.ค. 69 13:15 น.\nยอดเงิน 100.00 บาท');
+    const combined=mergeSlipOcrReadings(first,second);
+    expect(combined.direction).toBeNull();
+    expect(combined.warnings.some(w=>w.includes('ประเภทรายรับรายจ่าย'))).toBe(true);
+  });
+  it('does not treat a payee label containing the word income as evidence of money received',()=>{
+    const result=inferSlipDirection('โอนเงินสำเร็จ\nผู้รับ: เงินเข้าบัญชี จำกัด\nวันที่ 12 ต.ค. 69\nจำนวนเงิน 100.00 บาท');
+    expect(result.direction).toBeNull();
   });
 });

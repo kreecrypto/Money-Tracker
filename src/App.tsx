@@ -56,6 +56,8 @@ function EntryModal({initial,existing,startWithScanner,close,submit}:{initial:Tr
   const [scannerOpen,setScannerOpen]=useState(startWithScanner&&!initial);
   const [slipApplied,setSlipApplied]=useState(false);
   const [directionVerified,setDirectionVerified]=useState(false);
+  const [autoDirection,setAutoDirection]=useState<EntryType|null>(null);
+  const [directionReason,setDirectionReason]=useState('');
   const [duplicateAcknowledged,setDuplicateAcknowledged]=useState(false);
   const [error,setError]=useState('');
   const first=useRef<HTMLInputElement>(null);
@@ -92,8 +94,11 @@ function EntryModal({initial,existing,startWithScanner,close,submit}:{initial:Tr
     if(!/^\d{4}-\d\d-\d\d$/.test(date)){setError('กรุณาเลือกวันที่');return;}
     setPending(true);setError('');try{await submit({id:initial?.id||uuid(),type,amountSatang:sats,date,time:time||undefined,recipient:recipient.trim()||undefined,category,note:note.trim().slice(0,500),method,createdAt:initial?.createdAt||Date.now()});close();}catch(err){setError(err instanceof Error?err.message:'บันทึกไม่สำเร็จ');setPending(false);}
   };
-  const switchType=(newType:EntryType)=>{setType(newType);setCategory(newType==='expense'?EXPENSE_CATEGORIES[0]:INCOME_CATEGORIES[0]);if(slipApplied){setDirectionVerified(true);setError('');}};
-  const applySlip=(data:SlipFields)=>{setSlipApplied(true);setDirectionVerified(false);setDuplicateAcknowledged(false);
+  const switchType=(newType:EntryType)=>{setType(newType);setCategory(newType==='expense'?EXPENSE_CATEGORIES[0]:INCOME_CATEGORIES[0]);if(slipApplied){setAutoDirection(null);setDirectionVerified(true);setError('');}};
+  const applySlip=(data:SlipFields)=>{setSlipApplied(true);setDirectionVerified(data.direction!==null);setDuplicateAcknowledged(false);
+    setAutoDirection(data.direction);
+    setDirectionReason(data.directionReason);
+    if(data.direction){setType(data.direction);setCategory(data.direction==='expense'?EXPENSE_CATEGORIES[0]:INCOME_CATEGORIES[0]);}
     setAmount(data.amountSatang!==null?(data.amountSatang/100).toFixed(2):'');
     setDate(data.date||''); // Never silently treat an unreadable slip date as today's transaction.
     setTime(data.time||'');
@@ -108,12 +113,13 @@ function EntryModal({initial,existing,startWithScanner,close,submit}:{initial:Tr
     <div className="slip-flow" aria-label="ขั้นตอนบันทึกสลิป"><span className={scannerOpen?'current':''}>1 เลือกสลิป</span><span className={!scannerOpen?'current':''}>2 ตรวจทาน</span><span>3 บันทึก</span></div>
     <div className="slip-mode-picker" role="group" aria-label="วิธีเพิ่มรายการ">
       <button type="button" aria-pressed={scannerOpen} className={scannerOpen?'active':''} onClick={()=>setScannerOpen(true)}><ScanLine size={17}/> อัปโหลดสลิป</button>
-      <button type="button" aria-pressed={!scannerOpen&&!slipApplied} className={!scannerOpen&&!slipApplied?'active':''} onClick={()=>{setScannerOpen(false);setSlipApplied(false);setDirectionVerified(false);setError('');}}><Plus size={17}/> กรอกเอง</button>
+      <button type="button" aria-pressed={!scannerOpen&&!slipApplied} className={!scannerOpen&&!slipApplied?'active':''} onClick={()=>{setScannerOpen(false);setSlipApplied(false);setDirectionVerified(false);setAutoDirection(null);setDirectionReason('');setError('');}}><Plus size={17}/> กรอกเอง</button>
     </div>
     {slipApplied&&!scannerOpen&&<p className="slip-review-message" role="status"><Check size={16}/> อ่านสลิปแล้ว โปรดตรวจสอบและแก้ไขข้อมูลก่อนบันทึก หากอ่านยอดไม่ครบสามารถกรอกเองได้</p>}
   </div>}
   {scannerOpen?<SlipScanner onApply={applySlip} onClose={()=>setScannerOpen(false)}/>:<>
-  {slipApplied&&!directionVerified&&<p className="direction-warning" role="alert">กรุณาเลือกให้ชัดเจนว่าเป็น <strong>เงินเข้า</strong> หรือ <strong>เงินออก</strong> ก่อนบันทึก</p>}
+  {slipApplied&&autoDirection&&<p className="slip-direction-detected" role="status"><Check size={16}/> <span><strong>ระบบตรวจพบ: {autoDirection==='income'?'รายรับ / เงินเข้า':'รายจ่าย / เงินออก'}</strong> — {directionReason} โปรดตรวจสอบก่อนบันทึก หากไม่ถูกต้องสามารถเปลี่ยนประเภทด้านล่างได้</span></p>}
+  {slipApplied&&!directionVerified&&<p className="direction-warning" role="alert">{directionReason||'ยังไม่สามารถระบุประเภทรายการได้'} กรุณาเลือก <strong>เงินเข้า</strong> หรือ <strong>เงินออก</strong> ก่อนบันทึก</p>}
   <div className="type-switch" role="group" aria-label="ประเภทรายการ"><button type="button" aria-pressed={type==='expense'&&(!slipApplied||directionVerified)} className={type==='expense'&&(!slipApplied||directionVerified)?'selected expense':''} onClick={()=>switchType('expense')}><ArrowUpRight size={16}/> เงินออก / รายจ่าย</button><button type="button" aria-pressed={type==='income'&&(!slipApplied||directionVerified)} className={type==='income'&&(!slipApplied||directionVerified)?'selected income':''} onClick={()=>switchType('income')}><ArrowDownLeft size={16}/> เงินเข้า / รายรับ</button></div>
   <label className="field-label" htmlFor="amount">จำนวนเงิน (บาท)</label><div className="amount-input"><span>฿</span><input id="amount" ref={first} inputMode="decimal" autoComplete="off" placeholder="0.00" value={amount} onChange={e=>setAmount(e.target.value)} required /></div>
   {similar.length>0&&<div className="duplicate-warning" role="status"><strong>พบ {similar.length} รายการที่อาจซ้ำ</strong><p>มียอด {amount} บาท วันที่ {date} และช่องทางเดียวกัน</p><label><input type="checkbox" checked={duplicateAcknowledged} onChange={e=>setDuplicateAcknowledged(e.target.checked)}/> ยืนยันว่าต้องการบันทึกรายการนี้ซ้ำ</label></div>}
