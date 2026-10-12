@@ -83,8 +83,10 @@ try {
     const slipDefault=await page.locator('.modal .slip-panel').isVisible();
     const uploadPrimary=await page.getByRole('button',{name:'เลือกภาพสลิป'}).isVisible();
     const autoSaveNext=await page.getByText('2 บันทึกอัตโนมัติ').isVisible();
+    const multiSelectable=await page.locator('input[aria-label="เลือกรูปสลิปหลายรูป"]').evaluate(el=>el instanceof HTMLInputElement&&el.multiple);
+    const batchLimitVisible=await page.getByText(/สูงสุด 20 รูป\/ครั้ง/).isVisible();
     const reviewButtonCount=await page.getByRole('button',{name:/ตรวจทานและบันทึก/}).count();
-    record('slip-first-default',name,{slipDefault,uploadPrimary,autoSaveNext,reviewButtonCount,pageErrors:errors});
+    record('slip-first-default',name,{slipDefault,uploadPrimary,autoSaveNext,multiSelectable,batchLimitVisible,reviewButtonCount,pageErrors:errors});
     await scan(page,'slip-first-entry',name);
     await page.getByRole('button',{name:'กรอกเอง',exact:true}).click();
     const manualAvailable=await page.locator('#amount').isVisible();
@@ -137,7 +139,7 @@ try {
   const critical=findings.filter(x=>x.view==='navigation-obstruction'
     ||x.overflowPx>0
     ||(x.axe?.violations?.length||0)>0
-    ||(x.view==='slip-first-default'&&(!x.slipDefault||!x.uploadPrimary||!x.autoSaveNext||x.reviewButtonCount>0||x.pageErrors?.length))
+    ||(x.view==='slip-first-default'&&(!x.slipDefault||!x.uploadPrimary||!x.autoSaveNext||!x.multiSelectable||!x.batchLimitVisible||x.reviewButtonCount>0||x.pageErrors?.length))
     ||(x.view==='manual-entry-alternative'&&(!x.manualAvailable||x.pageErrors?.length))
     ||(x.view==='save-smoke'&&(!x.savedVisible||x.pageErrors?.length))
     ||(x.view==='restore-smoke'&&(!x.initiallyDisabled||!x.enabledAfterAcknowledgement||!x.closed||x.pageErrors?.length))
