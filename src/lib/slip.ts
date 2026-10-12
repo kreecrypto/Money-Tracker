@@ -38,10 +38,6 @@ export function normalizeSlipOcrText(text:string):string {
     .replace(/[๐-๙]/gu,d=>String('๐๑๒๓๔๕๖๗๘๙'.indexOf(d)));
 }
 
-function toAscii(text:string):string {
-  return text.replace(/[๐-๙]/g,d=>String('๐๑๒๓๔๕๖๗๘๙'.indexOf(d)));
-}
-
 function parseMoney(line:string):number[] {
   const values:number[]=[];
   for(const match of line.matchAll(MONEY_RE)){
