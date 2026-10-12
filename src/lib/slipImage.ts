@@ -17,11 +17,11 @@ export function enhanceReceiptPixels(data:Uint8ClampedArray):void {
     return 255;
   };
   const dark=threshold(0.025),light=threshold(0.975);
-  const span=Math.max(48,light-dark);
+  const span=light-dark;
   for(let i=0;i<data.length;i+=4){
     const gray=(77*data[i]+150*data[i+1]+29*data[i+2])/256;
-    const mapped=Math.max(0,Math.min(255,Math.round((gray-dark)*255/span)));
-    const value=mapped>=235?255:mapped;
+    const mapped=span<36?gray:Math.max(0,Math.min(255,Math.round((gray-dark)*255/span)));
+    const value=mapped>=235?255:Math.round(mapped);
     data[i]=data[i+1]=data[i+2]=value;
   }
 }
