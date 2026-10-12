@@ -80,16 +80,20 @@ try {
     }
     const add=page.locator(width<=660?'.mobile-fab':'.top-add');
     await add.click({timeout:3500});
-    await scan(page,'entry-modal',name);
-    await page.getByRole('button',{name:/สแกนสลิปโอนเงิน/}).click();
-    await scan(page,'ocr-panel',name);
+    const slipDefault=await page.locator('.modal .slip-panel').isVisible();
+    const uploadPrimary=await page.getByRole('button',{name:'เลือกภาพสลิป'}).isVisible();
+    record('slip-first-default',name,{slipDefault,uploadPrimary,pageErrors:errors});
+    await scan(page,'slip-first-entry',name);
+    await page.getByRole('button',{name:'กรอกเอง',exact:true}).click();
+    const manualAvailable=await page.locator('#amount').isVisible();
+    record('manual-entry-alternative',name,{manualAvailable,pageErrors:errors});
+    await scan(page,'manual-entry',name);
     const modal=await page.evaluate(()=>{
       const el=document.querySelector('.modal');if(!el)return null;
       const r=el.getBoundingClientRect();
       return {viewportHeight:innerHeight,modalHeight:Math.round(r.height),modalScrollHeight:el.scrollHeight,modalClientHeight:el.clientHeight,actionsInView:Array.from(el.querySelectorAll('.modal-footer button')).map(x=>{const r=x.getBoundingClientRect();return{label:x.textContent?.trim(),bottom:Math.round(r.bottom),viewportBottom:innerHeight};})};
     });
     record('entry-scroll',name,{modal,pageErrors:errors});
-    await page.getByRole('button',{name:'ปิดการสแกน'}).click();
     await page.locator('#amount').fill('125.50');
     await page.locator('#note').fill('รายการทดสอบ UX Audit');
     await page.getByRole('button',{name:'บันทึกรายการ',exact:true}).click();
@@ -124,19 +128,21 @@ try {
   console.log('AUDIT_SUMMARY_START');
   console.log(JSON.stringify(short,null,2));
   console.log('AUDIT_SUMMARY_END');
-  const focus=findings.filter(x=>['mobile320','tablet768'].includes(x.viewport)&&['home','reports','settings','entry-modal','ocr-panel'].includes(x.view));
+  const focus=findings.filter(x=>['mobile320','tablet768'].includes(x.viewport)&&['home','reports','settings','slip-first-entry','manual-entry'].includes(x.view));
   console.log('AXE_DETAILS_START');
   console.log(JSON.stringify(focus.map(x=>({viewport:x.viewport,view:x.view,violations:x.axe?.violations,smallTouchTargets:x.smallTouchTargets})),null,2));
   console.log('AXE_DETAILS_END');
   const critical=findings.filter(x=>x.view==='navigation-obstruction'
     ||x.overflowPx>0
     ||(x.axe?.violations?.length||0)>0
+    ||(x.view==='slip-first-default'&&(!x.slipDefault||!x.uploadPrimary||x.pageErrors?.length))
+    ||(x.view==='manual-entry-alternative'&&(!x.manualAvailable||x.pageErrors?.length))
     ||(x.view==='save-smoke'&&(!x.savedVisible||x.pageErrors?.length))
     ||(x.view==='restore-smoke'&&(!x.initiallyDisabled||!x.enabledAfterAcknowledgement||!x.closed||x.pageErrors?.length))
     ||(x.view==='mobile-home-actions'&&(!x.correctHierarchy||!x.quickActionsVisible||!x.bottomNavVisible||!x.openedOCR||x.pageErrors?.length))
   ).map(x=>({viewport:x.viewport,view:x.view,overflowPx:x.overflowPx,axe:x.axe?.violations?.map(v=>v.id),savedVisible:x.savedVisible,restore:[x.initiallyDisabled,x.enabledAfterAcknowledgement,x.closed]}));
   if(critical.length){console.error('UX_ACCEPTANCE_FAIL',JSON.stringify(critical));process.exitCode=1;}
-  else console.log('UX_ACCEPTANCE_PASS: 6 viewport, mobile quick OCR, save, restore, responsive and WCAG scans');
+  else console.log('UX_ACCEPTANCE_PASS: 6 viewport, mobile quick OCR, slip-first, manual fallback, save, restore, responsive and WCAG scans');
 } catch (err) {
   console.error('UX AUDIT FAILURE',err);
   process.exitCode=1;
