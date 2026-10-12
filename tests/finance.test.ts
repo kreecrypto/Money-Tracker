@@ -13,7 +13,7 @@ describe('finance math',()=>{
 describe('backup',()=>{
  it('roundtrips',()=>expect(parseBackup(createBackup([e],{monthlyBudgetSatang:20000})).transactions).toEqual([e]));
  it('roundtrips four extracted K PLUS fields without changing legacy backups',()=>{
-   const receipt={...e,date:'2026-10-12',time:'13:15',amountSatang:294800,recipient:'SYNPHAET BANGNA CO.,LTD.',method:'bank' as const};
+   const receipt={...e,id:'receipt-1',date:'2026-10-12',time:'13:15',amountSatang:294800,recipient:'SYNPHAET BANGNA CO.,LTD.',method:'bank' as const};
    const restored=parseBackup(createBackup([receipt,e],{monthlyBudgetSatang:20000})).transactions;
    expect(restored).toEqual([receipt,e]);
    expect(toCsv([receipt])).toContain('"13:15"');
