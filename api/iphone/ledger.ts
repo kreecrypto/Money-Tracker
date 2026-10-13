@@ -10,7 +10,9 @@ export async function GET(request:Request){
     const rows=await confirmedDrafts();
     return json({transactions:rows.map(x=>({
       id:'iphone-'+x.id,amountSatang:Number(x.amount_satang),type:x.type,
-      date:x.transaction_date,category:x.category,note:x.note,method:x.method,
+      date:x.transaction_date,...(x.transaction_time?{time:x.transaction_time}:{}),
+      ...(x.recipient?{recipient:x.recipient}:{}),
+      category:x.category,note:x.note,method:x.method,
       createdAt:Date.parse(x.reviewed_at||x.created_at)
     }))},200,headers);
   }catch{return json({error:'STORAGE_UNAVAILABLE'},503,headers);}
