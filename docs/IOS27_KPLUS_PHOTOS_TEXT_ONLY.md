@@ -10,8 +10,15 @@ This flow reflects the demonstrated iPhone Shortcut: **Find Photos where Album i
    - **Extract Text from Image**, input **Repeat Item**, not the entire Photos result; refer to result as SlipText.
    - **If** SlipText contains **K PLUS** or **กสิกร/ธ.กสิกรไทย** or **KBank**, AND contains a transfer/success label such as **โอนเงินสำเร็จ**, AND contains the transaction amount label **จำนวนเงิน** or **จำนวน:**, continue; otherwise skip sending. The three checks must all pass before the network action.
    - **Get Contents of URL** → https://money-tracker-api-blush.vercel.app/api/iphone/photos → POST; header Authorization = Bearer <production IPHONE_UPLOAD_TOKEN>; Content-Type = application/json; Request Body JSON with key **text** (type Text), value = the current image's extracted SlipText.
-   - Inspect JSON response status: `pending` (202), `duplicate` (200), `skipped` (200, e.g. `unsupported_bank`). HTTP 401/503 are errors, never success.
-4. End Repeat. Confirm the resulting draft's transaction amount, direction, and date in the Money Tracker review UI; the bank may show sender/recipient info but this doesn't automatically establish direction from the user's perspective.
+   - Inspect JSON response status: `saved` (201), `pending` (202), `duplicate` (200), `skipped` (200, e.g. `unsupported_bank`). HTTP 401/503 are errors, never success. For 503 inspect the safe `stage` / `code` fields; never share tokens.
+4. End Repeat. For complete K PLUS transactions with explicit direction, date, time, amount and recipient, the API saves immediately to Supabase; no Review tap is required. Ambiguous transfers and missing fields remain in the Review queue.
+
+## Connect Money Tracker App once
+
+1. Open Money Tracker → Settings → iPhone Photos → enter your private **IPHONE_REVIEW_TOKEN** (not the upload token) and tap Connect. Never publish this token in a Shortcut or repository.
+2. The API's `VITE_IPHONE_BRIDGE_URL` and `IPHONE_ALLOWED_APP_ORIGIN` must match your production app origin. The iPhone settings card indicates an unconfigured bridge.
+3. After the first connection, confirmed Shortcut items import automatically when Money Tracker opens, resumes or remains open (approximately every 60 seconds). Browser must have internet. Local entries remain local; this is **one-way** sync, not full two-way Cloud Sync.
+4. If OCR omits a date, time, recipient or direction, the result stays pending and requires review; never fill missing fields by guessing.
 
 ## Optional Automation
 
@@ -28,8 +35,8 @@ Shortcuts → Automation → App → K PLUS → Is Closed → Run the scan Short
 ## Release validation (2026-10-12)
 
 - Save a **new real** K PLUS slip into the selected Photos album (a private test fixture can be used for server unit tests, but not as proof of real-device automation).
-- Run the Shortcut while the iPhone is unlocked. Verify a `202 pending` API response and a new Review draft.
-- Confirm the amount/date/direction, then verify exactly one transaction on the Money Tracker Dashboard.
+- Run the Shortcut while the iPhone is unlocked. Verify `201 saved` for a complete explicit outgoing slip, otherwise `202 pending` with a new Review draft.
+- After one-time Review Token pairing, verify exactly one transaction appears on the Money Tracker Dashboard without manually adding or uploading the slip. For pending items, complete manual review.
 - Run the Shortcut again and expect `200 duplicate` rather than a second entry.
 - If the bank header is not present in on-device OCR, do not send ambiguous text; correct the Photos crop or use manual Review rather than relaxing the server's KBank-only gate.
 - iOS Photos is not triggered by every image save and K PLUS may not save a slip automatically; App Is Closed is a best-effort trigger only.
