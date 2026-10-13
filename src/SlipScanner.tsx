@@ -1,5 +1,5 @@
 import {useEffect,useRef,useState,type ChangeEvent} from 'react';
-import {Camera,CheckCircle2,FileImage,ScanLine,ShieldCheck,Upload,X,Square,Undo2,AlertTriangle,Check,LoaderCircle,ClipboardPaste} from 'lucide-react';
+import {Camera,CheckCircle2,FileImage,ScanLine,ShieldCheck,Upload,Square,Undo2,AlertTriangle,Check,LoaderCircle,ClipboardPaste} from 'lucide-react';
 import {parseSlipText,mergeSlipOcrReadings,needsSlipOcrRecovery,type SlipFields} from './lib/slip';
 import {prepareSlipRecoveryImage,prepareSlipOcrFile} from './lib/slipImage';
 import {clipboardSlipFiles} from './lib/shortcutClipboard';
@@ -291,7 +291,7 @@ export default function SlipScanner({onApply,onComplete,onBusyChange,onUndoBatch
   const summary=summarizeSlipBatch(rows);
   const needsAttention=Object.entries(corrections).filter(([index])=>rows[Number(index)]?.status==='incomplete');
   return <section className="slip-panel slip-panel-primary slip-workspace" aria-label="อัปโหลดสลิปหรือใบเสร็จหลายรูป">
-    <div className="slip-head"><div><ScanLine size={18}/><strong>เพิ่มสลิปหรือใบเสร็จ</strong></div><button type="button" className="slip-close" disabled={busy||undoing} onClick={onClose} aria-label="ปิดหน้านำเข้า"><X size={18}/></button></div>
+    <div className="slip-head"><div><ScanLine size={18}/><strong>เพิ่มสลิปหรือใบเสร็จ</strong></div></div>
     {!busy&&!complete&&<p className="slip-hint">เพิ่มสลิปได้ครั้งละ 20 รูป ระบบจะอ่านและบันทึกเมื่อข้อมูลครบ โดยไม่เพิ่มรายการที่ตรวจพบว่าซ้ำ</p>}
     {!busy&&<div className="slip-upload-box">
       <div className="slip-upload-icon" aria-hidden="true"><FileImage size={28}/></div>
