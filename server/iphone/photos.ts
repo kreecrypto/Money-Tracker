@@ -61,7 +61,10 @@ export function inspectPhotosOCR(input:string):PhotosCandidate{
   const safeText=text.split('\n').filter(line=>!BALANCE.test(line)).join('\n');
   if(!TRANSACTION_AMOUNT.test(safeText))
     return {...base,accept:false,reason:'no_transaction_amount',note:'ไม่พบยอดธุรกรรมที่แยกจากยอดคงเหลือ'};
-  const notice=parseBankNotice(safeText);
+  // Parse the signed bank-notification shape only; a normal K PLUS slip has
+  // "ผู้รับเงิน" labels that must never be misread as an incoming bank alert.
+  const isBankNotice=/(?:KBank Live|รายการโอน\\/ถอน|ยอดเงินคงเหลือ)/i.test(safeText);
+  const notice=isBankNotice?parseBankNotice(safeText):null;
   const slip=parseSlipText(safeText);
   const amountSatang=notice?.amountSatang??slip.amountSatang;
   const date=notice?.date??slip.date;
