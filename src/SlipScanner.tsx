@@ -269,8 +269,8 @@ export default function SlipScanner({onApply,onComplete,onBusyChange,onUndoBatch
       <div className="slip-batch-summary-title"><CheckCircle2 size={18}/><strong>อ่านครบ {summary.total} รูป</strong></div>
       <div className="slip-batch-counts"><span>บันทึกแล้ว<b>{summary.saved}</b></span><span>ซ้ำ<b>{summary.duplicate}</b></span><span>ต้องแก้ไข<b>{summary.incomplete+summary.errors}</b></span></div>
       {summary.saved>0&&<div className="slip-batch-total"><span>รวมยอดที่บันทึกในชุดนี้</span><strong>฿{baht(rows.filter(row=>row.status==='saved').reduce((total,row)=>total+(row.amountSatang||0),0))}</strong></div>}
-      {summary.cancelled>0&&<p className="slip-batch-note">ยกเลิกไป {summary.cancelled} รูป รายการที่บันทึกสำเร็จก่อนหยุดยังอยู่ในแอป</p>}
-      {summary.undone>0&&<p className="slip-batch-note">ยกเลิกการบันทึกแล้ว {summary.undone} รายการ</p>}
+      {(summary.cancelled||0)>0&&<p className="slip-batch-note">ยกเลิกไป {summary.cancelled} รูป รายการที่บันทึกสำเร็จก่อนหยุดยังอยู่ในแอป</p>}
+      {(summary.undone||0)>0&&<p className="slip-batch-note">ยกเลิกการบันทึกแล้ว {summary.undone} รายการ</p>}
       {summary.saved>0&&<button type="button" className="btn btn-secondary slip-undo" disabled={undoing} onClick={()=>void undoSaved()}><Undo2 size={16}/>{undoing?'กำลังยกเลิกรายการ…':'ยกเลิกการบันทึกชุดนี้ ('+summary.saved+')'}</button>}
       {correctionErrors[-1]&&<p role="alert" className="error-message">{correctionErrors[-1]}</p>}
       <button type="button" className="btn btn-primary slip-batch-finish" disabled={undoing} onClick={onClose}>เสร็จแล้ว · กลับหน้าหลัก</button>
