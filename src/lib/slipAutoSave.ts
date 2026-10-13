@@ -1,5 +1,6 @@
 import {isValidTransaction,type Transaction} from './finance';
 import type {SlipFields} from './slip';
+import {receiptReconciliationError} from './receiptIntelligence';
 
 export type AutoSlipDecision =
   | {status:'ready';transaction:Transaction}
@@ -21,6 +22,12 @@ export function prepareAutoSlip(
   if(!slip.date||!slip.time||!slip.recipient?.trim())
     return {status:'incomplete',reason:'อ่านวันที่ เวลา หรือชื่อผู้รับไม่ครบ จึงยังไม่บันทึก กรุณาลองภาพใหม่หรือกรอกเอง'};
 
+  if(slip.source&&!slip.receipt)
+    return {status:'incomplete',reason:'ยังอ่านรายละเอียดใบเสร็จไม่ครบ จึงไม่บันทึกอัตโนมัติ'};
+  if(slip.receipt){
+    const mismatch=receiptReconciliationError(slip.receipt);
+    if(mismatch)return {status:'incomplete',reason:mismatch};
+  }
   const recipient=slip.recipient.trim().replace(/\s+/gu,' ');
   const transaction:Transaction={
     id,
@@ -32,13 +39,19 @@ export function prepareAutoSlip(
     time:slip.time,
     recipient,
     method:slip.method||'bank',
+    ...(slip.receipt?{receipt:slip.receipt}:{}),
     createdAt,
   };
   if(!isValidTransaction(transaction))
     return {status:'incomplete',reason:'ข้อมูลที่อ่านได้ไม่อยู่ในรูปแบบรายการที่ถูกต้อง จึงยังไม่บันทึก'};
 
   const normalize=(value:string)=>value.normalize('NFKC').toLocaleLowerCase('en-US').replace(/[\s.,\-]/gu,'');
-  const repeated=existing.some(t=>
+  const repeated=existing.some(t=>(
+    !!transaction.receipt?.receiptId&&
+    !!t.receipt?.receiptId&&
+    t.receipt.source===transaction.receipt.source&&
+    t.receipt.receiptId.toUpperCase()===transaction.receipt.receiptId.toUpperCase()
+  )||(
     t.type===transaction.type &&
     t.amountSatang===transaction.amountSatang &&
     t.date===transaction.date &&
@@ -46,7 +59,7 @@ export function prepareAutoSlip(
     (t.time===undefined||t.time===transaction.time) &&
     !!t.recipient &&
     normalize(t.recipient)===normalize(recipient)
-  );
+  ));
   if(repeated)return {status:'duplicate',reason:'พบสลิปธุรกรรมนี้ในรายการแล้ว จึงไม่บันทึกซ้ำ'};
   return {status:'ready',transaction};
 }

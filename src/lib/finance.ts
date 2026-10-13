@@ -1,5 +1,26 @@
 export type EntryType = 'income' | 'expense';
 export type Method = 'cash' | 'bank' | 'card' | 'wallet';
+export type ReceiptItem = {
+  name: string;
+  quantity: number;
+  lineTotalSatang: number;
+  unitPriceSatang?: number;
+};
+export type ReceiptDetails = {
+  source: 'seven_eleven' | 'paotang' | 'kplus' | 'generic';
+  receiptId?: string;
+  storeName?: string;
+  items: ReceiptItem[];
+  /** Receipt goods/services amount, before discounts/subsidies. */
+  subtotalSatang?: number;
+  discountSatang?: number;
+  subsidySatang?: number;
+  feeSatang?: number;
+  /** Authoritative actual money leaving the user's account. */
+  paidSatang: number;
+  /** Whether the full item list was reconciled against the receipt totals. */
+  itemsComplete: boolean;
+};
 export type Transaction = {
   id: string;
   type: EntryType;
@@ -12,6 +33,7 @@ export type Transaction = {
   /** Payee printed on the slip; never inferred from the sender. */
   recipient?: string;
   method: Method;
+  receipt?: ReceiptDetails;
   createdAt: number;
 };
 export type Settings = { monthlyBudgetSatang: number };
@@ -52,6 +74,21 @@ export function lastMonths(n:number, now=new Date()) {
     return {key:monthLocal(d),label:new Intl.DateTimeFormat('th-TH',{month:'short'}).format(d)};
   });
 }
+export function isValidReceiptDetails(value:unknown,paidSatang:number):value is ReceiptDetails {
+  if(!value||typeof value!=='object')return false;
+  const r=value as Partial<ReceiptDetails>;
+  const money=(n:unknown)=>Number.isSafeInteger(n)&&typeof n==='number'&&n>=0&&n<=999_999_999;
+  if(!['seven_eleven','paotang','kplus','generic'].includes(r.source||'')||
+    !money(r.paidSatang)||r.paidSatang!==paidSatang||
+    !Array.isArray(r.items)||r.items.length>100||typeof r.itemsComplete!=='boolean')return false;
+  if(r.receiptId!==undefined&&(typeof r.receiptId!=='string'||r.receiptId.length>150))return false;
+  if(r.storeName!==undefined&&(typeof r.storeName!=='string'||r.storeName.length>160))return false;
+  if([r.subtotalSatang,r.discountSatang,r.subsidySatang,r.feeSatang].some(x=>x!==undefined&&!money(x)))return false;
+  return r.items.every(row=>row&&typeof row==='object'&&typeof row.name==='string'&&
+    row.name.trim().length>0&&row.name.length<=160&&Number.isInteger(row.quantity)&&
+    row.quantity>0&&row.quantity<=999&&money(row.lineTotalSatang)&&
+    (row.unitPriceSatang===undefined||money(row.unitPriceSatang)));
+}
 export function isValidTransaction(x:unknown):x is Transaction {
   if (!x || typeof x!=='object') return false;
   const t = x as Partial<Transaction>;
@@ -63,6 +100,7 @@ export function isValidTransaction(x:unknown):x is Transaction {
     !Number.isNaN(new Date(`${t.date}T12:00:00`).getTime()) && todayLocal(new Date(`${t.date}T12:00:00`))===t.date &&
     (t.time===undefined || (typeof t.time==='string' && /^([01]\d|2[0-3]):[0-5]\d$/.test(t.time))) &&
     (t.recipient===undefined || (typeof t.recipient==='string' && t.recipient.length<=160)) &&
+    (t.receipt===undefined||isValidReceiptDetails(t.receipt,t.amountSatang!)) &&
     (t.method==='cash'||t.method==='bank'||t.method==='card'||t.method==='wallet') &&
     typeof t.createdAt==='number' && Number.isFinite(t.createdAt);
 }

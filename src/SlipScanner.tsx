@@ -2,6 +2,7 @@ import {useEffect,useRef,useState,type ChangeEvent} from 'react';
 import {Camera,CheckCircle2,FileImage,ScanLine,ShieldCheck,Upload,X} from 'lucide-react';
 import {parseSlipText,mergeSlipOcrReadings,needsSlipOcrRecovery,type SlipFields} from './lib/slip';
 import {prepareSlipRecoveryImage} from './lib/slipImage';
+import {receiptLayoutLines} from './lib/receiptIntelligence';
 import {
   MAX_SLIP_BATCH_FILES,summarizeSlipBatch,validateSlipImage,
   type SlipBatchOutcome,type SlipBatchRow,
@@ -97,16 +98,16 @@ export default function SlipScanner({onApply,onComplete,onBusyChange,onClose}:Pr
           try{
             showPreview(file);
             await worker.setParameters({tessedit_pageseg_mode:PSM.AUTO});
-            const initial=await worker.recognize(file);
-            let reading=parseSlipText(initial.data.text);
+            const initial=await worker.recognize(file,{}, {text:true,blocks:true});
+            let reading=parseSlipText(initial.data.text,receiptLayoutLines(initial.data.blocks));
             if(needsSlipOcrRecovery(reading)&&mountedRef.current){
               setStage('retry');setProgress(0);
               try{
                 const enhanced=await prepareSlipRecoveryImage(file);
                 if(mountedRef.current){
                   await worker.setParameters({tessedit_pageseg_mode:PSM.SPARSE_TEXT});
-                  const retry=await worker.recognize(enhanced);
-                  reading=mergeSlipOcrReadings(reading,parseSlipText(retry.data.text));
+                  const retry=await worker.recognize(enhanced,{}, {text:true,blocks:true});
+                  reading=mergeSlipOcrReadings(reading,parseSlipText(retry.data.text,receiptLayoutLines(retry.data.blocks)));
                 }
               }catch{
                 // Recovery failure must not prevent the next image from being processed.

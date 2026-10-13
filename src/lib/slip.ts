@@ -1,4 +1,5 @@
-import {toSatang,type EntryType,type Method} from './finance.js';
+import {toSatang,type EntryType,type Method,type ReceiptDetails} from './finance.js';
+import {readReceiptDetails} from './receiptIntelligence.js';
 import {parseSpecialReceipt,type ReceiptSource} from './receiptFormats.js';
 
 /** OCR parsing is intentionally conservative: uncertain values stay empty for human review. */
@@ -14,6 +15,7 @@ export type SlipFields = {
   source?: ReceiptSource;
   method?: Method;
   category?: string;
+  receipt?: ReceiptDetails;
   rawText: string;
   warnings: string[];
 };
@@ -206,7 +208,7 @@ export function inferSlipDirection(rawText:string):{direction:EntryType|null;dir
   return {direction:null,directionReason:'สลิปไม่ระบุชัดว่าเป็นเงินเข้าหรือเงินออก โปรดเลือกตามบัญชีของคุณ'};
 }
 
-export function parseSlipText(rawText:string):SlipFields {
+export function parseSlipText(rawText:string,layoutLines:string[]=[]):SlipFields {
   const lines=normalizeSlipOcrText(rawText).split(/\r?\n/u)
     .map(x=>x.replace(/^[0◯○•●@]\s+(?=[A-Z])/u,'').trim())
     .filter(Boolean);
@@ -221,19 +223,20 @@ export function parseSlipText(rawText:string):SlipFields {
   const source=special?.source;
   const method=special?.method;
   const category=special?.category;
+  const receipt=special?readReceiptDetails(special.source,lines,amountSatang,layoutLines,recipient):undefined;
   const warnings:string[]=[];
   if(!lines.length)warnings.push('ไม่พบตัวอักษรในรูปภาพ ลองถ่ายใหม่ให้ชัดขึ้น');
   if(amountSatang===null)warnings.push('ไม่สามารถระบุยอดโอนได้อย่างมั่นใจ กรุณากรอกยอดเอง');
   if(date===null)warnings.push('อ่านวันที่ไม่ชัดเจน กรุณาตรวจและกรอกวันที่ก่อนบันทึก');
   if(time===null)warnings.push('อ่านเวลาไม่ชัดเจน กรุณากรอกเวลาตามสลิป');
   if(recipient===null)warnings.push('อ่านชื่อผู้รับไม่ชัดเจน กรุณาตรวจและกรอกชื่อผู้รับ');
-  return {amountSatang,date,time,recipient,direction,directionReason,source,method,category,rawText,warnings};
+  return {amountSatang,date,time,recipient,direction,directionReason,source,method,category,receipt:receipt||undefined,rawText,warnings};
 }
 
 
 /** Only run a recovery OCR pass when one of the four user-required fields is missing. */
 export function needsSlipOcrRecovery(result:SlipFields):boolean {
-  return result.date===null||result.time===null||result.amountSatang===null||result.recipient===null||result.direction===null;
+  return result.date===null||result.time===null||result.amountSatang===null||result.recipient===null||result.direction===null||result.receipt?.itemsComplete===false;
 }
 
 /** Merge two readings of the SAME photo without inventing conflicting financial data. */
@@ -258,12 +261,26 @@ export function mergeSlipOcrReadings(first:SlipFields,second:SlipFields):SlipFie
     conflicts.push('OCR อ่านประเภทสลิปต่างกันระหว่างสองรอบ กรุณาตรวจสอบ');
   const method=source===(first.source||undefined)?first.method:(second.method||first.method);
   const category=source===(first.source||undefined)?first.category:(second.category||first.category);
+  const firstReceipt=first.receipt,secondReceipt=second.receipt;
+  let receipt=firstReceipt?.itemsComplete?firstReceipt:(secondReceipt?.itemsComplete?secondReceipt:(firstReceipt||secondReceipt));
+  if(firstReceipt&&secondReceipt&&firstReceipt.source===secondReceipt.source){
+    if(firstReceipt.receiptId&&secondReceipt.receiptId&&firstReceipt.receiptId!==secondReceipt.receiptId){
+      conflicts.push('OCR อ่านรหัสใบเสร็จต่างกันระหว่างสองรอบ กรุณาลองรูปใหม่');
+      receipt=undefined;
+    }else if(firstReceipt.itemsComplete&&secondReceipt.itemsComplete&&
+      firstReceipt.items.length>0&&secondReceipt.items.length>0&&
+      JSON.stringify(firstReceipt.items)!==JSON.stringify(secondReceipt.items)){
+      conflicts.push('OCR อ่านรายการสินค้าต่างกันระหว่างสองรอบ กรุณาลองรูปใหม่');
+      receipt=undefined;
+    }
+  }
+  if(receipt&&amountSatang!==receipt.paidSatang)receipt=undefined;
   const directionReason=direction?(first.direction===direction?first.directionReason:second.directionReason):'สลิปยังไม่สามารถระบุรายรับหรือรายจ่ายได้ชัดเจน กรุณาเลือกเอง';
   const warnings=[...conflicts];
   if(amountSatang===null&&!conflicts.some(x=>x.includes('จำนวนเงิน')))warnings.push('อ่านจำนวนเงินไม่ได้ กรุณากรอกเอง');
   if(date===null&&!conflicts.some(x=>x.includes('วันที่')))warnings.push('อ่านวันที่ไม่ได้ กรุณากรอกเอง');
   if(time===null&&!conflicts.some(x=>x.includes('เวลา')))warnings.push('อ่านเวลาไม่ได้ กรุณากรอกเอง');
   if(recipient===null&&!conflicts.some(x=>x.includes('ชื่อผู้รับ')))warnings.push('อ่านชื่อผู้รับไม่ได้ กรุณากรอกเอง');
-  return {amountSatang,date,time,recipient,direction,directionReason,source,method,category,warnings,rawText:
+  return {amountSatang,date,time,recipient,direction,directionReason,source,method,category,receipt,warnings,rawText:
     first.rawText+'\n\n--- รอบปรับภาพ ---\n'+second.rawText};
 }
