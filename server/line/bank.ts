@@ -32,7 +32,10 @@ export function parseBankNotice(source:string):BankNotice|null{
   if(!/^[+-]?\d+(?:\.\d{1,2})?$/.test(number))return null;
   const amount=Math.round(Number(number)*100);
   if(!Number.isSafeInteger(amount)||amount===0)return null;
-  const heading=s.slice(0,s.indexOf('จำนวนเงิน'));
+  // Payee names and account labels are not transaction direction signals.
+  // Without this filter, 'ผู้รับเงิน' in a transfer slip is misclassified as income.
+  const heading=s.slice(0,s.indexOf('จำนวนเงิน')).split('\n')
+    .filter(line=>!/^\s*(?:ผู้รับ|ชื่อผู้รับ|ผู้โอน|ชื่อผู้โอน|จากบัญชี|ถึง|โอนไปยัง|recipient|sender|to\s*:|from\s*:)/i.test(line)).join(' ');
   const incoming=/รับโอน|โอนเข้า|เงินเข้า|รับเงิน/.test(heading);
   const outgoing=/โอน\/ถอน|โอนออก|ถอนเงิน|เงินออก|หักบัญชี/.test(heading)||amount<0;
   if(incoming===outgoing)return null;
