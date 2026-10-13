@@ -44,13 +44,13 @@ describe('slip-first OCR save safety',()=>{
     const next=payment({recipient:'ร้านอื่น',imageHash:'b'.repeat(64),receipt:{...payment().receipt!,receiptId:'unique-other-reference'}});
     expect(prepareAutoSlip(next,[ready.transaction],'id-2',Date.now()).status).toBe('ready');
   });
-  it('does not treat manual records without a time as a proven duplicate',()=>{
+  it('conservatively treats legacy records without a time as duplicate',()=>{
     const manual:Transaction={
       id:'manual',type:'expense',amountSatang:1600,category:'อาหารและเครื่องดื่ม',
       method:'wallet',date:'2026-10-13',recipient:'ลุงม่อนรสกาแฟ',
       note:'',createdAt:Date.now(),
     };
-    expect(prepareAutoSlip(payment(),[manual],'new',Date.now()).status).toBe('ready');
+    expect(prepareAutoSlip(payment(),[manual],'new',Date.now()).status).toBe('duplicate');
   });
   it('blocks contradictory wallet subsidy math without a review',()=>{
     const malformed=payment({receipt:{...payment().receipt!,subsidySatang:2300}});
