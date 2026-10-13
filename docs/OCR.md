@@ -23,3 +23,16 @@
 
 ## Known limitations
 HEIC photos require conversion to JPG/PNG/WebP. Automatically identifying an incoming versus outgoing transfer from the image is intentionally disabled; the user chooses income or expense. Duplicate slip detection and cryptographic verification of slip QR codes are out of scope.
+
+
+## K PLUS sender-side OCR regression set (2026-10-13)
+- Ten synthetic, privacy-safe text fixtures in tests/kplusSamples.test.ts model successful transfers (3), bill payments (5), and merchant payments (2).
+- The K PLUS parser in src/lib/kplus.ts locates the sender bank and masked sender account before reading an unlabelled beneficiary block. Supports Thai names, PromptPay, merchant IDs and multiline shops.
+- The existing amount parser prioritizes จำนวน above fee/balance/reference, and reads Thai Buddhist Era dates and 24-hour local times.
+- A complete sender-side K PLUS confirmation is classified as an expense for the sender. A screenshot received from somebody else can instead represent income to its recipient; OCR cannot prove who owns the account.
+- เลขที่รายการ is retained as a K PLUS receipt reference when legible for duplicate checking. It is not proof of settlement or QR verification.
+- Original bank images are not committed to this public repository. Fixtures replace real names, accounts, transaction references and payment amounts, while preserving the ten layouts.
+- Conflicting or missing OCR fields continue to require correction, not speculative saving.
+
+### QA
+Run npm test, npm run typecheck, and npm run build. The synthetic fixtures verify the text parser, auto-save readiness, reference duplicate check, and fee rejection. Real image-level OCR on iPhone/Safari is an additional E2E validation gate.
