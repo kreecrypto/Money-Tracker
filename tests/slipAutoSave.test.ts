@@ -37,6 +37,7 @@ describe('slip upload -> immediate auto save (without review)',()=>{
       category:'อื่น ๆ',
       note:'',
       method:'bank',
+      receipt:{source:'kplus',items:[],itemsComplete:true,paidSatang:294800,storeName:'SYNPHAET BANGNA CO.,LTD.'},
       createdAt:1234,
     });
   });
