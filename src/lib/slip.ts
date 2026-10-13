@@ -1,7 +1,7 @@
 import {toSatang,type EntryType,type Method,type ReceiptDetails} from './finance.js';
 import {readReceiptDetails} from './receiptIntelligence.js';
 import {parseSpecialReceipt,type ReceiptSource} from './receiptFormats.js';
-import {parseKPlusSlip} from './kplus.js';
+import {parseKPlusSlip,parseKPlusTopUp} from './kplus.js';
 
 /** OCR parsing is intentionally conservative: uncertain values stay empty for human review. */
 export type SlipFields = {
@@ -217,20 +217,21 @@ export function parseSlipText(rawText:string,layoutLines:string[]=[]):SlipFields
     .filter(Boolean);
   const special=parseSpecialReceipt(lines);
   const kplus=special?null:parseKPlusSlip(lines);
+  const walletTopUp=special?null:parseKPlusTopUp(lines);
   // A confirmed bill or wallet payment requires the actual tender/paid amount,
   // never the gross item subtotal or discount.
   const amountSatang=special?special.amountSatang:parseAmount(lines);
   const date=parseDate(lines);
   const time=parseTime(lines);
-  const recipient=special?special.recipient:(kplus?.recipient||parseRecipient(lines));
+  const recipient=special?special.recipient:(walletTopUp?.recipient||kplus?.recipient||parseRecipient(lines));
   const inferred=inferSlipDirection(rawText);
   // A complete K PLUS sender-side confirmation is outgoing for its sender.
   // Keep incoming and contradictory OCR evidence conservative.
-  const classified=special??(kplus?.direction&&inferred.direction===null&&
+  const classified=(walletTopUp?{direction:null,directionReason:walletTopUp.directionReason}:special)??(kplus?.direction&&inferred.direction===null&&
     !inferred.directionReason.includes('ทั้งเงินเข้าและเงินออก')?kplus:inferred);
   const {direction,directionReason}=classified;
   const source=special?.source;
-  const method=special?.method;
+  const method:Method|undefined=walletTopUp?'wallet':special?.method;
   const category=special?.category;
   const receipt=special?readReceiptDetails(special.source,lines,amountSatang,layoutLines,recipient):
     kplus&&amountSatang!==null?{
@@ -239,6 +240,7 @@ export function parseSlipText(rawText:string,layoutLines:string[]=[]):SlipFields
       ...(recipient?{storeName:recipient}:{}),
     }:undefined;
   const warnings:string[]=[];
+  if(walletTopUp)warnings.push('เป็นรายการเติมเงิน e-Wallet ซึ่งอาจทำให้รายจ่ายซ้ำหากบันทึกการใช้จ่ายจากกระเป๋าเงินด้วย กรุณาตรวจสอบ');
   if(!lines.length)warnings.push('ไม่พบตัวอักษรในรูปภาพ ลองถ่ายใหม่ให้ชัดขึ้น');
   if(amountSatang===null)warnings.push('ไม่สามารถระบุยอดโอนได้อย่างมั่นใจ กรุณากรอกยอดเอง');
   if(date===null)warnings.push('อ่านวันที่ไม่ชัดเจน กรุณาตรวจและกรอกวันที่ก่อนบันทึก');
@@ -269,11 +271,16 @@ export function mergeSlipOcrReadings(first:SlipFields,second:SlipFields):SlipFie
   const date=select('วันที่',first.date,second.date);
   const time=select('เวลา',first.time,second.time);
   const recipient=select('ชื่อผู้รับ',first.recipient,second.recipient);
-  const direction=select('ประเภทรายรับรายจ่าย',first.direction,second.direction);
-  const source=first.source&&second.source&&first.source!==second.source?undefined:(first.source||second.source);
+  // Wallet funding is a transfer, not proof of consumption. Preserve this even
+  // if a noisy recovery pass misclassifies its success header as a payment.
+  const walletFunding=[first,second].some(reading=>reading.directionReason.includes('เติมเงินเข้า e-Wallet'));
+  const candidateDirection=select('ประเภทรายรับรายจ่าย',first.direction,second.direction);
+  const direction=walletFunding?null:candidateDirection;
+  const source=walletFunding?undefined:
+    first.source&&second.source&&first.source!==second.source?undefined:(first.source||second.source);
   if(first.source&&second.source&&first.source!==second.source)
     conflicts.push('OCR อ่านประเภทสลิปต่างกันระหว่างสองรอบ กรุณาตรวจสอบ');
-  const method=source===(first.source||undefined)?first.method:(second.method||first.method);
+  const method:Method|undefined=walletFunding?'wallet':source===(first.source||undefined)?first.method:(second.method||first.method);
   const category=source===(first.source||undefined)?first.category:(second.category||first.category);
   const firstReceipt=first.receipt,secondReceipt=second.receipt;
   let receipt=firstReceipt?.itemsComplete?firstReceipt:(secondReceipt?.itemsComplete?secondReceipt:(firstReceipt||secondReceipt));
@@ -289,8 +296,14 @@ export function mergeSlipOcrReadings(first:SlipFields,second:SlipFields):SlipFie
     }
   }
   if(receipt&&amountSatang!==receipt.paidSatang)receipt=undefined;
-  const directionReason=direction?(first.direction===direction?first.directionReason:second.directionReason):'สลิปยังไม่สามารถระบุรายรับหรือรายจ่ายได้ชัดเจน กรุณาเลือกเอง';
+  if(walletFunding)receipt=undefined;
+  const walletReason=[first,second].find(reading=>reading.directionReason.includes('เติมเงินเข้า e-Wallet'))?.directionReason;
+  const directionReason=walletReason||(
+    direction?(first.direction===direction?first.directionReason:second.directionReason):
+    'สลิปยังไม่สามารถระบุรายรับหรือรายจ่ายได้ชัดเจน กรุณาเลือกเอง'
+  );
   const warnings=[...conflicts];
+  if(walletFunding)warnings.push('พบรายการเติมเงิน e-Wallet โปรดตรวจสอบก่อนบันทึกเพื่อป้องกันการนับรายจ่ายซ้ำ');
   if(amountSatang===null&&!conflicts.some(x=>x.includes('จำนวนเงิน')))warnings.push('อ่านจำนวนเงินไม่ได้ กรุณากรอกเอง');
   if(date===null&&!conflicts.some(x=>x.includes('วันที่')))warnings.push('อ่านวันที่ไม่ได้ กรุณากรอกเอง');
   if(time===null&&!conflicts.some(x=>x.includes('เวลา')))warnings.push('อ่านเวลาไม่ได้ กรุณากรอกเอง');

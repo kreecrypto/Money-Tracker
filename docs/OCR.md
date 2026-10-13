@@ -36,3 +36,12 @@ HEIC photos require conversion to JPG/PNG/WebP. Automatically identifying an inc
 
 ### QA
 Run npm test, npm run typecheck, and npm run build. The synthetic fixtures verify the text parser, auto-save readiness, reference duplicate check, and fee rejection. Real image-level OCR on iPhone/Safari is an additional E2E validation gate.
+
+
+## Seven extra K PLUS screenshot layouts (2026-10-13)
+- Additional synthetic OCR samples: 2 bank transfers, 3 merchant/bill payments, 1 payment ticket, 1 e-Wallet funding/top-up.
+- Includes an exact one-satang value (`0.01 บาท`), independently from the zero-fee field. Do not auto-save if the amount is indistinct.
+- Handles recipient text before bank details, Thai honorifics, PromptPay, long merchant identifiers, multiline English biller text.
+- `เติมเงินสำเร็จ` to a G-Wallet / PromptPay e-Wallet is treated as wallet funding with ambiguous expense direction. The user must decide whether to record a bank-only cash flow or exclude an internal wallet transfer. This protects budgets from counting both the funding and later wallet spend as separate purchases.
+- The public GitHub tests contain substituted identities, references and bank details, not real uploaded slip images; raw image-level Tesseract testing on iPhone is still required.
+- Run `pnpm test` and `pnpm build` for the expanded regression suite.

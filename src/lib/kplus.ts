@@ -57,7 +57,7 @@ export function parseKPlusSlip(ocrLines: string[]): KPlusSlip | null {
     recipientLines.push(name);
     if(recipientLines.length>=3)break;
   }
-  const recipient=recipientLines.reduce((joined,part)=>joined.endsWith('-')?joined+part:joined?joined+' '+part:part,'')
+  const recipient=recipientLines.reduce((joined,part)=>joined.endsWith(' -')?joined+' '+part:joined.endsWith('-')?joined+part:joined?joined+' '+part:part,'')
     .replace(/\s+/gu,' ').trim()||null;
   const reference=referenceFrom(lines);
   const expense=!!recipient&&lines.some(line=>AMOUNT_LABEL.test(line));
@@ -67,5 +67,28 @@ export function parseKPlusSlip(ocrLines: string[]): KPlusSlip | null {
     directionReason:expense
       ?'สลิป K PLUS ระบุบัญชีผู้โอนและผู้รับชัดเจน (ถือเป็นรายจ่ายของผู้โอน)'
       :'สลิป K PLUS ยังระบุบัญชีผู้โอนหรือผู้รับไม่ครบ กรุณาตรวจสอบ',
+  };
+}
+
+/**
+ * Wallet funding is an asset transfer (bank -> wallet), not necessarily a
+ * purchase. Recording it as an expense and then recording wallet purchases
+ * again would double count spending. Require a deliberate user decision.
+ */
+export function parseKPlusTopUp(ocrLines:string[]):{recipient:string;directionReason:string}|null{
+  const lines=ocrLines.map(textLine).filter(Boolean);
+  const header=lines.slice(0,5).join(' ');
+  if(!/เติม\s*เงิน\s*สำเร็จ/iu.test(header))return null;
+  if(!lines.some(line=>SENDER_BANK.test(line)))return null;
+  if(!lines.some(line=>MASKED_ACCOUNT.test(line)))return null;
+  const walletIndex=lines.findIndex(line=>/(?:g[\s-]*wallet|พร้อม\s*เพย์\s*อี[\s-]*วอลเล็ต|e[\s-]*wallet)/iu.test(line));
+  if(walletIndex<0)return null;
+  const wallet=lines[walletIndex];
+  // K PLUS may put "พร้อมเพย์ อี-วอลเล็ต /" and "G-Wallet" on separate lines.
+  const next=lines[walletIndex+1]||'';
+  const walletName=wallet.endsWith('/')&&/^g[\s-]*wallet$/iu.test(next)?wallet+' '+next:wallet;
+  return {
+    recipient: walletName.slice(0,160),
+    directionReason:'เติมเงินเข้า e-Wallet อาจเป็นการโอนเงินระหว่างบัญชีของตนเอง จึงยังไม่บันทึกเป็นรายจ่ายอัตโนมัติ',
   };
 }
