@@ -28,7 +28,7 @@ function MoneyCard({title,value,icon,variation}:{title:string;value:number;icon:
 }
 function TransactionRow({entry,onEdit,onDelete}:{entry:Transaction;onEdit:(t:Transaction)=>void;onDelete:(t:Transaction)=>void}){
   const [actionsOpen,setActionsOpen]=useState(false);
-  return <div className="transaction-row">
+  return <div className="transaction-with-receipt"><div className="transaction-row">
     <div className={`transaction-emoji ${entry.type}`} aria-hidden="true">{entry.category.slice(0,1)}</div>
     <div className="transaction-copy"><strong>{entry.recipient||entry.note||entry.category}</strong><span>{entry.category}{entry.note&&entry.recipient?` · ${entry.note}`:""} <i>·</i> {METHODS[entry.method]}</span></div>
     <div className="transaction-end"><b className={entry.type==='income'?'positive':'negative'}>{entry.type==='income'?'+':'−'}฿{baht(entry.amountSatang)}</b><span>{dateText(entry.date)}{entry.time?` · ${entry.time} น.`:""}</span></div>
@@ -39,6 +39,19 @@ function TransactionRow({entry,onEdit,onDelete}:{entry:Transaction;onEdit:(t:Tra
         <button className="danger" onClick={()=>{setActionsOpen(false);onDelete(entry);}}><Trash2 size={17}/> ลบรายการ</button>
       </div>}
     </div>
+  </div>
+  {entry.receipt&&<details className="receipt-details">
+    <summary>ดูรายละเอียดใบเสร็จ{entry.receipt.items.length?' · '+entry.receipt.items.length+' รายการสินค้า':''}</summary>
+    <div className="receipt-details-body">
+      {entry.receipt.receiptId&&<div className="receipt-detail-line"><span>เลขที่อ้างอิง</span><strong>{entry.receipt.receiptId}</strong></div>}
+      {entry.receipt.items.length>0&&<div className="receipt-item-list">{entry.receipt.items.map((item,i)=><div key={i} className="receipt-item-line"><span>{item.quantity} × {item.name}</span><strong>฿{baht(item.lineTotalSatang)}</strong></div>)}</div>}
+      {entry.receipt.subtotalSatang!==undefined&&<div className="receipt-detail-line"><span>ยอดก่อนส่วนลด</span><strong>฿{baht(entry.receipt.subtotalSatang)}</strong></div>}
+      {entry.receipt.discountSatang!==undefined&&<div className="receipt-detail-line"><span>ส่วนลด</span><strong>−฿{baht(entry.receipt.discountSatang)}</strong></div>}
+      {entry.receipt.subsidySatang!==undefined&&<div className="receipt-detail-line"><span>สิทธิช่วยจ่าย</span><strong>−฿{baht(entry.receipt.subsidySatang)}</strong></div>}
+      {entry.receipt.feeSatang!==undefined&&<div className="receipt-detail-line"><span>ค่าธรรมเนียม</span><strong>฿{baht(entry.receipt.feeSatang)}</strong></div>}
+      <div className="receipt-detail-line receipt-total"><span>ยอดชำระจริง</span><strong>฿{baht(entry.amountSatang)}</strong></div>
+    </div>
+  </details>}
   </div>;
 }
 function TxList({items,onEdit,onDelete,limit}:{items:Transaction[];onEdit:(t:Transaction)=>void;onDelete:(t:Transaction)=>void;limit?:number}){
@@ -146,7 +159,7 @@ export default function App(){
   const allSums=useMemo(()=>summarize(items),[items]);
   const byCategory=useMemo(()=>expenseByCategory(selected),[selected]);
   const usedBudget=percent(sums.expense,settings.monthlyBudgetSatang);
-  const filtered=useMemo(()=>selected.filter(x=>(filter==='all'||x.type===filter) && (!search.trim()||`${x.category} ${x.note} ${x.recipient||''} ${x.time||''} ${METHODS[x.method]}`.toLocaleLowerCase('th-TH').includes(search.trim().toLocaleLowerCase('th-TH')))),[selected,filter,search]);
+  const filtered=useMemo(()=>selected.filter(x=>(filter==='all'||x.type===filter) && (!search.trim()||`${x.category} ${x.note} ${x.recipient||''} ${x.time||''} ${x.receipt?.receiptId||''} ${(x.receipt?.items||[]).map(i=>i.name).join(' ')} ${METHODS[x.method]}`.toLocaleLowerCase('th-TH').includes(search.trim().toLocaleLowerCase('th-TH')))),[selected,filter,search]);
   const history=useMemo(()=>{const [y,m]=month.split('-').map(Number);return lastMonths(6,new Date(y,m-1,1)).map(period=>({...period,...summarize(monthly(items,period.key))}));},[items,month]);
   const maxBar=Math.max(1,...history.map(x=>Math.max(x.income,x.expense)));
   const openAdd=()=>{setScanOnOpen(true);setEditing(null);setModalOpen(true)};
