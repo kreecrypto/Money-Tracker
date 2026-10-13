@@ -227,6 +227,7 @@ export default function App(){
       setToast('รายการนี้ถูกบันทึกไว้แล้ว จึงนำออกจากรอตรวจ');
       return {status:'duplicate'};
     }
+    if(decision.status!=='ready')return {status:'incomplete',reason:decision.reason};
     await saveTransaction(decision.transaction);
     try{await deletePendingSlip(draft.id);}
     catch(error){await reload();throw new Error('บันทึกรายการสำเร็จ แต่ลบออกจากคิวรอตรวจไม่ได้ กรุณาลองอีกครั้ง');}
