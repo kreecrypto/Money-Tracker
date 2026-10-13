@@ -54,7 +54,7 @@ try {
       const mobileHome=await page.evaluate(()=>{
         const el=name=>document.querySelector(name)?.getBoundingClientRect();
         const hero=el('.hero-card'),quick=el('.mobile-quick-actions'),recent=el('.transactions-surface'),nav=el('.mobile-bottom-nav');
-        return {correctHierarchy:!!(hero&&quick&&recent&&hero.top<quick.top&&quick.top<recent.top),quickActionsVisible:!!(quick&&quick.width>0),bottomNavVisible:!!(nav&&nav.width===innerWidth)};
+        return {correctHierarchy:!!(hero&&quick&&recent&&quick.top<recent.top&&recent.top<hero.top),quickActionsVisible:!!(quick&&quick.width>0),bottomNavVisible:!!(nav&&nav.width===innerWidth)};
       });
       await page.locator('.mobile-action-scan').click();
       const openedOCR=await page.locator('.modal .slip-panel').isVisible();
@@ -81,7 +81,7 @@ try {
     const add=page.locator(width<=660?'.mobile-fab':'.top-add');
     await add.click({timeout:3500});
     const slipDefault=await page.locator('.modal .slip-panel').isVisible();
-    const uploadPrimary=await page.getByRole('button',{name:'เลือกภาพสลิป'}).isVisible();
+    const uploadPrimary=await page.getByRole('button',{name:'เลือกรูปจาก iPhone'}).isVisible();
     const autoSaveNext=await page.getByText('2 บันทึกอัตโนมัติ').isVisible();
     const multiSelectable=await page.locator('input[aria-label="เลือกรูปสลิปหลายรูป"]').evaluate(el=>el instanceof HTMLInputElement&&el.multiple);
     const batchLimitVisible=await page.getByText(/สูงสุด 20 รูป\/ครั้ง/).isVisible();

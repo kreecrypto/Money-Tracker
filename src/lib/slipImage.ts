@@ -60,3 +60,28 @@ export async function prepareSlipRecoveryImage(file:File):Promise<HTMLCanvasElem
     revoke?.();
   }
 }
+
+/** iPhone Photos may give HEIC/HEIF bytes. Convert locally when Safari can decode them.
+ * This intentionally does not upload, store, or share the original image. */
+export async function prepareSlipOcrFile(file:File):Promise<File> {
+  const heic=['image/heic','image/heif','image/heic-sequence','image/heif-sequence'].includes(file.type)||/\.(heic|heif)$/iu.test(file.name);
+  if(!heic)return file;
+  const url=URL.createObjectURL(file);
+  try{
+    const image=new Image();
+    image.src=url;
+    try{await image.decode();}catch{throw new Error('อุปกรณ์นี้ยังเปิดภาพ HEIC ไม่ได้ กรุณาแชร์เป็น JPG แล้วอัปโหลดอีกครั้ง');}
+    const canvas=document.createElement('canvas');
+    const width=image.naturalWidth,height=image.naturalHeight;
+    if(!width||!height)throw new Error('อ่านขนาดภาพ HEIC ไม่สำเร็จ');
+    const scale=Math.min(1,2048/width,2560/height,Math.sqrt(3_500_000/(width*height)));
+    canvas.width=Math.max(1,Math.round(width*scale));
+    canvas.height=Math.max(1,Math.round(height*scale));
+    const ctx=canvas.getContext('2d');
+    if(!ctx)throw new Error('ไม่สามารถแปลงภาพ HEIC บนอุปกรณ์นี้ได้');
+    ctx.drawImage(image,0,0,canvas.width,canvas.height);
+    const blob=await new Promise<Blob|null>(resolve=>canvas.toBlob(resolve,'image/jpeg',0.92));
+    if(!blob)throw new Error('แปลงภาพ HEIC ไม่สำเร็จ กรุณาเลือกภาพ JPG');
+    return new File([blob],file.name.replace(/\.(?:heic|heif)$/iu,'.jpg'),{type:'image/jpeg'});
+  }finally{URL.revokeObjectURL(url);}
+}

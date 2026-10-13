@@ -34,6 +34,8 @@ export type Transaction = {
   recipient?: string;
   method: Method;
   receipt?: ReceiptDetails;
+  /** SHA-256 of original uploaded bytes; no photo is retained. */
+  slipHash?: string;
   createdAt: number;
 };
 export type Settings = { monthlyBudgetSatang: number };
@@ -101,6 +103,7 @@ export function isValidTransaction(x:unknown):x is Transaction {
     (t.time===undefined || (typeof t.time==='string' && /^([01]\d|2[0-3]):[0-5]\d$/.test(t.time))) &&
     (t.recipient===undefined || (typeof t.recipient==='string' && t.recipient.length<=160)) &&
     (t.receipt===undefined||isValidReceiptDetails(t.receipt,t.amountSatang!)) &&
+    (t.slipHash===undefined||(typeof t.slipHash==='string'&&/^[a-f0-9]{64}$/.test(t.slipHash))) &&
     (t.method==='cash'||t.method==='bank'||t.method==='card'||t.method==='wallet') &&
     typeof t.createdAt==='number' && Number.isFinite(t.createdAt);
 }

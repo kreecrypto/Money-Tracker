@@ -2,25 +2,30 @@ export const MAX_SLIP_BATCH_FILES=20;
 export const MAX_SLIP_FILE_BYTES=10*1024*1024;
 const SUPPORTED_IMAGE_TYPES=new Set(['image/jpeg','image/png','image/webp']);
 
-export type SlipBatchStatus='saved'|'duplicate'|'incomplete'|'error';
-export type SlipBatchOutcome={status:SlipBatchStatus;reason?:string};
-export type SlipBatchRow={name:string;status:SlipBatchStatus;reason?:string};
+export type SlipBatchStatus='saved'|'duplicate'|'incomplete'|'error'|'cancelled'|'undone';
+export type SlipBatchOutcome={status:SlipBatchStatus;reason?:string;transactionId?:string;recipient?:string;amountSatang?:number;date?:string};
+export type SlipBatchRow={name:string;status:SlipBatchStatus;reason?:string;transactionId?:string;recipient?:string;amountSatang?:number;date?:string};
 
-export function validateSlipImage(file:Pick<File,'size'|'type'>):string|null {
-  if(!SUPPORTED_IMAGE_TYPES.has(file.type))
-    return 'รองรับ JPG, PNG และ WebP เท่านั้น หากเป็น HEIC กรุณาแปลงเป็น JPG ก่อน';
+export function validateSlipImage(file:Pick<File,'size'|'type'>&{name?:string}):string|null {
+  const heic=/\.(?:heic|heif)$/iu.test(file.name||'');
+  if(!SUPPORTED_IMAGE_TYPES.has(file.type)&&!['image/heic','image/heif','image/heic-sequence','image/heif-sequence'].includes(file.type)&&!heic)
+    return 'รองรับ JPG, PNG, WebP และ HEIC/HEIF (เมื่อเบราว์เซอร์เปิดไฟล์ได้)';
   if(file.size<=0||file.size>MAX_SLIP_FILE_BYTES)
     return 'รูปต้องมีขนาดมากกว่า 0 และไม่เกิน 10 MB';
   return null;
 }
 
 export function summarizeSlipBatch(rows:SlipBatchRow[]) {
+  const cancelled=rows.filter(r=>r.status==='cancelled').length;
+  const undone=rows.filter(r=>r.status==='undone').length;
   return {
     total:rows.length,
     saved:rows.filter(r=>r.status==='saved').length,
     duplicate:rows.filter(r=>r.status==='duplicate').length,
     incomplete:rows.filter(r=>r.status==='incomplete').length,
     errors:rows.filter(r=>r.status==='error').length,
+    ...(cancelled?{cancelled}:{}),
+    ...(undone?{undone}:{}),
   };
 }
 

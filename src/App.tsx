@@ -58,7 +58,7 @@ function TxList({items,onEdit,onDelete,limit}:{items:Transaction[];onEdit:(t:Tra
   const visible=limit?items.slice(0,limit):items;
   return <div className="tx-list">{visible.map(x=><TransactionRow key={x.id} entry={x} onEdit={onEdit} onDelete={onDelete}/>)}</div>;
 }
-function EntryModal({initial,existing,startWithScanner,close,submit,notifyBatch}:{initial:Transaction|null;existing:Transaction[];startWithScanner:boolean;close:()=>void;submit:(t:Transaction)=>Promise<void>;notifyBatch:(summary:SlipBatchSummary)=>void}){
+function EntryModal({initial,existing,startWithScanner,close,submit,submitImported,undoImported,notifyBatch}:{initial:Transaction|null;existing:Transaction[];startWithScanner:boolean;close:()=>void;submit:(t:Transaction)=>Promise<void>;submitImported:(t:Transaction)=>Promise<void>;undoImported:(ids:string[])=>Promise<void>;notifyBatch:(summary:SlipBatchSummary)=>void}){
   const [type,setType]=useState<EntryType>(initial?.type||'expense');
   const [amount,setAmount]=useState(initial?String(initial.amountSatang/100):'');
   const [date,setDate]=useState(initial?.date||todayLocal());
@@ -76,12 +76,13 @@ function EntryModal({initial,existing,startWithScanner,close,submit,notifyBatch}
   const dialogRef=useRef<HTMLElement>(null);
   const closeRef=useRef(close);closeRef.current=close;
   const pendingRef=useRef(pending);pendingRef.current=pending;
+  const busyRef=useRef(batchBusy);busyRef.current=batchBusy;
   useEffect(()=>{
     const previous=document.activeElement instanceof HTMLElement?document.activeElement:null;
     const overflow=document.body.style.overflow;document.body.style.overflow='hidden';
     if(window.innerWidth>660&&!startWithScanner)first.current?.focus();else dialogRef.current?.focus();
     const key=(e:KeyboardEvent)=>{
-      if(e.key==='Escape'&&!pendingRef.current){e.preventDefault();closeRef.current();}
+      if(e.key==='Escape'&&!pendingRef.current&&!busyRef.current){e.preventDefault();closeRef.current();}
       if(e.key!=='Tab')return;
       const controls=Array.from(dialogRef.current?.querySelectorAll<HTMLElement>('button:not([disabled]), input:not([disabled]), select:not([disabled]), [tabindex]:not([tabindex="-1"])')||[])
       .filter(el=>el.getClientRects().length>0&&getComputedStyle(el).visibility!=='hidden'&&!el.classList.contains('visually-hidden'));
@@ -112,13 +113,14 @@ function EntryModal({initial,existing,startWithScanner,close,submit,notifyBatch}
     if(decision.status!=='ready')return {status:decision.status,reason:decision.reason};
     setPending(true);
     try{
-      await submit(decision.transaction);
-      return {status:'saved'};
+      await submitImported(decision.transaction);
+      return {status:'saved',transactionId:decision.transaction.id,recipient:decision.transaction.recipient,amountSatang:decision.transaction.amountSatang,date:decision.transaction.date};
     }finally{setPending(false);}
   };
   const finishBatch=(summary:SlipBatchSummary)=>{
     notifyBatch(summary);
-    if(summary.saved>0&&summary.duplicate===0&&summary.incomplete===0&&summary.errors===0)close();
+    // Keep the result screen visible until the user explicitly finishes,
+    // so the user can inspect corrections or undo this batch.
   };
   return <div className="modal-backdrop" onMouseDown={e=>{if(e.target===e.currentTarget&&!pending&&!batchBusy)close();}}><section ref={dialogRef} tabIndex={-1} className="modal" role="dialog" aria-modal="true" aria-labelledby="modal-title"><div className="modal-heading"><div><span className="eyebrow">SLIP-FIRST ENTRY</span><h2 id="modal-title">{initial?'แก้ไขรายการ':scannerOpen?'อัปโหลดสลิป':'กรอกรายการเอง'}</h2></div><button className="icon-btn" title="ปิด" aria-label="ปิด" disabled={pending||batchBusy} onClick={close}><X size={21}/></button></div>
   <form onSubmit={save}>
@@ -129,7 +131,7 @@ function EntryModal({initial,existing,startWithScanner,close,submit,notifyBatch}
       <button type="button" aria-pressed={!scannerOpen} className={!scannerOpen?'active':''} disabled={batchBusy} onClick={()=>{setScannerOpen(false);setError('');}}><Plus size={17}/> กรอกเอง</button>
     </div>
   </div>}
-  {scannerOpen?<SlipScanner onApply={autoImportSlip} onBusyChange={setBatchBusy} onComplete={finishBatch} onClose={()=>setScannerOpen(false)}/>:<>
+  {scannerOpen?<SlipScanner onApply={autoImportSlip} onBusyChange={setBatchBusy} onComplete={finishBatch} onUndoBatch={undoImported} onClose={close}/>:<>
   <div className="type-switch" role="group" aria-label="ประเภทรายการ"><button type="button" aria-pressed={type==='expense'} className={type==='expense'?'selected expense':''} onClick={()=>switchType('expense')}><ArrowUpRight size={16}/> เงินออก / รายจ่าย</button><button type="button" aria-pressed={type==='income'} className={type==='income'?'selected income':''} onClick={()=>switchType('income')}><ArrowDownLeft size={16}/> เงินเข้า / รายรับ</button></div>
   <label className="field-label" htmlFor="amount">จำนวนเงิน (บาท)</label><div className="amount-input"><span>฿</span><input id="amount" ref={first} inputMode="decimal" autoComplete="off" placeholder="0.00" value={amount} onChange={e=>setAmount(e.target.value)} required /></div>
   {similar.length>0&&<div className="duplicate-warning" role="status"><strong>พบ {similar.length} รายการที่อาจซ้ำ</strong><p>มียอด {amount} บาท วันที่ {date} และช่องทางเดียวกัน</p><label><input type="checkbox" checked={duplicateAcknowledged} onChange={e=>setDuplicateAcknowledged(e.target.checked)}/> ยืนยันว่าต้องการบันทึกรายการนี้ซ้ำ</label></div>}
@@ -165,6 +167,8 @@ export default function App(){
   const openAdd=()=>{setScanOnOpen(true);setEditing(null);setModalOpen(true)};
   const openManual=()=>{setScanOnOpen(false);setEditing(null);setModalOpen(true)};
   const onSave=async(t:Transaction)=>{await saveTransaction(t);await reload();setToast(editing?'แก้ไขรายการเรียบร้อย':`บันทึก${t.type==='income'?'รายรับ':'รายจ่าย'} ฿${baht(t.amountSatang)} สำเร็จ`);};
+  const onSaveImported=async(t:Transaction)=>{await saveTransaction(t);await reload();};
+  const undoImported=async(ids:string[])=>{for(const id of ids)await deleteTransaction(id);await reload();setToast('ยกเลิกการบันทึกจากสลิปแล้ว');};
   const onDelete=async(t:Transaction)=>{if(!window.confirm(`ต้องการลบรายการ “${t.note||t.category}” ฿${baht(t.amountSatang)} ใช่หรือไม่?`))return;try{await deleteTransaction(t.id);await reload();setToast('ลบรายการแล้ว');}catch(e){setToast(e instanceof Error?e.message:'ลบรายการไม่สำเร็จ');}};
   const onEdit=(t:Transaction)=>{setScanOnOpen(false);setEditing(t);setModalOpen(true);};
   const changeMonth=(n:number)=>{const [y,m]=month.split('-').map(Number);setMonth(monthLocal(new Date(y,m-1+n,1)));};
@@ -192,8 +196,9 @@ export default function App(){
   return <div className="app-shell"><aside className="sidebar"><Logo/><div className="workspace-label">WORKSPACE</div><nav aria-label="เมนูหลัก">{navItems.map(({key,label,icon:Icon})=><button key={key} className={`nav-item ${view===key?'active':''}`} aria-label={label} aria-current={view===key?'page':undefined} onClick={()=>setView(key)}><Icon size={19} strokeWidth={1.9}/><span>{label}</span>{view===key&&<span className="nav-active-indicator"/>}</button>)}</nav><div className="sidebar-spacer"/><div className="privacy-card"><div className="privacy-graphic"><ShieldCheck size={24}/></div><strong>ข้อมูลเป็นของคุณ</strong><p>รายการเก็บไว้บนอุปกรณ์นี้ ไม่ส่งขึ้นคลาวด์</p><span><CloudOff size={13}/> LOCAL FIRST</span></div><p className="sidebar-version">เงินวันนี้ · เวอร์ชัน 0.5.0</p></aside>
     <div className="app-body"><header className="topbar"><div className="topbar-left"><span className="greeting">เงินวันนี้ <span className="mobile-today">· {dateText(todayLocal())}</span></span><h1>{pageLabels[view]}</h1></div><div className="topbar-actions"><div className="today-chip"><CalendarDays size={16}/><span>{dateText(todayLocal())}</span></div><button className="btn btn-primary top-add" onClick={openAdd}><ScanLine size={18}/> <span>อัปโหลดสลิป</span></button></div></header>
     <main className="main-content">
-      {view!=='settings' && <div className={`view-topline ${view==='home'?'home-topline':''}`}><div><span className="eyebrow">FINANCIAL OVERVIEW</span><h2>{view==='home'?'บันทึกทุกวัน ดูง่ายในหน้าเดียว':view==='reports'?'มองเห็นภาพรวมการใช้เงิน':'ประวัติการเงินของคุณ'}</h2><p>{view==='home'?'อัปโหลดสลิปหรือใบเสร็จ K PLUS, 7-Eleven และเป๋าตัง แล้วบันทึกอัตโนมัติ':view==='reports'?'รู้ว่าเงินของคุณไปอยู่ที่ไหนบ้าง':'ค้นหาและจัดการรายการที่บันทึกไว้ได้ง่าย ๆ'}</p></div><div className="month-picker"><button aria-label="เดือนก่อนหน้า" title="เดือนก่อนหน้า" onClick={()=>changeMonth(-1)}><ChevronLeft size={18}/></button><span>{monthText(month)}</span><button aria-label="เดือนถัดไป" title="เดือนถัดไป" onClick={()=>changeMonth(1)}><ChevronRight size={18}/></button></div></div>}
+      {view!=='settings'&&view!=='home' && <div className="view-topline"><div><span className="eyebrow">FINANCIAL OVERVIEW</span><h2>{view==='reports'?'มองเห็นภาพรวมการใช้เงิน':'ประวัติการเงินของคุณ'}</h2><p>{view==='reports'?'รู้ว่าเงินของคุณไปอยู่ที่ไหนบ้าง':'ค้นหาและจัดการรายการที่บันทึกไว้ได้ง่าย ๆ'}</p></div><div className="month-picker"><button aria-label="เดือนก่อนหน้า" title="เดือนก่อนหน้า" onClick={()=>changeMonth(-1)}><ChevronLeft size={18}/></button><span>{monthText(month)}</span><button aria-label="เดือนถัดไป" title="เดือนถัดไป" onClick={()=>changeMonth(1)}><ChevronRight size={18}/></button></div></div>}
       {view==='home'&&<div className="home-dashboard">
+         <div className="home-month-picker" aria-label="เดือนของภาพรวม"><span className="home-month-caption">ภาพรวมรายเดือน</span><div className="month-picker"><button aria-label="เดือนก่อนหน้า" title="เดือนก่อนหน้า" onClick={()=>changeMonth(-1)}><ChevronLeft size={18}/></button><span>{monthText(month)}</span><button aria-label="เดือนถัดไป" title="เดือนถัดไป" onClick={()=>changeMonth(1)}><ChevronRight size={18}/></button></div></div>
         {items.length>=5&&Date.now()-lastBackupAt>30*24*60*60*1000&&<div className="backup-alert" role="status"><div><strong>อย่าลืมสำรองข้อมูลการเงิน</strong><span>ข้อมูลเก็บไว้ในเครื่องนี้เท่านั้น หากล้างข้อมูลเบราว์เซอร์อาจสูญหาย</span></div><button type="button" className="btn btn-secondary" onClick={exportJson}>สำรองข้อมูล JSON</button></div>}
         <section className="summary-grid" aria-label="ยอดรวมรายเดือน"><div className="hero-card"><div className="hero-pattern"/><div className="hero-kicker"><span className="hero-dot"/> เงินสุทธิจากรายการที่บันทึก</div><div className="hero-value"><span>฿</span>{baht(sums.net)}</div><p>รายรับ − รายจ่าย · ไม่ใช่ยอดบัญชีธนาคาร</p><div className="hero-line"/><div className="hero-bottom"><div><span><ArrowDownLeft size={17}/> รายรับ</span><strong>฿{baht(sums.income)}</strong></div><div><span><ArrowUpRight size={17}/> รายจ่าย</span><strong>฿{baht(sums.expense)}</strong></div></div></div>
           <div className="budget-card">
@@ -220,8 +225,9 @@ export default function App(){
     </main><footer className="app-footer">© {new Date().getFullYear()} เงินวันนี้ · เล็กน้อยทุกวัน เปลี่ยนการเงินได้</footer></div>
     <button aria-label="อัปโหลดสลิป" title="อัปโหลดสลิป" className={`mobile-fab ${view==='home'?'home-fab':''}`} onClick={openAdd}><ScanLine size={25}/></button><nav className="mobile-bottom-nav" aria-label="เมนูมือถือ">{navItems.map(({key,label,icon:Icon})=><button key={key} className={view===key?'active':''} aria-current={view===key?'page':undefined} onClick={()=>setView(key)}><Icon size={21}/><span>{label}</span></button>)}</nav>
     {toast&&<div className="toast" role="status"><Check size={17}/>{toast}</div>}
-    {modalOpen&&<EntryModal initial={editing} existing={items} startWithScanner={scanOnOpen} close={()=>setModalOpen(false)} submit={onSave} notifyBatch={summary=>{
-      if(summary.saved>0)setToast('บันทึกสลิปสำเร็จ '+summary.saved+' รูป'+(summary.duplicate+summary.incomplete+summary.errors?' · ข้าม '+(summary.duplicate+summary.incomplete+summary.errors)+' รูป':''));
+    {modalOpen&&<EntryModal initial={editing} existing={items} startWithScanner={scanOnOpen} close={()=>setModalOpen(false)} submit={onSave} submitImported={onSaveImported} undoImported={undoImported} notifyBatch={summary=>{
+      if(summary.saved>0)setToast('บันทึกสลิปสำเร็จ '+summary.saved+' รูป'+(summary.duplicate+summary.incomplete+summary.errors?' · รอตรวจ '+(summary.incomplete+summary.errors)+' รูป':''));
+      else if(summary.duplicate>0&&summary.incomplete+summary.errors===0)setToast('ตรวจพบสลิปซ้ำ '+summary.duplicate+' รูป ไม่มีรายการใหม่');
     }}/>}
     {pendingRestore&&<RestoreDialog existingCount={items.length} importedCount={pendingRestore.transactions.length} busy={restoreBusy} onBackup={exportJson} onConfirm={()=>{void confirmRestore();}} onClose={()=>setPendingRestore(null)}/>}
   </div>;
