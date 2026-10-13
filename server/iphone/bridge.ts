@@ -4,7 +4,7 @@ import type {EntryType,Method} from '../../src/lib/finance.js';
 export type IPhoneDraft={
   id:string;owner_key:string;image_digest:string;bank_fingerprint:string|null;
   status:'pending'|'confirmed'|'discarded';type:EntryType|null;amount_satang:number|null;
-  transaction_date:string|null;category:string;note:string;method:Method;source_label:string;
+  transaction_date:string|null;transaction_time:string|null;recipient:string|null;category:string;note:string;method:Method;source_label:string;
   created_at:string;reviewed_at:string|null;
 };
 export const MAX_IMAGE_BYTES=3*1024*1024; // allow multipart overhead below Vercel's 4.5MB cap
@@ -49,9 +49,9 @@ const esc=(s:string)=>encodeURIComponent(s);
 const table='money_tracker_iphone_drafts';
 export async function saveDraft(row:Pick<IPhoneDraft,
   'owner_key'|'image_digest'|'bank_fingerprint'|'type'|'amount_satang'|'transaction_date'|'category'|'note'|'method'|'source_label'
->){
+> & Partial<Pick<IPhoneDraft,'transaction_time'|'recipient'>>,status:'pending'|'confirmed'='pending'){
   const data=await db(table+'?on_conflict=owner_key,image_digest','POST',
-    {...row,status:'pending'},'resolution=ignore-duplicates,return=representation');
+    {...row,status,...(status==='confirmed'?{reviewed_at:new Date().toISOString()}: {})},'resolution=ignore-duplicates,return=representation');
   return data[0]||null;
 }
 export async function pendingDrafts(){
@@ -60,7 +60,7 @@ export async function pendingDrafts(){
 }
 export async function confirmedDrafts(){
   return await db(table+'?owner_key=eq.'+esc(ownerKey())+
-    '&status=eq.confirmed&select=id,amount_satang,type,transaction_date,category,note,method,source_label,created_at,reviewed_at&order=reviewed_at.desc&limit=500','GET');
+    '&status=eq.confirmed&select=id,amount_satang,type,transaction_date,transaction_time,recipient,category,note,method,source_label,created_at,reviewed_at&order=reviewed_at.desc&limit=500','GET');
 }
 export async function reviewDraft(id:string,decision:'confirm'|'discard',entry?:{
   type:EntryType;amountSatang:number;date:string;category:string;note:string;method:Method;
