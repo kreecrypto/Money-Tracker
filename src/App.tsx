@@ -102,7 +102,7 @@ function EntryModal({initial,existing,startWithScanner,close,submit,notifyBatch}
     if(similar.length&&!duplicateAcknowledged){setError('พบรายการคล้ายกัน กรุณายืนยันก่อนบันทึกซ้ำ');return;}
     const sats=toSatang(amount);if(!sats){setError('กรุณากรอกจำนวนเงินมากกว่า 0 และทศนิยมไม่เกิน 2 ตำแหน่ง');return;}
     if(!/^\d{4}-\d\d-\d\d$/.test(date)){setError('กรุณาเลือกวันที่');return;}
-    setPending(true);setError('');try{await submit({id:initial?.id||uuid(),type,amountSatang:sats,date,time:time||undefined,recipient:recipient.trim()||undefined,category,note:note.trim().slice(0,500),method,createdAt:initial?.createdAt||Date.now()});close();}catch(err){setError(err instanceof Error?err.message:'บันทึกไม่สำเร็จ');setPending(false);}
+    setPending(true);setError('');try{await submit({id:initial?.id||uuid(),type,amountSatang:sats,date,time:time||undefined,recipient:recipient.trim()||undefined,category,note:note.trim().slice(0,500),method,...(initial?.receipt&&sats===initial.amountSatang?{receipt:initial.receipt}:{}),createdAt:initial?.createdAt||Date.now()});close();}catch(err){setError(err instanceof Error?err.message:'บันทึกไม่สำเร็จ');setPending(false);}
   };
   const switchType=(newType:EntryType)=>{setType(newType);setCategory(newType==='expense'?EXPENSE_CATEGORIES[0]:INCOME_CATEGORIES[0]);setError('');};
   const autoImportSlip=async(data:SlipFields):Promise<SlipBatchOutcome>=>{
