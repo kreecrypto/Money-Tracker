@@ -126,6 +126,22 @@ describe('Photos Automation OCR text API',()=>{
     delete process.env.IPHONE_UPLOAD_TOKEN;
     expect((await POST(post(KPLUS))).status).toBe(503);
   });
+  it('reports missing review token without exposing a secret',async()=>{
+    delete process.env.IPHONE_REVIEW_TOKEN;
+    const r=await POST(post(KPLUS));
+    expect(r.status).toBe(503);
+    expect(await r.json()).toMatchObject({error:'STORAGE_UNAVAILABLE',code:'REVIEW_TOKEN_INVALID'});
+    expect(mock.save).not.toHaveBeenCalled();
+  });
+  it('reports missing Supabase service key separately from invalid URL',async()=>{
+    mock.save.mockRejectedValueOnce(new Error('SUPABASE_SERVICE_ROLE_KEY_NOT_CONFIGURED'));
+    const r=await POST(post(KPLUS));
+    expect(r.status).toBe(503);
+    expect(await r.json()).toMatchObject({error:'STORAGE_UNAVAILABLE',code:'SUPABASE_SERVICE_KEY_MISSING'});
+    mock.save.mockRejectedValueOnce(new Error('INVALID_SUPABASE_URL'));
+    const second=await POST(post(KPLUS));
+    expect(await second.json()).toMatchObject({error:'STORAGE_UNAVAILABLE',code:'SUPABASE_URL_INVALID'});
+  });
   it('rejects other content types',async()=>{
     expect((await POST(post(KPLUS,UPLOAD,'text/plain'))).status).toBe(415);
   });
