@@ -30,8 +30,8 @@ type Correction={
   category:string;
 };
 const statusLabels:Record<SlipBatchRow['status'],string>={
-  saved:'บันทึกแล้ว',duplicate:'รายการซ้ำ',incomplete:'ต้องแก้ไข',
-  error:'อ่านไม่ได้',cancelled:'ยกเลิกแล้ว',undone:'ยกเลิกการบันทึกแล้ว',
+  saved:'บันทึกแล้ว',duplicate:'รายการซ้ำ',incomplete:'รอตรวจข้อมูล',
+  error:'ไม่สำเร็จ',cancelled:'ยกเลิกแล้ว',undone:'ยกเลิกการบันทึกแล้ว',
 };
 const toCorrection=(source:SlipFields):Correction=>({
   source,date:source.date||'',time:source.time||'',
@@ -270,14 +270,14 @@ export default function SlipScanner({onApply,onComplete,onBusyChange,onUndoBatch
   const summary=summarizeSlipBatch(rows);
   const needsAttention=Object.entries(corrections).filter(([index])=>rows[Number(index)]?.status==='incomplete');
   return <section className="slip-panel slip-panel-primary slip-workspace" aria-label="อัปโหลดสลิปหรือใบเสร็จหลายรูป">
-    <div className="slip-head"><div><ScanLine size={18}/><strong>อัปโหลดสลิป / ใบเสร็จ</strong></div><button type="button" className="slip-close" disabled={busy||undoing} onClick={onClose} aria-label="ปิดหน้านำเข้า"><X size={18}/></button></div>
-    {!busy&&!complete&&<p className="slip-hint">เลือกรูปจาก iPhone ได้ครั้งละ 20 ภาพ ระบบอ่านและบันทึกอัตโนมัติเมื่อข้อมูลครบ ภาพซ้ำจะไม่บันทึกเพิ่ม</p>}
+    <div className="slip-head"><div><ScanLine size={18}/><strong>เพิ่มสลิปหรือใบเสร็จ</strong></div><button type="button" className="slip-close" disabled={busy||undoing} onClick={onClose} aria-label="ปิดหน้านำเข้า"><X size={18}/></button></div>
+    {!busy&&!complete&&<p className="slip-hint">เพิ่มสลิปได้ครั้งละ 20 รูป ระบบจะอ่านและบันทึกเมื่อข้อมูลครบ โดยไม่เพิ่มรายการที่ตรวจพบว่าซ้ำ</p>}
     {!busy&&<div className="slip-upload-box">
       <div className="slip-upload-icon" aria-hidden="true"><FileImage size={28}/></div>
-      <strong>{complete?'เพิ่มรูปอีกชุด':'เลือกหลายรูปเพื่อบันทึกทีเดียว'}</strong>
+      <strong>{complete?'เพิ่มรูปอีกชุด':'เพิ่มหลายสลิปพร้อมกัน'}</strong>
       <span>สูงสุด 20 รูป/ครั้ง · JPG, PNG, WebP, HEIC · ไม่เกิน 10 MB/รูป</span>
       <div className="slip-actions"><button type="button" className="btn btn-primary slip-pick" disabled={undoing} onClick={()=>galleryRef.current?.click()}><Upload size={18}/> เลือกรูปจาก iPhone</button><button type="button" className="btn btn-secondary" disabled={undoing} onClick={()=>cameraRef.current?.click()}><Camera size={18}/> ถ่ายรูป</button><button type="button" className="btn btn-secondary" disabled={undoing} onClick={()=>void pasteFromShortcuts()}><ClipboardPaste size={18}/> นำเข้ารูปจาก Shortcut</button></div>
-      <span>จาก Shortcut: Copy to Clipboard → เปิดแอป → แตะนำเข้า 1 ครั้ง · OCR บนอุปกรณ์ ไม่มีอัปโหลดรูปไป API</span>
+      <span>จาก Shortcut: Copy to Clipboard → เปิดแอป → แตะนำเข้า 1 ครั้ง · อ่านข้อความบนอุปกรณ์ โดยไม่ส่งรูปเข้า API</span>
       {clipboardError&&<p className="slip-warning" role="alert">{clipboardError}</p>}
     </div>}
     <input ref={galleryRef} aria-label="เลือกรูปสลิปหลายรูป" multiple type="file" className="visually-hidden" accept="image/png,image/jpeg,image/webp,image/heic,image/heif,.heic,.heif" onChange={e=>void scan(e)}/>
@@ -285,24 +285,24 @@ export default function SlipScanner({onApply,onComplete,onBusyChange,onUndoBatch
     {busy&&<div className="slip-batch-progress slip-processing-focus" role="status" aria-live="polite">
       <div className="slip-processing-icon"><LoaderCircle size={30}/></div>
       <strong>กำลังอ่านสลิป {activeIndex||1} / {totalFiles}</strong>
-      <p>{stopRequested?'กำลังหยุดหลังขั้นตอนปัจจุบัน…':stage==='save'?'กำลังตรวจรายการซ้ำและบันทึก…':stage==='retry'?'กำลังปรับภาพและอ่านซ้ำ…':stage==='recognize'?'OCR กำลังอ่านข้อความ '+progress+'%':'กำลังเตรียมภาพและระบบ OCR…'}</p>
+      <p>{stopRequested?'กำลังหยุดหลังขั้นตอนปัจจุบัน…':stage==='save'?'กำลังตรวจรายการซ้ำและบันทึก…':stage==='retry'?'กำลังปรับภาพและอ่านซ้ำ…':stage==='recognize'?'กำลังอ่านข้อมูลจากสลิป '+progress+'%':'กำลังเตรียมภาพและระบบ OCR…'}</p>
       <div className="slip-progress-track" role="progressbar" aria-label="ความคืบหน้า OCR" aria-valuemin={0} aria-valuemax={100} aria-valuenow={Math.round((Math.max(0,activeIndex-1)+progress/100)/Math.max(1,totalFiles)*100)}><div style={{width:String(Math.round((Math.max(0,activeIndex-1)+(progress/100))/Math.max(1,totalFiles)*100))+'%'}}/></div>
       <span>{summary.saved} บันทึกแล้ว · {summary.duplicate} ซ้ำ · {summary.incomplete+summary.errors} ต้องตรวจ</span>
       <button type="button" className="btn btn-secondary slip-stop" disabled={stopRequested} onClick={()=>{stopRef.current=true;setStopRequested(true);}}><Square size={16}/> {stopRequested?'กำลังหยุด…':'หยุดรูปที่เหลือ'}</button>
     </div>}
     {busy&&preview&&<figure className="slip-preview"><img src={preview} alt="รูปสลิปที่กำลังประมวลผล"/><figcaption>{filename}</figcaption></figure>}
     {complete&&<div className="slip-batch-summary" role="status" aria-live="polite">
-      <div className="slip-batch-summary-title"><CheckCircle2 size={18}/><strong>อ่านครบ {summary.total} รูป</strong></div>
-      <div className="slip-batch-counts"><span>บันทึกแล้ว<b>{summary.saved}</b></span><span>ซ้ำ<b>{summary.duplicate}</b></span><span>ต้องแก้ไข<b>{summary.incomplete+summary.errors}</b></span></div>
+      <div className="slip-batch-summary-title"><CheckCircle2 size={18}/><strong>ประมวลผลครบ {summary.total} รูป</strong></div>
+      <div className="slip-batch-counts"><span>บันทึกแล้ว<b>{summary.saved}</b></span><span>ซ้ำ<b>{summary.duplicate}</b></span><span>รอตรวจ/ไม่สำเร็จ<b>{summary.incomplete+summary.errors}</b></span></div>
       {summary.saved>0&&<div className="slip-batch-total"><span>รวมยอดที่บันทึกในชุดนี้</span><strong>฿{baht(rows.filter(row=>row.status==='saved').reduce((total,row)=>total+(row.amountSatang||0),0))}</strong></div>}
       {(summary.cancelled||0)>0&&<p className="slip-batch-note">ยกเลิกไป {summary.cancelled} รูป รายการที่บันทึกสำเร็จก่อนหยุดยังอยู่ในแอป</p>}
       {(summary.undone||0)>0&&<p className="slip-batch-note">ยกเลิกการบันทึกแล้ว {summary.undone} รายการ</p>}
       {summary.saved>0&&<button type="button" className="btn btn-secondary slip-undo" disabled={undoing} onClick={()=>void undoSaved()}><Undo2 size={16}/>{undoing?'กำลังยกเลิกรายการ…':'ยกเลิกการบันทึกชุดนี้ ('+summary.saved+')'}</button>}
       {correctionErrors[-1]&&<p role="alert" className="error-message">{correctionErrors[-1]}</p>}
-      <button type="button" className="btn btn-primary slip-batch-finish" disabled={undoing} onClick={onClose}>เสร็จแล้ว · กลับหน้าหลัก</button>
+      <button type="button" className="btn btn-primary slip-batch-finish" disabled={undoing} onClick={onClose}>กลับหน้าภาพรวม</button>
     </div>}
     {rows.length>0&&<div className="slip-batch-results" aria-label="ผลการประมวลผลแต่ละรูป">
-      <strong>รายละเอียดแต่ละใบ</strong>
+      <strong>ผลของแต่ละสลิป</strong>
       <ul>{rows.map((row,i)=><li key={i+'-'+row.name} className="slip-result-row">
         <span className="slip-result-main"><span className="slip-batch-file">{row.recipient||row.name}</span>{row.date&&<small>{row.date}</small>}</span>
         {row.amountSatang!==undefined&&<b className="slip-result-amount">฿{baht(row.amountSatang)}</b>}
@@ -311,7 +311,7 @@ export default function SlipScanner({onApply,onComplete,onBusyChange,onUndoBatch
       </li>)}</ul>
     </div>}
     {needsAttention.length>0&&<div className="slip-attention" aria-label="แก้ไขสลิปที่อ่านไม่ครบ">
-      <div className="slip-attention-title"><AlertTriangle size={17}/><strong>แก้เฉพาะช่องที่อ่านไม่ครบ</strong></div>
+      <div className="slip-attention-title"><AlertTriangle size={17}/><strong>ตรวจและเติมข้อมูลที่ขาด</strong></div>
       <p>รายการเหล่านี้ยังไม่ถูกบันทึก ตรวจยอดเงินจริงจากใบเสร็จก่อนกดบันทึก</p>
       {needsAttention.map(([rawIndex,draft])=>{
         const index=Number(rawIndex);
