@@ -4,7 +4,7 @@ import {loadTransactions,saveTransaction} from './storage';
 export type IPhoneDraft={
   id:string;amountSatang:number|null;type:'income'|'expense'|null;
   date:string|null;category:string;note:string;method:'bank'|'cash'|'card'|'wallet';
-  source:string;createdAt:string;
+  source:string;createdAt:string;time:string|null;recipient:string|null;
 };
 const TOKEN_KEY='money-tracker-iphone-review-token-v1';
 const SEEN_KEY='money-tracker-iphone-seen-v1';
@@ -33,7 +33,10 @@ async function call(path:string,method:'GET'|'POST',data?:object){
   },body:data?JSON.stringify(data):undefined,cache:'no-store'});
   if(r.status===401){iphoneDisconnect();throw new Error('Review Token ไม่ถูกต้อง กรุณาเชื่อมใหม่');}
   if(r.status===403)throw new Error('เว็บ Money Tracker ไม่ได้รับอนุญาตให้เชื่อม API (ตรวจ Allowed App Origin)');
-  if(r.status===503)throw new Error('Backend หรือฐานข้อมูลยังไม่พร้อม กรุณาตรวจการตั้งค่า Vercel/Supabase');
+  if(r.status===503){
+    const details=await r.json().catch(()=>({})) as {code?:string};
+    throw new Error('Backend หรือฐานข้อมูลยังไม่พร้อม'+(details.code?' ('+details.code+')':'')+' กรุณาตรวจ Vercel/Supabase');
+  }
   if(r.status===429)throw new Error('ส่งคำขอบ่อยเกินไป กรุณาลองใหม่ภายหลัง');
   if(!r.ok)throw new Error(r.status===409?'รายการนี้ถูกจัดการไปแล้ว':'ไม่สามารถเชื่อมต่อ iPhone Inbox ได้');
   return await r.json() as Record<string,unknown>;
@@ -44,7 +47,7 @@ export async function iphoneDrafts():Promise<IPhoneDraft[]>{
 }
 export async function iphoneReview(id:string,decision:'confirm'|'discard',input?:{
   type:'income'|'expense';amountSatang:number;date:string;
-  category:string;note:string;method:'cash'|'bank'|'card'|'wallet';
+  category:string;note:string;method:'cash'|'bank'|'card'|'wallet';time?:string|null;recipient?:string|null;
 }){
   return call('/api/iphone/drafts','POST',{id,decision,...(input||{})});
 }
