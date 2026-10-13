@@ -1,0 +1,9 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "functions": {
+    "api/iphone/upload.ts": {
+      "includeFiles": "node_modules/tesseract.js-core/*.wasm",
+      "maxDuration": 120
+    }
+  }
+}
