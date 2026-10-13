@@ -76,7 +76,10 @@ function EntryModal({initial,existing,startWithScanner,close,submit,submitImport
   const [error,setError]=useState('');
   const first=useRef<HTMLInputElement>(null);
   const dialogRef=useRef<HTMLElement>(null);
-  const closeRef=useRef(close);closeRef.current=close;
+  const pendingReviewRef=useRef(0);
+  const confirmLeave=()=>pendingReviewRef.current===0||window.confirm(`มีสลิป ${pendingReviewRef.current} รูปที่ยังไม่บันทึก หากออกตอนนี้ข้อมูลที่รอตรวจจะหายไป ต้องการออกหรือไม่?`);
+  const safeClose=()=>{if(confirmLeave())close();};
+  const closeRef=useRef(safeClose);closeRef.current=safeClose;
   const pendingRef=useRef(pending);pendingRef.current=pending;
   const busyRef=useRef(batchBusy);busyRef.current=batchBusy;
   useEffect(()=>{
@@ -120,20 +123,21 @@ function EntryModal({initial,existing,startWithScanner,close,submit,submitImport
     }finally{setPending(false);}
   };
   const finishBatch=(summary:SlipBatchSummary)=>{
+    pendingReviewRef.current=summary.incomplete;
     notifyBatch(summary);
     // Keep the result screen visible until the user explicitly finishes,
     // so the user can inspect corrections or undo this batch.
   };
-  return <div className="modal-backdrop" onMouseDown={e=>{if(e.target===e.currentTarget&&!pending&&!batchBusy)close();}}><section ref={dialogRef} tabIndex={-1} className="modal" role="dialog" aria-modal="true" aria-labelledby="modal-title"><div className="modal-heading"><div><span className="eyebrow">SLIP-FIRST ENTRY</span><h2 id="modal-title">{initial?'แก้ไขรายการ':scannerOpen?'อัปโหลดสลิป':'กรอกรายการเอง'}</h2></div><button className="icon-btn" title="ปิด" aria-label="ปิด" disabled={pending||batchBusy} onClick={close}><X size={21}/></button></div>
+  return <div className="modal-backdrop" onMouseDown={e=>{if(e.target===e.currentTarget&&!pending&&!batchBusy)safeClose();}}><section ref={dialogRef} tabIndex={-1} className="modal" role="dialog" aria-modal="true" aria-labelledby="modal-title"><div className="modal-heading"><div><span className="eyebrow">SLIP-FIRST ENTRY</span><h2 id="modal-title">{initial?'แก้ไขรายการ':scannerOpen?'อัปโหลดสลิป':'กรอกรายการเอง'}</h2></div><button className="icon-btn" title="ปิด" aria-label="ปิด" disabled={pending||batchBusy} onClick={safeClose}><X size={21}/></button></div>
   <form onSubmit={save}>
   {!initial&&<div className="slip-entry slip-entry-first">
     {scannerOpen&&<div className="slip-flow" aria-label="ขั้นตอนบันทึกสลิป"><span className="current">1 เลือกสลิป</span><span>2 บันทึกอัตโนมัติ</span></div>}
     <div className="slip-mode-picker" role="group" aria-label="วิธีเพิ่มรายการ">
       <button type="button" aria-pressed={scannerOpen} className={scannerOpen?'active':''} disabled={batchBusy} onClick={()=>setScannerOpen(true)}><ScanLine size={17}/> อัปโหลดสลิป</button>
-      <button type="button" aria-pressed={!scannerOpen} className={!scannerOpen?'active':''} disabled={batchBusy} onClick={()=>{setScannerOpen(false);setError('');}}><Plus size={17}/> กรอกเอง</button>
+      <button type="button" aria-pressed={!scannerOpen} className={!scannerOpen?'active':''} disabled={batchBusy} onClick={()=>{if(!confirmLeave())return;pendingReviewRef.current=0;setScannerOpen(false);setError('');}}><Plus size={17}/> กรอกเอง</button>
     </div>
   </div>}
-  {scannerOpen?<SlipScanner onApply={autoImportSlip} onBusyChange={setBatchBusy} onComplete={finishBatch} onUndoBatch={undoImported} onClose={close}/>:<>
+  {scannerOpen?<SlipScanner onApply={autoImportSlip} onBusyChange={setBatchBusy} onComplete={finishBatch} onUndoBatch={undoImported} onClose={safeClose}/>:<>
   <div className="type-switch" role="group" aria-label="ประเภทรายการ"><button type="button" aria-pressed={type==='expense'} className={type==='expense'?'selected expense':''} onClick={()=>switchType('expense')}><ArrowUpRight size={16}/> เงินออก / รายจ่าย</button><button type="button" aria-pressed={type==='income'} className={type==='income'?'selected income':''} onClick={()=>switchType('income')}><ArrowDownLeft size={16}/> เงินเข้า / รายรับ</button></div>
   <label className="field-label" htmlFor="amount">จำนวนเงิน (บาท)</label><div className="amount-input"><span>฿</span><input id="amount" ref={first} inputMode="decimal" autoComplete="off" placeholder="0.00" value={amount} onChange={e=>setAmount(e.target.value)} required /></div>
   {similar.length>0&&<div className="duplicate-warning" role="status"><strong>พบ {similar.length} รายการที่อาจซ้ำ</strong><p>มียอด {amount} บาท วันที่ {date} และช่องทางเดียวกัน</p><label><input type="checkbox" checked={duplicateAcknowledged} onChange={e=>setDuplicateAcknowledged(e.target.checked)}/> ยืนยันว่าต้องการบันทึกรายการนี้ซ้ำ</label></div>}
@@ -280,6 +284,8 @@ export default function App(){
     {modalOpen&&<EntryModal initial={editing} existing={items} startWithScanner={scanOnOpen} close={()=>setModalOpen(false)} submit={onSave} submitImported={onSaveImported} undoImported={undoImported} notifyBatch={summary=>{
       if(summary.saved>0)setToast('บันทึกสลิปสำเร็จ '+summary.saved+' รูป'+(summary.duplicate+summary.incomplete+summary.errors?' · รอตรวจ '+(summary.incomplete+summary.errors)+' รูป':''));
       else if(summary.duplicate>0&&summary.incomplete+summary.errors===0)setToast('ตรวจพบสลิปซ้ำ '+summary.duplicate+' รูป ไม่มีรายการใหม่');
+      else if(summary.incomplete+summary.errors>0)setToast('มีสลิป '+(summary.incomplete+summary.errors)+' รูปที่ยังไม่ได้บันทึก กรุณาตรวจข้อมูล');
+      else if((summary.excluded||0)>0)setToast('ไม่นับการโอนเงินระหว่างบัญชี '+summary.excluded+' รายการ');
     }}/>}
     {pendingRestore&&<RestoreDialog existingCount={items.length} importedCount={pendingRestore.transactions.length} busy={restoreBusy} onBackup={exportJson} onConfirm={()=>{void confirmRestore();}} onClose={()=>setPendingRestore(null)}/>}
   </div>;
