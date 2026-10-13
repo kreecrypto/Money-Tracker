@@ -57,7 +57,7 @@ export function parseKPlusSlip(ocrLines: string[]): KPlusSlip | null {
     recipientLines.push(name);
     if(recipientLines.length>=3)break;
   }
-  const recipient=recipientLines.reduce((joined,part)=>joined.endsWith('-')?joined+part:joined?joined+' '+part:part,'')
+  const recipient=recipientLines.reduce((joined,part)=>joined.endsWith(' -')?joined+' '+part:joined.endsWith('-')?joined+part:joined?joined+' '+part:part,'')
     .replace(/\s+/gu,' ').trim()||null;
   const reference=referenceFrom(lines);
   const expense=!!recipient&&lines.some(line=>AMOUNT_LABEL.test(line));
