@@ -81,10 +81,14 @@ export function parseKPlusTopUp(ocrLines:string[]):{recipient:string;directionRe
   if(!/เติม\s*เงิน\s*สำเร็จ/iu.test(header))return null;
   if(!lines.some(line=>SENDER_BANK.test(line)))return null;
   if(!lines.some(line=>MASKED_ACCOUNT.test(line)))return null;
-  const wallet=lines.find(line=>/(?:g[\s-]*wallet|พร้อม\s*เพย์\s*อี[\s-]*วอลเล็ต|e[\s-]*wallet)/iu.test(line));
-  if(!wallet)return null;
+  const walletIndex=lines.findIndex(line=>/(?:g[\s-]*wallet|พร้อม\s*เพย์\s*อี[\s-]*วอลเล็ต|e[\s-]*wallet)/iu.test(line));
+  if(walletIndex<0)return null;
+  const wallet=lines[walletIndex];
+  // K PLUS may put "พร้อมเพย์ อี-วอลเล็ต /" and "G-Wallet" on separate lines.
+  const next=lines[walletIndex+1]||'';
+  const walletName=wallet.endsWith('/')&&/^g[\s-]*wallet$/iu.test(next)?wallet+' '+next:wallet;
   return {
-    recipient: wallet.slice(0,160),
+    recipient: walletName.slice(0,160),
     directionReason:'เติมเงินเข้า e-Wallet อาจเป็นการโอนเงินระหว่างบัญชีของตนเอง จึงยังไม่บันทึกเป็นรายจ่ายอัตโนมัติ',
   };
 }
