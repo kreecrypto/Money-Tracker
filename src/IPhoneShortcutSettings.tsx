@@ -110,7 +110,7 @@ export default function IPhoneShortcutSettings({onImported}:{onImported:()=>Prom
         <li>เชื่อม iPhone Inbox ด้วย Review Token เพียงครั้งเดียว แอปจะซิงก์รายการที่ API บันทึกไว้ทันทีเมื่อเปิดหรือกลับเข้าแอป</li>
       </ol>
       <p className="iphone-photos-caution">การบันทึกอัตโนมัติจะข้ามรายการซ้ำ และไม่เดายอดเงินหรือประเภทที่อ่านไม่ได้ รายการที่ไม่ครบจะอยู่ในคิวรอตรวจสอบ ไม่ถูกบันทึกเป็นรายรับรายจ่ายผิด ๆ</p>
-      <a href="https://github.com/kreecrypto/Money-Tracker/blob/main/docs/IOS26_PHOTOS_AUTO_SLIP.md" target="_blank" rel="noopener noreferrer">อ่านคู่มือ Shortcuts แบบละเอียด</a>
+      <a href="https://github.com/kreecrypto/Money-Tracker/blob/main/docs/IOS_SHORTCUT_TEXT_AUTOSAVE.md" target="_blank" rel="noopener noreferrer">อ่านคู่มือ Shortcuts แบบละเอียด</a>
     </details>
     {!iphoneConfigured()?
       <p className="line-status" role="status"><ShieldCheck size={17}/> ยังไม่ได้เปิดใช้ iPhone API — ต้องตั้งค่า Bridge และฐานข้อมูลก่อน</p>:
