@@ -16,6 +16,8 @@ export type SlipFields = {
   method?: Method;
   category?: string;
   receipt?: ReceiptDetails;
+  /** Hash populated after OCR from original image bytes; never from OCR text. */
+  imageHash?: string;
   rawText: string;
   warnings: string[];
 };
