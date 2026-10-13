@@ -1,4 +1,4 @@
-import {toSatang,type ReceiptDetails,type ReceiptItem} from './finance';
+import {toSatang,type ReceiptDetails,type ReceiptItem} from './finance.js';
 import type {ReceiptSource} from './receiptFormats';
 
 type Rect={x0:number;y0:number;x1:number;y1:number};
