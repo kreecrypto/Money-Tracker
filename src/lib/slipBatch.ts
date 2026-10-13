@@ -16,14 +16,16 @@ export function validateSlipImage(file:Pick<File,'size'|'type'>&{name?:string}):
 }
 
 export function summarizeSlipBatch(rows:SlipBatchRow[]) {
+  const cancelled=rows.filter(r=>r.status==='cancelled').length;
+  const undone=rows.filter(r=>r.status==='undone').length;
   return {
     total:rows.length,
     saved:rows.filter(r=>r.status==='saved').length,
     duplicate:rows.filter(r=>r.status==='duplicate').length,
     incomplete:rows.filter(r=>r.status==='incomplete').length,
     errors:rows.filter(r=>r.status==='error').length,
-    cancelled:rows.filter(r=>r.status==='cancelled').length,
-    undone:rows.filter(r=>r.status==='undone').length,
+    ...(cancelled?{cancelled}:{}),
+    ...(undone?{undone}:{}),
   };
 }
 
