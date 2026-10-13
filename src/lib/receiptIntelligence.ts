@@ -58,7 +58,6 @@ const endingAmount=(text:string):number|null=>{
   const m=text.match(/(?:^|\s|:)([−–-]?(?:\d{1,3}(?:,\d{3})+|\d{1,7})(?:\.\d{1,2})?)\s*(?:บาท)?\s*$/iu);
   return m?moneyValue(m[1]):null;
 };
-const matches=(line:string,re:RegExp)=>re.test(line);
 const currencyLabel=(lines:string[],pattern:RegExp)=>{
   const values=new Set<number>();
   for(let i=0;i<lines.length;i++){
