@@ -66,11 +66,13 @@ export async function confirmedDrafts(){
 }
 export async function reviewDraft(id:string,decision:'confirm'|'discard',entry?:{
   type:EntryType;amountSatang:number;date:string;category:string;note:string;method:Method;
+  time?:string|null;recipient?:string|null;
 }){
   const update=decision==='discard'?{status:'discarded',reviewed_at:new Date().toISOString()}:
     {status:'confirmed',reviewed_at:new Date().toISOString(),
      type:entry!.type,amount_satang:entry!.amountSatang,transaction_date:entry!.date,
-     category:entry!.category,note:entry!.note,method:entry!.method};
+     category:entry!.category,note:entry!.note,method:entry!.method,
+     transaction_time:entry!.time||null,recipient:entry!.recipient||null};
   const records=await db(table+'?id=eq.'+esc(id)+'&owner_key=eq.'+esc(ownerKey())+'&status=eq.pending',
     'PATCH',update);
   return records[0]||null;
