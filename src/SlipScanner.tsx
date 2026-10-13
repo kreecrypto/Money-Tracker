@@ -279,14 +279,14 @@ export default function SlipScanner({onApply,onComplete,onBusyChange,onUndoBatch
   const undoSaved=async()=>{
     const ids=rows.filter(row=>row.status==='saved'&&row.transactionId).map(row=>row.transactionId!);
     if(!ids.length||undoing)return;
-    setUndoing(true);
+    setUndoing(true);onBusyChange(true);
     try{
       await onUndoBatch(ids);
       const next=rows.map(row=>row.status==='saved'?{...row,status:'undone' as const,transactionId:undefined}:row);
       setRows(next);onComplete(summarizeSlipBatch(next));
     }catch(err){
       setCorrectionErrors(previous=>({...previous,[-1]:err instanceof Error?err.message:'ยกเลิกรายการไม่สำเร็จ'}));
-    }finally{setUndoing(false);}
+    }finally{setUndoing(false);onBusyChange(false);}
   };
   const summary=summarizeSlipBatch(rows);
   const needsAttention=Object.entries(corrections).filter(([index])=>rows[Number(index)]?.status==='incomplete');
