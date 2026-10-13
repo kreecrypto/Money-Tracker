@@ -52,6 +52,7 @@ export function receiptLayoutLines(blocks:unknown):string[]{
 const moneyValue=(text:string):number|null=>{
   const normalized=text.replace(/^[−–-]/u,'').replace(/บาท|THB|฿/giu,'').replace(/,/gu,'').trim();
   if(!/^\d{1,7}(?:\.\d{1,2})?$/u.test(normalized))return null;
+  if(/^0+(?:\.0{1,2})?$/u.test(normalized))return 0;
   return toSatang(normalized);
 };
 const endingAmount=(text:string):number|null=>{
