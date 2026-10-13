@@ -97,18 +97,19 @@ export default function IPhoneShortcutSettings({onImported}:{onImported:()=>Prom
   };
   return <section className="surface settings-card iphone-card" aria-label="iPhone Shortcut">
     <div className="settings-icon green"><Smartphone size={23}/></div>
-    <h3>iPhone Photos → เงินวันนี้</h3>
-    <p>Photos Auto Slip Sync สำหรับ iOS 26/27 (K PLUS เท่านั้น): เมื่อปิดแอปธนาคาร Shortcuts สามารถค้นหารูปล่าสุด อ่านข้อความบน iPhone แล้วส่งเฉพาะข้อความที่คล้ายสลิปเข้าระบบเพื่อรอยืนยัน โดยไม่ต้องเชื่อม LINE OA ของธนาคาร</p>
+    <h3>iPhone Shortcut → บันทึกอัตโนมัติ</h3>
+    <p>Shortcut อ่านข้อความจากรูปสลิป K PLUS บน iPhone แล้วส่ง Text ผ่าน API เพื่อบันทึกรายรับ–รายจ่ายทันทีเมื่อยอดเงิน วันที่ และทิศทางการเงินชัดเจน ไม่ต้องเปิดแอปหรือกดยืนยัน รูปภาพไม่ถูกส่งขึ้น Server</p>
     <details className="iphone-photos-setup">
-      <summary>วิธีเปิด Auto Slip Sync บน iPhone (iOS 26)</summary>
+      <summary>วิธีเปิด Auto Save ผ่าน iPhone Shortcuts</summary>
       <ol>
         <li>สร้าง Shortcut: Find Photos (รูปล่าสุด) → Repeat with Each → Extract Text from Image</li>
         <li>กรองข้อความบน iPhone ให้พบ K PLUS/กสิกร <strong>และ</strong> คำว่าทำรายการสำเร็จ <strong>และ</strong> ป้ายยอดเงิน (รวมถึง จำนวน:) ก่อนส่ง</li>
-        <li>ส่งเฉพาะข้อความ OCR ไปยัง API ผ่าน POST JSON โดยใช้ Upload Token เฉพาะเครื่อง</li>
+        <li>ใช้ Get Contents of URL → POST → JSON ส่งฟิลด์ text ไปยัง /api/iphone/photos และ Header Authorization: Bearer + Upload Token</li>
+        <li>ถ้ารูปเป็นสลิปโอนออกจากบัญชีของคุณ ให้กำหนด direction เป็น expense ใน JSON; หากเป็นข้อความแจ้งเตือนเงินเข้า/ออกที่ระบุชัด ไม่ต้องส่ง direction</li>
         <li>Shortcuts → Automation → App → เลือก K PLUS → Is Closed → Run Immediately → เลือก Shortcut นี้</li>
-        <li>กลับมาหน้านี้เพื่อตรวจยอด เลือกเงินเข้า/ออกและยืนยัน</li>
+        <li>เชื่อม iPhone Inbox ด้วย Review Token เพียงครั้งเดียว แอปจะซิงก์รายการที่ API บันทึกไว้ทันทีเมื่อเปิดหรือกลับเข้าแอป</li>
       </ol>
-      <p className="iphone-photos-caution">ไม่ใช่การเฝ้าดู Photos ตลอดเวลา หากสลิปยังไม่ถูกบันทึกตอนปิดแอป อาจต้องใช้ Automation ตามเวลาช่วยตรวจอีกครั้ง</p>
+      <p className="iphone-photos-caution">การบันทึกอัตโนมัติจะข้ามรายการซ้ำ และไม่เดายอดเงินหรือประเภทที่อ่านไม่ได้ รายการที่ไม่ครบจะอยู่ในคิวรอตรวจสอบ ไม่ถูกบันทึกเป็นรายรับรายจ่ายผิด ๆ</p>
       <a href="https://github.com/kreecrypto/Money-Tracker/blob/main/docs/IOS26_PHOTOS_AUTO_SLIP.md" target="_blank" rel="noopener noreferrer">อ่านคู่มือ Shortcuts แบบละเอียด</a>
     </details>
     {!iphoneConfigured()?
@@ -129,11 +130,11 @@ export default function IPhoneShortcutSettings({onImported}:{onImported:()=>Prom
             onClick={()=>{iphoneDisconnect();setLinked(false);setRows([]);setNote('ตัดการเชื่อมในเบราว์เซอร์นี้แล้ว');}}>
             <Unlink size={16}/> เลิกเชื่อมเครื่องนี้</button>
         </div>
-        <h4 className="iphone-pending-heading">รอตรวจสอบ {rows.length} รายการ</h4>
+        <h4 className="iphone-pending-heading">รายการที่ข้อมูลไม่ครบ {rows.length} รายการ</h4>
         {rows.length?rows.map(row=><Draft key={row.id} draft={row} onReviewed={afterReview}/>):
-          <p className="iphone-empty">ไม่มีรายการรอตรวจสอบ · ส่งข้อความจาก Shortcut แล้วกดตรวจรายการใหม่</p>}
+          <p className="iphone-empty">ไม่มีรายการที่ต้องตรวจ · รายการที่ครบจะบันทึกอัตโนมัติและปรากฏในหน้ารายการ</p>}
       </>}
     {note&&<p className="line-status" role="status">{note}</p>}
-    <small className="hint">ใช้ได้เมื่อ API พร้อมและตั้งค่ารหัสใน Vercel แล้ว รายการที่ยืนยันจะเก็บใน IndexedDB ของเบราว์เซอร์นี้ (ยังไม่ใช่ Cloud Sync สองทาง)</small>
+    <small className="hint">API เก็บเฉพาะข้อมูลธุรกรรมที่อ่านได้ใน Supabase และแอปซิงก์เข้า IndexedDB เมื่อเปิด/กลับเข้าแอป ไม่มีการเก็บภาพสลิปบน Server และยังไม่ใช่ Cloud Sync สองทาง</small>
   </section>;
 }
