@@ -30,7 +30,7 @@ function PendingCard({item,onSave,onKeep,onDiscard}:{
   });
   const keep=async()=>{
     setBusy(true);setError('');setNotice('');
-    try{await onKeep(assemble());setNotice('เก็บข้อมูลที่แก้ไขไว้ในเครื่องแล้ว');}
+    try{const updated=assemble();await onKeep(updated);setDraft(updated);setNotice('เก็บข้อมูลที่แก้ไขไว้ในเครื่องแล้ว');}
     catch(e){setError(e instanceof Error?e.message:'เก็บข้อมูลไม่สำเร็จ');}
     finally{setBusy(false);}
   };
