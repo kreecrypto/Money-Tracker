@@ -1,8 +1,9 @@
 import {useEffect,useRef,useState,type ChangeEvent} from 'react';
-import {Camera,CheckCircle2,FileImage,ScanLine,ShieldCheck,Upload,X} from 'lucide-react';
+import {Camera,CheckCircle2,FileImage,ScanLine,ShieldCheck,Upload,X,Square,Undo2,AlertTriangle,Check,LoaderCircle} from 'lucide-react';
 import {parseSlipText,mergeSlipOcrReadings,needsSlipOcrRecovery,type SlipFields} from './lib/slip';
-import {prepareSlipRecoveryImage} from './lib/slipImage';
-import {receiptLayoutLines} from './lib/receiptIntelligence';
+import {prepareSlipRecoveryImage,prepareSlipOcrFile} from './lib/slipImage';
+import {receiptLayoutLines,receiptReconciliationError} from './lib/receiptIntelligence';
+import {baht,toSatang,type EntryType,type Method} from './lib/finance';
 import {
   MAX_SLIP_BATCH_FILES,summarizeSlipBatch,validateSlipImage,
   type SlipBatchOutcome,type SlipBatchRow,
@@ -13,33 +14,66 @@ type Props={
   onApply:(data:SlipFields)=>Promise<SlipBatchOutcome>;
   onComplete:(summary:BatchSummary)=>void;
   onBusyChange:(busy:boolean)=>void;
+  onUndoBatch:(ids:string[])=>Promise<void>;
   onClose:()=>void;
 };
 type ProcessingStage='download'|'recognize'|'retry'|'save';
-const statusLabels:Record<SlipBatchRow['status'],string>={
-  saved:'บันทึกแล้ว',duplicate:'ข้าม (รายการซ้ำ)',incomplete:'อ่านไม่ครบ',error:'ไม่สำเร็จ',
+type Correction={
+  source:SlipFields;
+  date:string;
+  time:string;
+  amount:string;
+  recipient:string;
+  direction:EntryType;
+  method:Method;
+  category:string;
 };
+const statusLabels:Record<SlipBatchRow['status'],string>={
+  saved:'บันทึกแล้ว',duplicate:'รายการซ้ำ',incomplete:'ต้องแก้ไข',
+  error:'อ่านไม่ได้',cancelled:'ยกเลิกแล้ว',undone:'ยกเลิกการบันทึกแล้ว',
+};
+const toCorrection=(source:SlipFields):Correction=>({
+  source,date:source.date||'',time:source.time||'',
+  amount:source.amountSatang===null?'':String(source.amountSatang/100),
+  recipient:source.recipient||'',direction:source.direction||'expense',
+  method:source.method||'bank',category:source.category||'อื่น ๆ',
+});
+async function originalImageHash(file:File):Promise<string|undefined>{
+  if(typeof crypto==='undefined'||!crypto.subtle)return undefined;
+  try{
+    const digest=await crypto.subtle.digest('SHA-256',await file.arrayBuffer());
+    return Array.from(new Uint8Array(digest),b=>b.toString(16).padStart(2,'0')).join('');
+  }catch{return undefined;}
+}
 
-export default function SlipScanner({onApply,onComplete,onBusyChange,onClose}:Props){
+export default function SlipScanner({onApply,onComplete,onBusyChange,onUndoBatch,onClose}:Props){
   const galleryRef=useRef<HTMLInputElement>(null);
   const cameraRef=useRef<HTMLInputElement>(null);
   const workerRef=useRef<{terminate:()=>Promise<unknown>}|null>(null);
   const previewUrlRef=useRef<string|null>(null);
   const mountedRef=useRef(true);
   const runningRef=useRef(false);
+  const stopRef=useRef(false);
   const [preview,setPreview]=useState<string|null>(null);
   const [filename,setFilename]=useState('');
   const [busy,setBusy]=useState(false);
+  const [stopRequested,setStopRequested]=useState(false);
   const [progress,setProgress]=useState(0);
   const [stage,setStage]=useState<ProcessingStage>('download');
   const [activeIndex,setActiveIndex]=useState(0);
   const [totalFiles,setTotalFiles]=useState(0);
   const [rows,setRows]=useState<SlipBatchRow[]>([]);
+  const [corrections,setCorrections]=useState<Record<number,Correction>>({});
+  const [correctionErrors,setCorrectionErrors]=useState<Record<number,string>>({});
+  const [fixingIndex,setFixingIndex]=useState<number|null>(null);
+  const [undoing,setUndoing]=useState(false);
   const [complete,setComplete]=useState(false);
+
   useEffect(()=>{
     mountedRef.current=true;
     return ()=>{
       mountedRef.current=false;
+      stopRef.current=true;
       if(previewUrlRef.current)URL.revokeObjectURL(previewUrlRef.current);
       if(workerRef.current)void workerRef.current.terminate().catch(()=>{});
     };
@@ -49,25 +83,30 @@ export default function SlipScanner({onApply,onComplete,onBusyChange,onClose}:Pr
     const url=URL.createObjectURL(file);
     if(previewUrlRef.current)URL.revokeObjectURL(previewUrlRef.current);
     previewUrlRef.current=url;
-    setPreview(url);
-    setFilename(file.name);
+    setPreview(url);setFilename(file.name);
   };
   const clearPreview=()=>{
     if(previewUrlRef.current)URL.revokeObjectURL(previewUrlRef.current);
-    previewUrlRef.current=null;
-    setPreview(null);
+    previewUrlRef.current=null;setPreview(null);
   };
-
+  const changeCorrection=(index:number,patch:Partial<Correction>)=>{
+    setCorrections(previous=>{
+      const original=previous[index];
+      return original?{...previous,[index]:{...original,...patch}}:previous;
+    });
+    setCorrectionErrors(previous=>({...previous,[index]:''}));
+  };
   const scan=async(e:ChangeEvent<HTMLInputElement>)=>{
     const files=Array.from(e.currentTarget.files||[]);
-    e.currentTarget.value=''; // Allows selecting the same photos again after a failed batch.
+    e.currentTarget.value='';
     if(!files.length||runningRef.current)return;
-    runningRef.current=true;
-    setBusy(true);onBusyChange(true);
-    setRows([]);setComplete(false);setProgress(0);setStage('download');
-    setActiveIndex(0);setTotalFiles(files.length);clearPreview();
-
+    runningRef.current=true;stopRef.current=false;
+    setBusy(true);setStopRequested(false);onBusyChange(true);
+    setRows([]);setCorrections({});setCorrectionErrors({});setComplete(false);
+    setProgress(0);setStage('download');setActiveIndex(0);
+    setTotalFiles(files.length);clearPreview();
     const processed:SlipBatchRow[]=[];
+    const attention:Record<number,Correction>={};
     const publish=(row:SlipBatchRow)=>{
       processed.push(row);
       if(mountedRef.current)setRows([...processed]);
@@ -79,6 +118,7 @@ export default function SlipScanner({onApply,onComplete,onBusyChange,onClose}:Pr
     try{
       if(valid){
         const {createWorker,PSM}=await import('tesseract.js');
+        if(stopRef.current)return;
         worker=await createWorker(['tha','eng'],1,{
           logger:message=>{
             if(mountedRef.current&&message.status==='recognizing text'){
@@ -90,90 +130,179 @@ export default function SlipScanner({onApply,onComplete,onBusyChange,onClose}:Pr
         if(!mountedRef.current)return;
         workerRef.current=worker;
         for(let i=0;i<selected.length;i++){
-          if(!mountedRef.current)break;
+          if(!mountedRef.current||stopRef.current)break;
           const file=selected[i];
           setActiveIndex(i+1);setStage('recognize');setProgress(0);
           const invalid=validateSlipImage(file);
           if(invalid){publish({name:file.name,status:'error',reason:invalid});continue;}
           try{
-            showPreview(file);
+            setStage('download');
+            const hash=await originalImageHash(file);
+            const ocrFile=await prepareSlipOcrFile(file);
+            if(stopRef.current)break;
+            showPreview(ocrFile);
             await worker.setParameters({tessedit_pageseg_mode:PSM.AUTO});
-            const initial=await worker.recognize(file,{}, {text:true,blocks:true});
+            setStage('recognize');
+            const initial=await worker.recognize(ocrFile,{}, {text:true,blocks:true});
             let reading=parseSlipText(initial.data.text,receiptLayoutLines(initial.data.blocks));
-            if(needsSlipOcrRecovery(reading)&&mountedRef.current){
+            if(needsSlipOcrRecovery(reading)&&mountedRef.current&&!stopRef.current){
               setStage('retry');setProgress(0);
               try{
-                const enhanced=await prepareSlipRecoveryImage(file);
-                if(mountedRef.current){
+                const enhanced=await prepareSlipRecoveryImage(ocrFile);
+                if(mountedRef.current&&!stopRef.current){
                   await worker.setParameters({tessedit_pageseg_mode:PSM.SPARSE_TEXT});
                   const retry=await worker.recognize(enhanced,{}, {text:true,blocks:true});
                   reading=mergeSlipOcrReadings(reading,parseSlipText(retry.data.text,receiptLayoutLines(retry.data.blocks)));
                 }
-              }catch{
-                // Recovery failure must not prevent the next image from being processed.
-              }
+              }catch{/* A failed image enhancement does not discard the first reading. */}
             }
-            if(!mountedRef.current)break;
+            if(!mountedRef.current||stopRef.current)break;
+            reading.imageHash=hash;
             setStage('save');
             const outcome=await onApply(reading);
-            publish({name:file.name,...outcome});
+            publish({name:file.name,...outcome,recipient:outcome.recipient||reading.recipient||undefined,amountSatang:outcome.amountSatang||reading.amountSatang||undefined,date:outcome.date||reading.date||undefined});
+            if(outcome.status==='incomplete'){
+              attention[i]=toCorrection(reading);
+              setCorrections({...attention});
+            }
           }catch(err){
             publish({name:file.name,status:'error',reason:err instanceof Error?err.message:'ประมวลผลภาพไม่สำเร็จ'});
           }
         }
       }else{
-        for(const file of selected)
-          publish({name:file.name,status:'error',reason:validateSlipImage(file)||'ไม่สามารถอ่านไฟล์ได้'});
+        for(const file of selected)publish({name:file.name,status:'error',reason:validateSlipImage(file)||'ไม่สามารถอ่านไฟล์ได้'});
       }
     }catch(err){
-      // A worker init error affects all remaining files, not prior saved records.
-      for(const file of selected.slice(processed.length))
-        publish({name:file.name,status:'error',reason:err instanceof Error?err.message:'เริ่มต้น OCR ไม่สำเร็จ'});
+      if(!stopRef.current){
+        for(const file of selected.slice(processed.length))
+          publish({name:file.name,status:'error',reason:err instanceof Error?err.message:'เริ่มต้น OCR ไม่สำเร็จ'});
+      }
     }finally{
-      for(const file of overflow)
-        publish({name:file.name,status:'error',reason:'ครั้งละไม่เกิน 20 รูป กรุณาแบ่งเลือกเป็นชุด'});
+      if(stopRef.current){
+        for(const file of selected.slice(processed.length))publish({name:file.name,status:'cancelled',reason:'ยังไม่ได้อ่านหรือบันทึก'});
+      }
+      for(const file of overflow)publish({name:file.name,status:'error',reason:'ครั้งละไม่เกิน 20 รูป กรุณาแบ่งเลือกเป็นชุด'});
       if(worker){
-        try{await worker.terminate();}catch{/* unmounted worker may already be terminated */}
+        try{await worker.terminate();}catch{/* The component may already have unmounted. */}
         workerRef.current=null;
       }
-      clearPreview();
-      runningRef.current=false;
+      clearPreview();runningRef.current=false;
       if(mountedRef.current){
         setBusy(false);onBusyChange(false);setComplete(true);
-        const summary=summarizeSlipBatch(processed);
-        onComplete(summary);
+        onComplete(summarizeSlipBatch(processed));
       }
     }
   };
-
+  const saveCorrection=async(index:number)=>{
+    const draft=corrections[index];
+    if(!draft||fixingIndex!==null||undoing)return;
+    const amountSatang=toSatang(draft.amount);
+    if(!amountSatang||!draft.recipient.trim()||!draft.date||!draft.time){
+      setCorrectionErrors(previous=>({...previous,[index]:'กรุณาระบุวันที่ เวลา จำนวนเงิน และชื่อผู้รับให้ครบ'}));
+      return;
+    }
+    setFixingIndex(index);
+    try{
+      // A person explicitly confirms these fields. Unreconciled line items
+      // must be omitted rather than saved as verified receipt details.
+      const receipt=draft.source.receipt;
+      const keepReceipt=!!receipt&&receipt.itemsComplete&&receipt.paidSatang===amountSatang&&!receiptReconciliationError(receipt);
+      const corrected:SlipFields={
+        ...draft.source,amountSatang,date:draft.date,time:draft.time,recipient:draft.recipient.trim(),
+        direction:draft.direction,directionReason:'ผู้ใช้ตรวจและยืนยันข้อมูลจากสลิป',
+        method:draft.method,category:draft.category,
+        source:keepReceipt?draft.source.source:undefined,
+        receipt:keepReceipt?receipt:undefined,
+        warnings:[],
+      };
+      const outcome=await onApply(corrected);
+      if(outcome.status==='incomplete'||outcome.status==='error'){
+        setCorrectionErrors(previous=>({...previous,[index]:outcome.reason||'ยังไม่สามารถบันทึกได้'}));
+        return;
+      }
+      const next=rows.map((row,i)=>i===index?{
+        ...row,...outcome,recipient:corrected.recipient||undefined,
+        amountSatang:corrected.amountSatang||undefined,date:corrected.date||undefined,
+      }:row);
+      setRows(next);
+      setCorrections(previous=>{const updated={...previous};delete updated[index];return updated;});
+      onComplete(summarizeSlipBatch(next));
+    }catch(err){
+      setCorrectionErrors(previous=>({...previous,[index]:err instanceof Error?err.message:'บันทึกไม่สำเร็จ'}));
+    }finally{setFixingIndex(null);}
+  };
+  const undoSaved=async()=>{
+    const ids=rows.filter(row=>row.status==='saved'&&row.transactionId).map(row=>row.transactionId!);
+    if(!ids.length||undoing)return;
+    setUndoing(true);
+    try{
+      await onUndoBatch(ids);
+      const next=rows.map(row=>row.status==='saved'?{...row,status:'undone' as const,transactionId:undefined}:row);
+      setRows(next);onComplete(summarizeSlipBatch(next));
+    }catch(err){
+      setCorrectionErrors(previous=>({...previous,[-1]:err instanceof Error?err.message:'ยกเลิกรายการไม่สำเร็จ'}));
+    }finally{setUndoing(false);}
+  };
   const summary=summarizeSlipBatch(rows);
-  return <section className="slip-panel slip-panel-primary" aria-label="อัปโหลดสลิปหรือใบเสร็จหลายรูป">
-    <div className="slip-head"><div><ScanLine size={18}/><strong>อัปโหลดสลิป / ใบเสร็จ</strong></div><button type="button" className="slip-close" disabled={busy} onClick={onClose} aria-label="กลับไปกรอกข้อมูลเอง"><X size={18}/></button></div>
-    <p className="slip-hint">เลือกได้หลายรูปในครั้งเดียว รองรับ K PLUS, 7-Eleven/7Delivery และเป๋าตัง ระบบจะอ่านและบันทึกแต่ละรูปให้อัตโนมัติ โดยข้ามรายการซ้ำหรือภาพที่อ่านไม่ครบ</p>
-    <div className="slip-upload-box">
+  const needsAttention=Object.entries(corrections).filter(([index])=>rows[Number(index)]?.status==='incomplete');
+  return <section className="slip-panel slip-panel-primary slip-workspace" aria-label="อัปโหลดสลิปหรือใบเสร็จหลายรูป">
+    <div className="slip-head"><div><ScanLine size={18}/><strong>อัปโหลดสลิป / ใบเสร็จ</strong></div><button type="button" className="slip-close" disabled={busy||undoing} onClick={onClose} aria-label="ปิดหน้านำเข้า"><X size={18}/></button></div>
+    {!busy&&!complete&&<p className="slip-hint">เลือกรูปจาก iPhone ได้ครั้งละ 20 ภาพ ระบบอ่านและบันทึกอัตโนมัติเมื่อข้อมูลครบ ภาพซ้ำจะไม่บันทึกเพิ่ม</p>}
+    {!busy&&<div className="slip-upload-box">
       <div className="slip-upload-icon" aria-hidden="true"><FileImage size={28}/></div>
-      <strong>เลือกหลายรูปเพื่อบันทึกทีเดียว</strong>
-      <span>สูงสุด 20 รูป/ครั้ง · JPG, PNG, WebP · ไม่เกิน 10 MB/รูป</span>
-      <div className="slip-actions"><button type="button" className="btn btn-primary slip-pick" disabled={busy} onClick={()=>galleryRef.current?.click()}><Upload size={18}/> เลือกภาพสลิป</button><button type="button" className="btn btn-secondary" disabled={busy} onClick={()=>cameraRef.current?.click()}><Camera size={18}/> ถ่ายรูป</button></div>
-    </div>
-    <input ref={galleryRef} aria-label="เลือกรูปสลิปหลายรูป" multiple type="file" className="visually-hidden" accept="image/png,image/jpeg,image/webp" onChange={e=>void scan(e)}/>
+      <strong>{complete?'เพิ่มรูปอีกชุด':'เลือกหลายรูปเพื่อบันทึกทีเดียว'}</strong>
+      <span>สูงสุด 20 รูป/ครั้ง · JPG, PNG, WebP, HEIC · ไม่เกิน 10 MB/รูป</span>
+      <div className="slip-actions"><button type="button" className="btn btn-primary slip-pick" disabled={undoing} onClick={()=>galleryRef.current?.click()}><Upload size={18}/> เลือกรูปจาก iPhone</button><button type="button" className="btn btn-secondary" disabled={undoing} onClick={()=>cameraRef.current?.click()}><Camera size={18}/> ถ่ายรูป</button></div>
+    </div>}
+    <input ref={galleryRef} aria-label="เลือกรูปสลิปหลายรูป" multiple type="file" className="visually-hidden" accept="image/png,image/jpeg,image/webp,image/heic,image/heif,.heic,.heif" onChange={e=>void scan(e)}/>
     <input ref={cameraRef} aria-label="ถ่ายรูปสลิป" type="file" className="visually-hidden" accept="image/*" capture="environment" onChange={e=>void scan(e)}/>
-    {busy&&<div className="slip-batch-progress" role="status" aria-live="polite">
-      <div className="slip-batch-counter"><strong>กำลังประมวลผลรูปที่ {activeIndex||1}/{totalFiles}</strong><span>{summary.saved} บันทึก · {summary.duplicate} ซ้ำ · {summary.incomplete+summary.errors} ไม่สำเร็จ</span></div>
-      <div className="slip-progress-track"><div style={{width:String(Math.round((Math.max(0,activeIndex-1)+(progress/100))/Math.max(1,totalFiles)*100))+'%'}}/></div>
-      <span className="slip-batch-stage">{stage==='save'?'กำลังบันทึกธุรกรรม…':stage==='retry'?'กำลังปรับภาพและอ่านซ้ำ…':stage==='recognize'?'อ่าน OCR '+progress+'%':'กำลังโหลดชุด OCR ภาษาไทย/อังกฤษ…'}</span>
+    {busy&&<div className="slip-batch-progress slip-processing-focus" role="status" aria-live="polite">
+      <div className="slip-processing-icon"><LoaderCircle size={30}/></div>
+      <strong>กำลังอ่านสลิป {activeIndex||1} / {totalFiles}</strong>
+      <p>{stopRequested?'กำลังหยุดหลังขั้นตอนปัจจุบัน…':stage==='save'?'กำลังตรวจรายการซ้ำและบันทึก…':stage==='retry'?'กำลังปรับภาพและอ่านซ้ำ…':stage==='recognize'?'OCR กำลังอ่านข้อความ '+progress+'%':'กำลังเตรียมภาพและระบบ OCR…'}</p>
+      <div className="slip-progress-track" role="progressbar" aria-label="ความคืบหน้า OCR" aria-valuemin={0} aria-valuemax={100} aria-valuenow={Math.round((Math.max(0,activeIndex-1)+progress/100)/Math.max(1,totalFiles)*100)}><div style={{width:String(Math.round((Math.max(0,activeIndex-1)+(progress/100))/Math.max(1,totalFiles)*100))+'%'}}/></div>
+      <span>{summary.saved} บันทึกแล้ว · {summary.duplicate} ซ้ำ · {summary.incomplete+summary.errors} ต้องตรวจ</span>
+      <button type="button" className="btn btn-secondary slip-stop" disabled={stopRequested} onClick={()=>{stopRef.current=true;setStopRequested(true);}}><Square size={16}/> {stopRequested?'กำลังหยุด…':'หยุดรูปที่เหลือ'}</button>
     </div>}
     {busy&&preview&&<figure className="slip-preview"><img src={preview} alt="รูปสลิปที่กำลังประมวลผล"/><figcaption>{filename}</figcaption></figure>}
     {complete&&<div className="slip-batch-summary" role="status" aria-live="polite">
-      <div className="slip-batch-summary-title"><CheckCircle2 size={18}/><strong>ประมวลผลครบ {summary.total} รูป</strong></div>
-      <div className="slip-batch-counts"><span>บันทึกสำเร็จ <b>{summary.saved}</b></span><span>รายการซ้ำ <b>{summary.duplicate}</b></span><span>อ่านไม่ครบ/ผิดพลาด <b>{summary.incomplete+summary.errors}</b></span></div>
-      {summary.incomplete+summary.errors+summary.duplicate>0&&<p className="slip-batch-note">รายการที่ไม่ผ่านยังไม่ถูกบันทึก เลือกรูปใหม่หรือลองกรอกเองได้</p>}
-      <button type="button" className="btn btn-secondary slip-batch-finish" onClick={onClose}>เสร็จแล้ว</button>
+      <div className="slip-batch-summary-title"><CheckCircle2 size={18}/><strong>อ่านครบ {summary.total} รูป</strong></div>
+      <div className="slip-batch-counts"><span>บันทึกแล้ว<b>{summary.saved}</b></span><span>ซ้ำ<b>{summary.duplicate}</b></span><span>ต้องแก้ไข<b>{summary.incomplete+summary.errors}</b></span></div>
+      {summary.saved>0&&<div className="slip-batch-total"><span>รวมยอดที่บันทึกในชุดนี้</span><strong>฿{baht(rows.filter(row=>row.status==='saved').reduce((total,row)=>total+(row.amountSatang||0),0))}</strong></div>}
+      {summary.cancelled>0&&<p className="slip-batch-note">ยกเลิกไป {summary.cancelled} รูป รายการที่บันทึกสำเร็จก่อนหยุดยังอยู่ในแอป</p>}
+      {summary.undone>0&&<p className="slip-batch-note">ยกเลิกการบันทึกแล้ว {summary.undone} รายการ</p>}
+      {summary.saved>0&&<button type="button" className="btn btn-secondary slip-undo" disabled={undoing} onClick={()=>void undoSaved()}><Undo2 size={16}/>{undoing?'กำลังยกเลิกรายการ…':'ยกเลิกการบันทึกชุดนี้ ('+summary.saved+')'}</button>}
+      {correctionErrors[-1]&&<p role="alert" className="error-message">{correctionErrors[-1]}</p>}
+      <button type="button" className="btn btn-primary slip-batch-finish" disabled={undoing} onClick={onClose}>เสร็จแล้ว · กลับหน้าหลัก</button>
     </div>}
     {rows.length>0&&<div className="slip-batch-results" aria-label="ผลการประมวลผลแต่ละรูป">
-      <strong>รายการแต่ละรูป</strong>
-      <ul>{rows.map((row,i)=><li key={i+'-'+row.name}><span className="slip-batch-file">{row.name}</span><span className={'slip-batch-status '+row.status}>{statusLabels[row.status]}</span>{row.reason&&<small>{row.reason}</small>}</li>)}</ul>
+      <strong>รายละเอียดแต่ละใบ</strong>
+      <ul>{rows.map((row,i)=><li key={i+'-'+row.name} className="slip-result-row">
+        <span className="slip-result-main"><span className="slip-batch-file">{row.recipient||row.name}</span>{row.date&&<small>{row.date}</small>}</span>
+        {row.amountSatang!==undefined&&<b className="slip-result-amount">฿{baht(row.amountSatang)}</b>}
+        <span className={'slip-batch-status '+row.status}>{statusLabels[row.status]}</span>
+        {row.reason&&row.status!=='saved'&&<small className="slip-result-reason">{row.reason}</small>}
+      </li>)}</ul>
     </div>}
-    <p className="slip-privacy"><ShieldCheck size={14}/> รูปถูกอ่านในเครื่องทีละรูป ไม่อัปโหลดหรือเก็บภาพถาวร ภาพที่อ่านไม่ชัดและรายการซ้ำจะไม่ถูกบันทึก</p>
+    {needsAttention.length>0&&<div className="slip-attention" aria-label="แก้ไขสลิปที่อ่านไม่ครบ">
+      <div className="slip-attention-title"><AlertTriangle size={17}/><strong>แก้เฉพาะช่องที่อ่านไม่ครบ</strong></div>
+      <p>รายการเหล่านี้ยังไม่ถูกบันทึก ตรวจยอดเงินจริงจากใบเสร็จก่อนกดบันทึก</p>
+      {needsAttention.map(([rawIndex,draft])=>{
+        const index=Number(rawIndex);
+        return <div key={rawIndex} className="slip-attention-card">
+          <strong>{rows[index]?.name||'ใบเสร็จ'}</strong>
+          <div className="slip-attention-fields">
+            <label>จำนวนเงิน (บาท)<input inputMode="decimal" value={draft.amount} onChange={e=>changeCorrection(index,{amount:e.target.value})} placeholder="0.00"/></label>
+            <label>ประเภท<select value={draft.direction} onChange={e=>changeCorrection(index,{direction:e.target.value as EntryType})}><option value="expense">รายจ่าย</option><option value="income">รายรับ</option></select></label>
+            <label>วันที่<input type="date" value={draft.date} onChange={e=>changeCorrection(index,{date:e.target.value})}/></label>
+            <label>เวลา<input type="time" value={draft.time} onChange={e=>changeCorrection(index,{time:e.target.value})}/></label>
+            <label className="slip-attention-wide">ผู้รับเงิน / ร้านค้า<input value={draft.recipient} maxLength={160} onChange={e=>changeCorrection(index,{recipient:e.target.value})}/></label>
+          </div>
+          {correctionErrors[index]&&<p className="error-message" role="alert">{correctionErrors[index]}</p>}
+          <button type="button" className="btn btn-primary slip-correct-save" disabled={fixingIndex!==null||busy} onClick={()=>void saveCorrection(index)}><Check size={16}/>{fixingIndex===index?'กำลังบันทึก…':'บันทึกข้อมูลที่ตรวจแล้ว'}</button>
+        </div>;
+      })}
+    </div>}
+    <p className="slip-privacy"><ShieldCheck size={14}/> รูปอ่านบนเครื่อง ไม่เก็บไฟล์ภาพถาวร จัดเก็บเฉพาะข้อมูลรายการและลายนิ้วมือ SHA-256 เพื่อป้องกันสลิปซ้ำ</p>
   </section>;
 }
