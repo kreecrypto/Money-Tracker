@@ -247,3 +247,20 @@ body,.app-shell{background:var(--mobile-canvas);color:var(--mobile-ink)}
 .slip-batch-status.incomplete,.slip-batch-status.error{background:#fff2de;color:#754910}
 .slip-batch-results li small{display:block;width:100%;line-height:1.45;color:#5d645c;overflow-wrap:anywhere}
 @media(max-width:350px){.slip-batch-counts{grid-template-columns:1fr}.slip-batch-counts span{display:flex;justify-content:space-between;align-items:center}.slip-batch-counts b{margin-top:0}}
+
+/* Itemized receipt details stay collapsed, preserving the compact transaction list. */
+.transaction-with-receipt{min-width:0;border-bottom:1px solid var(--mobile-line,#e5eae6)}
+.transaction-with-receipt:last-child{border-bottom:0}
+.transaction-with-receipt .transaction-row{border-bottom:0}
+.receipt-details{padding:0 10px 12px 48px;min-width:0}
+.receipt-details summary{cursor:pointer;list-style:disclosure-closed;color:#195e46;font-size:12px;font-weight:700;min-height:35px;display:list-item;padding:7px 3px}
+.receipt-details summary:focus-visible{outline:3px solid #73b29a;outline-offset:2px;border-radius:4px}
+.receipt-details[open] summary{list-style:disclosure-open}
+.receipt-details-body{background:#f6faf7;border-radius:11px;padding:11px 12px}
+.receipt-detail-line,.receipt-item-line{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;font-size:12px;padding:6px 0;color:#486557}
+.receipt-detail-line strong,.receipt-item-line strong{color:#1e4232;font-weight:650;text-align:right;flex-shrink:0}
+.receipt-detail-line>span,.receipt-item-line>span{min-width:0;overflow-wrap:anywhere}
+.receipt-item-list{padding-bottom:5px;border-bottom:1px solid #dae9df;margin-bottom:5px}
+.receipt-total{border-top:1px solid #d5e5da;padding-top:10px;font-weight:750}
+.receipt-total strong{font-size:14px;color:#155b44}
+@media(max-width:660px){.receipt-details{padding:0 0 11px 12px}.receipt-details-body{padding:9px 10px}}
