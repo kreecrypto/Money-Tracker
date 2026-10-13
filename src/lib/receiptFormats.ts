@@ -1,4 +1,4 @@
-import {toSatang,type Method} from './finance';
+import {toSatang,type Method} from './finance.js';
 
 export type ReceiptSource='seven_eleven'|'paotang';
 export type ReceiptExtraction={
