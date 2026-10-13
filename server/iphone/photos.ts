@@ -29,6 +29,8 @@ export type PhotosCandidate={
   reason:'receipt'|'not_receipt'|'unsupported_bank'|'no_transaction_amount'|'unreadable';
   amountSatang:number|null;
   date:string|null;
+  time:string|null;
+  recipient:string|null;
   type:'income'|'expense'|null;
   category:'อื่น ๆ';
   note:string;
@@ -43,7 +45,7 @@ export type PhotosCandidate={
  */
 export function inspectPhotosOCR(input:string):PhotosCandidate{
   const text=normalized(input).slice(0,12000);
-  const base={category:'อื่น ๆ' as const,amountSatang:null,date:null,
+  const base={category:'อื่น ๆ' as const,amountSatang:null,date:null,time:null,recipient:null,
     type:null,sourceLabel:'iPhone Photos',fingerprint:null,normalizedText:text};
   if(!text||text.length<12)return {...base,accept:false,reason:'unreadable',note:'อ่านข้อความสลิปไม่ชัดเจน'};
   if(!TRANSACTION.test(text))
@@ -63,11 +65,13 @@ export function inspectPhotosOCR(input:string):PhotosCandidate{
   const slip=parseSlipText(safeText);
   const amountSatang=notice?.amountSatang??slip.amountSatang;
   const date=notice?.date??slip.date;
-  const type=notice?.type??null;
+  const time=notice?.time??slip.time;
+  const recipient=slip.recipient;
+  const type=notice?.type??slip.direction;
   const sourceLabel='KBank / Photos';
   const fingerprint=transactionReference(text)||notice?.fingerprintSource||null;
   return {
-    accept:true,reason:'receipt',amountSatang,date,type,
+    accept:true,reason:'receipt',amountSatang,date,time,recipient,type,
     category:'อื่น ๆ',note:sourceLabel+' (ตรวจสอบก่อนบันทึก)',
     sourceLabel,
     fingerprint,
