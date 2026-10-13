@@ -22,7 +22,7 @@ describe('iPhone Shortcut clipboard image handoff',()=>{
   });
   it('does not parse text as image or invent receipt data',async()=>{
     await expect(clipboardSlipFiles(async()=>[
-      {types:['text/plain'],getType:async()=>new Blob(['hello'])} as ClipboardItem,
+      {types:['text/plain'],getType:async()=>new Blob(['hello'])} as unknown as ClipboardItem,
     ])).rejects.toThrow('ไม่พบรูป');
   });
   it('keeps the original bytes and accepts multiple image formats',async()=>{

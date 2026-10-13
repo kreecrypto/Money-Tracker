@@ -17,7 +17,8 @@ export async function GET(request:Request){
     const rows=await pendingDrafts();
     return json({drafts:rows.map(x=>({
       id:x.id,amountSatang:x.amount_satang,type:x.type,date:x.transaction_date,
-      category:x.category,note:x.note,method:x.method,source:x.source_label,createdAt:x.created_at
+      category:x.category,note:x.note,method:x.method,source:x.source_label,createdAt:x.created_at,
+      time:x.transaction_time,recipient:x.recipient
     }))},200,g.headers);
   }catch{return json({error:'STORAGE_UNAVAILABLE'},503,g.headers);}
 }
@@ -33,7 +34,7 @@ export async function POST(request:Request){
     !['confirm','discard'].includes(String(input.decision||'')))
     return json({error:'BAD_INPUT'},400,g.headers);
   const decision=input.decision as 'confirm'|'discard';
-  let entry:{type:'income'|'expense';amountSatang:number;date:string;category:string;note:string;method:'cash'|'bank'|'card'|'wallet'}|undefined;
+  let entry:{type:'income'|'expense';amountSatang:number;date:string;category:string;note:string;method:'cash'|'bank'|'card'|'wallet';time?:string|null;recipient?:string|null}|undefined;
   if(decision==='confirm'){
     if(!['income','expense'].includes(String(input.type)) ||
       !Number.isSafeInteger(input.amountSatang) || Number(input.amountSatang)<=0 ||
@@ -41,13 +42,16 @@ export async function POST(request:Request){
       typeof input.date!=='string' || !isRealDate(input.date) ||
       typeof input.category!=='string'||input.category.length>80 ||
       typeof input.note!=='string'||input.note.length>500 ||
-      !['cash','bank','card','wallet'].includes(String(input.method)))
+      !['cash','bank','card','wallet'].includes(String(input.method)) ||
+      (input.time!==undefined && input.time!==null && (typeof input.time!=='string'||!/^([01]\\d|2[0-3]):[0-5]\\d$/.test(input.time))) ||
+      (input.recipient!==undefined && input.recipient!==null && (typeof input.recipient!=='string'||input.recipient.length>160)))
       return json({error:'INVALID_TRANSACTION'},400,g.headers);
     const type=input.type as 'income'|'expense';
     if(!(type==='income'?INCOME_CATEGORIES:EXPENSE_CATEGORIES).some(x=>x===input.category))
       return json({error:'INVALID_CATEGORY'},400,g.headers);
     entry={type,amountSatang:input.amountSatang as number,date:input.date,
-      category:input.category,note:input.note,method:input.method as 'cash'|'bank'|'card'|'wallet'};
+      category:input.category,note:input.note,method:input.method as 'cash'|'bank'|'card'|'wallet',
+      time:input.time as string|undefined,recipient:input.recipient as string|undefined};
   }
   try{
     const row=await reviewDraft(input.id as string,decision,entry);

@@ -29,6 +29,13 @@ describe('Forwarded bank notification parser',()=>{
     const r=parseBankNotice('K PLUS โอน/ถอน ๙ ต.ค. ๖๙ 18:44 น. จำนวนเงิน -๑๑๙.๐๐ บาท');
     expect(r).toMatchObject({amountSatang:11900,date:'2026-10-09'});
   });
+  it('never treats a payee name on a K PLUS transfer slip as incoming money',()=>{
+    const transfer=[
+      'KBank Live','โอนเงินสำเร็จ','13 ต.ค. 69 12:05 น.',
+      'ผู้รับเงิน: ร้านค้าตัวอย่าง','จำนวนเงิน 119.00 บาท'
+    ].join('\n');
+    expect(parseBankNotice(transfer)).toBeNull();
+  });
   it('does not parse a bank balance as a transaction',()=>{
     expect(parseBankNotice('KBank ยอดเงินคงเหลือ 400,070.79 บาท')).toBeNull();
   });

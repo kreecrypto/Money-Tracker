@@ -18,6 +18,11 @@ const KPLUS_IOS27_PHOTO_TEXT=[
   'เลขที่รายการ',
   '016284210922BTF06060'
 ].join('\n');
+const KPLUS_COMPLETE=[
+  'K PLUS','โอนเงินสำเร็จ','13 ต.ค. 69 12:05 น.',
+  'จากบัญชี xxx-x-x0123-x','ผู้รับเงิน: ร้านค้าตัวอย่าง',
+  'จำนวนเงิน 119.00 บาท','เลขที่รายการ 123456789012345'
+].join('\n');
 const KBANK_ALERT=[
   'KBank Live','รายการโอน/ถอน','9 ต.ค. 69 18:44 น.',
   'จำนวนเงิน -119.00 บาท','ยอดเงินคงเหลือ 400,070.79 บาท'
@@ -36,6 +41,13 @@ describe('iOS 26 Photos on-device OCR receipt classifier',()=>{
     const x=inspectPhotosOCR(KPLUS);
     expect(x).toMatchObject({accept:true,amountSatang:11900,date:'2026-10-09',type:null});
     expect(x.sourceLabel).toContain('KBank');
+  });
+  it('classifies explicit K PLUS sender-and-recipient transaction with all fields for automatic saving',()=>{
+    const x=inspectPhotosOCR(KPLUS_COMPLETE);
+    expect(x).toMatchObject({
+      accept:true,amountSatang:11900,type:'expense',
+      date:'2026-10-13',time:'12:05',recipient:'ร้านค้าตัวอย่าง'
+    });
   });
   it('accepts a bank notification with explicit amount but excludes balances',()=>{
     const x=inspectPhotosOCR(KBANK_ALERT);
@@ -138,6 +150,23 @@ describe('Photos Automation OCR text API',()=>{
     expect(serialized).not.toContain('400,070.79');
     expect(serialized).not.toContain('เลขที่');
     expect(serialized).not.toContain('KBank Live');
+  });
+  it('persists complete explicit K PLUS text as confirmed and returns 201 saved',async()=>{
+    const r=await POST(post(KPLUS_COMPLETE));
+    expect(r.status).toBe(201);
+    expect(await r.json()).toMatchObject({status:'saved',reviewRequired:false});
+    const row=mock.save.mock.calls[0][0];
+    expect(row).toMatchObject({
+      status:'confirmed',amount_satang:11900,transaction_date:'2026-10-13',
+      transaction_time:'12:05',recipient:'ร้านค้าตัวอย่าง',type:'expense'
+    });
+  });
+  it('does not auto-save transfer text with ambiguous direction or missing recipient',async()=>{
+    const r=await POST(post(KPLUS));
+    expect(r.status).toBe(202);
+    const row=mock.save.mock.calls[0][0];
+    expect(row.status).toBe('pending');
+    expect(await r.json()).toMatchObject({status:'pending',reviewRequired:true});
   });
   it('returns duplicate instead of creating new pending item',async()=>{
     mock.save.mockResolvedValue(null);

@@ -11,7 +11,7 @@ Mobile-first, Thai-language, offline-first **daily income and expense tracker** 
 - Installable Progressive Web App (PWA); offline usage after the first load.
 - Financial amounts stored in **integer satang**, dates stored as **local calendar dates**.
 - **Slip-first batch entry**: Choose up to **20 images in one Photos selection** (each JPG, PNG or WebP, max 10 MB), including K PLUS slips, 7-Eleven / 7Delivery receipts or Paotang G-Wallet transaction images. The app processes them sequentially on-device with a single OCR worker, saves each independently, and shows per-file results. Uploading one photo or taking a new photo still works. Multiple complete images are saved immediately without individual Review dialogs; duplicate, ambiguous and invalid files are skipped without stopping the batch. From the main action (JPG, PNG, WebP, max 10 MB), or capture a new photo. Client-side Tesseract.js attempts to extract **date, local time, amount and recipient name**. K PLUS bill-payment layouts are parsed from the masked sender account and biller block where an explicit payee label is absent. 7-Eleven receipts use the actual payment/tender line rather than individual item prices, and Paotang receipts use **จำนวนเงินที่ชำระ** after benefits/subsidies, not the gross goods value. The app also detects **income versus expense** when the receipt explicitly says that money was received, paid, or transferred out; it automatically saves an income or expense once the direction, amount, date, time and recipient are all clearly extracted. **No Review screen or second confirmation is required for a complete slip.** Generic transfers with unclear direction, missing/conflicting fields and duplicate-like slips are not auto-saved; the app explains why and allows retry or manual entry. Manual entry and editing saved items are still supported.
-- No account, server, bank access, tracking scripts, or analytics by default.
+- Manual entry and in-app photo OCR remain local-first. Optional iPhone Shortcut Text Sync uses the dedicated authenticated API and Supabase to store **parsed transaction fields only**; no raw OCR text or images are stored. No direct bank account access.
 
 
 Receipt Intelligence adds optional transaction.receipt metadata while keeping older IndexedDB and JSON backups valid. For supported receipts it stores receiptId, items[], subtotalSatang, discountSatang, subsidySatang, feeSatang, paidSatang and itemsComplete; the transaction amount remains the actual paid amount. Transactions can expand to show itemization and CSV exports include detail columns. Tesseract word coordinates are used to recover line item price alignment, but OCR is not guaranteed accurate and real-device tests on iPhone Safari remain necessary. No receipt images are uploaded or retained.
@@ -74,7 +74,7 @@ type Transaction = {
 };
 ```
 
-The store is **IndexedDB**, isolated to the site's origin. CSV exports include dedicated Date, Time, Amount and Recipient columns; JSON backup/restore preserves these fields and supports older records. **It does not sync across devices**. Removing site data, using private mode, or changing domains/browsers may cause data loss. **Download a JSON backup regularly.** A restore replaces all current transactions only after a confirmation. This is not encrypted storage: anyone with access to the unlocked browser profile/device may access the local data. Avoid importing backups from untrusted sources.
+The store is **IndexedDB**, isolated to the site's origin. CSV exports include dedicated Date, Time, Amount and Recipient columns; JSON backup/restore preserves these fields and supports older records. **Manual and image-scanned entries do not sync across devices.** Confirmed iPhone Shortcut entries are imported one-way on each connected browser after one-time Review Token pairing. Removing site data, using private mode, or changing domains/browsers may cause data loss. **Download a JSON backup regularly.** A restore replaces all current transactions only after a confirmation. This is not encrypted storage: anyone with access to the unlocked browser profile/device may access the local data. Avoid importing backups from untrusted sources.
 
 **Net cash flow** = recorded income − recorded expenses; this is *not* your bank balance and does not represent debts or assets. Expense categories include debt payments, but the app does not manage full loan balances or double-entry accounting.
 
@@ -82,7 +82,7 @@ The store is **IndexedDB**, isolated to the site's origin. CSV exports include d
 
 - Redesigned home layout for 320px-first mobile use: upload slip as the prominent action, manual entry as the alternative, recent transactions and financial summary.
 - Simplified colors, flatter cards, clearer Thai typography, unobtrusive per-row action menu and bottom navigation.
-- All default Add actions now open image selection first, with automatic saving when every required field is valid and direction is explicit. The parser supports K PLUS, 7-Eleven/7Delivery, and Paotang G-Wallet and captures the merchant, actual paid amount, payment method, date, and time. A missing OCR date or cash-flow direction never defaults silently. Duplicate-like slips are blocked. Shortcut settings and polling remain disabled in the app.
+- All default Add actions now open image selection first, with automatic saving when every required field is valid and direction is explicit. The parser supports K PLUS, 7-Eleven/7Delivery, and Paotang G-Wallet and captures the merchant, actual paid amount, payment method, date, and time. A missing OCR date or cash-flow direction never defaults silently. Duplicate-like slips are blocked. iPhone Shortcut pairing is available in Settings; linked browsers pull confirmed Shortcut records at startup/resume and approximately every 60 seconds while visible.
 - See [Mobile-first design specification](docs/MOBILE_FIRST_DESIGN.md).
 - GitHub's automated Chromium UX audit now covers 320, 375, 390, 430, 768 and 1280px.
 
@@ -112,12 +112,12 @@ npm run dev
 
 ## UX / roadmap
 
-See [`docs/PRODUCT.md`](docs/PRODUCT.md), [`docs/ROADMAP.md`](docs/ROADMAP.md), [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md), and [`docs/QA.md`](docs/QA.md). MVP remains local-only: there is no Supabase or bank connection. A Vercel production domain is connected, but access may be restricted by Vercel Authentication.
+See [`docs/PRODUCT.md`](docs/PRODUCT.md), [`docs/ROADMAP.md`](docs/ROADMAP.md), [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md), and [`docs/QA.md`](docs/QA.md). Manual/photo OCR remains local; the optional iPhone Shortcut Text bridge uses Supabase with separate upload/review credentials and one-way import, without connecting to a bank account. A Vercel production domain is connected, but access may be restricted by Vercel Authentication.
 
 ## Security and privacy
 
 - No credentials or account data in Git. `.gitignore` excludes local `.env` files.
-- All financial records remain in local IndexedDB. JSON backup files contain unencrypted financial data — store them securely.
+- Manual and uploaded-image records remain in local IndexedDB. Text-only iPhone Shortcut imports are stored as parsed fields in Supabase and copied to IndexedDB after pairing. JSON backup files contain unencrypted financial data — store them securely.
 - CSV cells beginning with spreadsheet formula trigger characters are prefixed to mitigate spreadsheet formula injection.
 - This is personal finance tracking software, not regulated financial advice.
 
