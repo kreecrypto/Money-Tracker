@@ -1,4 +1,4 @@
-import {useCallback,useState} from 'react';
+import {useCallback,useEffect,useState} from 'react';
 import {Camera,CheckCircle2,RefreshCcw,ShieldCheck,Smartphone,Unlink} from 'lucide-react';
 import {baht,EXPENSE_CATEGORIES,INCOME_CATEGORIES,METHODS,toSatang,todayLocal} from './lib/finance';
 import {
@@ -61,7 +61,7 @@ function Draft({draft,onReviewed}:{draft:IPhoneDraft;onReviewed:()=>Promise<void
       {Object.entries(METHODS).map(([key,label])=><option key={key} value={key}>{label}</option>)}
     </select>
     {error&&<p className="error-message" role="alert">{error}</p>}
-    <p className="iphone-draft-help">OCR อ่านยอด {draft.amountSatang!==null?'฿'+baht(draft.amountSatang):'ไม่สำเร็จ'} · รายการนี้ยังไม่ถูกนับเพราะมีข้อมูลกำกวม</p>
+    <p className="iphone-draft-help">ระบบอ่านยอดได้ {draft.amountSatang!==null?'฿'+baht(draft.amountSatang):'ไม่ชัดเจน'} · รายการนี้ยังไม่รวมในยอดรายรับ–รายจ่าย</p>
     <div className="iphone-draft-actions">
       <button className="btn btn-primary" disabled={waiting} onClick={()=>{void send('confirm');}}><CheckCircle2 size={17}/> ยืนยันบันทึก</button>
       <button className="btn btn-ghost bordered" disabled={waiting} onClick={()=>{void send('discard');}}>ไม่บันทึกรายการนี้</button>
@@ -69,7 +69,7 @@ function Draft({draft,onReviewed}:{draft:IPhoneDraft;onReviewed:()=>Promise<void
   </article>;
 }
 
-export default function IPhoneShortcutSettings({onImported}:{onImported:()=>Promise<void>}){
+export default function IPhoneShortcutSettings({onImported,variant='settings',onPendingChanged}:{onImported:()=>Promise<void>;variant?:'settings'|'review';onPendingChanged?:(count:number)=>void}){
   const [linked,setLinked]=useState(iphoneConnected);
   const [token,setToken]=useState('');
   const [rows,setRows]=useState<IPhoneDraft[]>([]);
@@ -78,10 +78,11 @@ export default function IPhoneShortcutSettings({onImported}:{onImported:()=>Prom
   const refresh=useCallback(async()=>{
     const drafts=await iphoneDrafts();
     setRows(drafts);
+    onPendingChanged?.(drafts.length);
     const result=await iphoneSync();
     await onImported();
     return {...result,pending:drafts.length};
-  },[onImported]);
+  },[onImported,onPendingChanged]);
   const connect=async()=>{
     setBusy(true);setNote('');
     try{
@@ -101,12 +102,42 @@ export default function IPhoneShortcutSettings({onImported}:{onImported:()=>Prom
     const result=await refresh();
     setNote('จัดการรายการเรียบร้อย นำเข้า '+result.imported+' รายการ');
   };
+  useEffect(()=>{
+    if(variant!=='review'||!linked||!iphoneConfigured())return;
+    let cancelled=false;
+    iphoneDrafts().then(drafts=>{
+      if(cancelled)return;
+      setRows(drafts);
+      onPendingChanged?.(drafts.length);
+    }).catch(e=>{
+      if(!cancelled)setNote(e instanceof Error?e.message:'โหลดรายการที่ต้องตรวจไม่สำเร็จ');
+    });
+    return()=>{cancelled=true;};
+  },[variant,linked,onPendingChanged]);
+
+  if(variant==='review')return <section className="surface settings-card iphone-card" aria-label="รายการจาก iPhone ที่รอตรวจ">
+    <div className="settings-icon green"><Smartphone size={23}/></div>
+    <h3>รายการจาก iPhone ที่รอตรวจ</h3>
+    <p>รายการเหล่านี้ยังไม่รวมในยอดรายรับ–รายจ่าย ตรวจข้อมูลจากสลิปก่อนบันทึก</p>
+    {!iphoneConfigured()||!linked?
+      <p className="line-status" role="status">ยังไม่ได้เชื่อมต่อ iPhone ไปที่ตั้งค่าเพื่อเชื่อมต่อก่อนตรวจรายการ</p>:
+      <>
+        <div className="iphone-draft-actions"><button className="btn btn-secondary" type="button" disabled={busy} onClick={()=>{void sync();}}>
+          <RefreshCcw size={16}/> {busy?'กำลังตรวจรายการ…':'ตรวจรายการล่าสุด'}
+        </button></div>
+        <h4 className="iphone-pending-heading">รอตรวจข้อมูล {rows.length} รายการ</h4>
+        {rows.length?rows.map(row=><Draft key={row.id} draft={row} onReviewed={afterReview}/>):
+          <p className="iphone-empty">ไม่มีรายการที่ต้องตรวจตอนนี้</p>}
+      </>}
+    {note&&<p className="line-status" role="status">{note}</p>}
+  </section>;
+
   return <section className="surface settings-card iphone-card" aria-label="iPhone Shortcut">
     <div className="settings-icon green"><Smartphone size={23}/></div>
-    <h3>iPhone Photos → เงินวันนี้</h3>
-    <p>Photos Auto Slip Sync สำหรับ iOS 26/27 (K PLUS เท่านั้น): เมื่อ Shortcuts ทำงาน จะอ่านข้อความจากรูปสลิปบน iPhone แล้วส่งเฉพาะ Text เข้า API · สลิปที่อ่านครบและระบุรายรับ/รายจ่ายได้ชัดเจนจะบันทึกอัตโนมัติ ส่วนข้อความไม่ครบจะเข้าคิวตรวจสอบ โดยไม่ต้องเชื่อม LINE OA ของธนาคาร</p>
+    <h3>นำเข้ารายการจาก iPhone</h3>
+    <p>ตั้งค่าครั้งเดียวเพื่อให้ iPhone Shortcuts ส่งข้อความจากสลิป K PLUS มาบันทึกอัตโนมัติเมื่อข้อมูลครบ หากข้อมูลไม่ครบจะอยู่ในหน้า รายการ → รอตรวจจาก iPhone โดยไม่ต้องอัปโหลดรูปซ้ำ</p>
     <details className="iphone-photos-setup">
-      <summary>วิธีเปิด Auto Slip Sync บน iPhone (iOS 26)</summary>
+      <summary>วิธีตั้งค่าการนำเข้าจาก iPhone</summary>
       <ol>
         <li>สร้าง Shortcut: Find Photos (รูปล่าสุด) → Repeat with Each → Extract Text from Image</li>
         <li>กรองข้อความบน iPhone ให้พบ K PLUS/กสิกร <strong>และ</strong> คำว่าทำรายการสำเร็จ <strong>และ</strong> ป้ายยอดเงิน (รวมถึง จำนวน:) ก่อนส่ง</li>
@@ -124,20 +155,20 @@ export default function IPhoneShortcutSettings({onImported}:{onImported:()=>Prom
         <input id="iphone-review-secret" className="iphone-token-input" type="password" autoComplete="off"
           value={token} onChange={e=>setToken(e.target.value)} placeholder="ใส่รหัส 64 ตัวอักษร" maxLength={64}/>
         <button type="button" className="btn btn-primary" disabled={busy||!/^[0-9a-fA-F]{64}$/.test(token)}
-          onClick={()=>{void connect();}}>เชื่อม iPhone Inbox</button>
+          onClick={()=>{void connect();}}>เชื่อมต่อ iPhone</button>
         <small className="hint">ใช้ Review Token จากการตั้งค่า Vercel ของคุณเท่านั้น ไม่ใช่ LINE Token และไม่ต้องส่งรหัสลงในแชต</small>
       </>:<>
-        <p className="line-status" role="status"><CheckCircle2 size={16}/> เชื่อม iPhone Inbox บนอุปกรณ์นี้แล้ว</p>
+        <p className="line-status" role="status"><CheckCircle2 size={16}/> ตั้งค่าเชื่อมต่อ iPhone บนเครื่องนี้แล้ว</p>
         <div className="iphone-draft-actions">
           <button className="btn btn-primary" type="button" disabled={busy} onClick={()=>{void sync();}}>
-            <RefreshCcw size={16}/> {busy?'กำลังซิงก์...':'ตรวจรายการใหม่จาก iPhone'}</button>
+            <RefreshCcw size={16}/> {busy?'กำลังซิงก์...':'ซิงก์รายการล่าสุด'}</button>
           <button className="btn btn-ghost bordered" type="button" disabled={busy}
             onClick={()=>{iphoneDisconnect();setLinked(false);setRows([]);setNote('ตัดการเชื่อมในเบราว์เซอร์นี้แล้ว');}}>
             <Unlink size={16}/> เลิกเชื่อมเครื่องนี้</button>
         </div>
         <h4 className="iphone-pending-heading">รอตรวจสอบ {rows.length} รายการ</h4>
         {rows.length?rows.map(row=><Draft key={row.id} draft={row} onReviewed={afterReview}/>):
-          <p className="iphone-empty">ไม่มีรายการรอตรวจสอบ · รายการสมบูรณ์จะถูกบันทึกและซิงก์อัตโนมัติ</p>}
+          <p className="iphone-empty">ไม่มีรายการที่ต้องตรวจตอนนี้</p>}
       </>}
     {note&&<p className="line-status" role="status">{note}</p>}
     <small className="hint">ใช้ได้เมื่อ API พร้อมและตั้งค่ารหัสใน Vercel แล้ว รายการจาก Shortcut บันทึกใน Supabase และนำเข้ามาใน IndexedDB แบบทางเดียวเมื่อเปิด App; การลบ/แก้ไขใน App ยังไม่ซิงก์กลับ Cloud</small>
