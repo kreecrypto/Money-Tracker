@@ -29,8 +29,12 @@ export function ownerKey(){
 }
 function config(){
   const url=env('SUPABASE_URL'),key=env('SUPABASE_SERVICE_ROLE_KEY');
-  if(!url||!key)throw new Error('STORAGE_NOT_CONFIGURED');
-  const base=new URL(url);
+  // Raise distinct safe codes so the upload-token holder can identify which
+  // Production environment setting needs attention. Never reveal its value.
+  if(!url)throw new Error('SUPABASE_URL_NOT_CONFIGURED');
+  if(!key)throw new Error('SUPABASE_SERVICE_ROLE_KEY_NOT_CONFIGURED');
+  let base:URL;
+  try{base=new URL(url);}catch{throw new Error('INVALID_SUPABASE_URL');}
   if(base.protocol!=='https:'||!base.hostname.endsWith('.supabase.co'))throw new Error('INVALID_SUPABASE_URL');
   return {base,key};
 }

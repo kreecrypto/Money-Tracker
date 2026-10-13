@@ -17,6 +17,16 @@ describe('Production storage readiness endpoint',()=>{
     expect(await response.json()).toEqual({status:'ok',storage:'ready'});
     expect(mock.check).toHaveBeenCalledOnce();
   });
+  it('distinguishes missing private service key from missing project URL',async()=>{
+    vi.spyOn(console,'error').mockImplementation(()=>{});
+    mock.check.mockRejectedValueOnce(new Error('SUPABASE_SERVICE_ROLE_KEY_NOT_CONFIGURED'));
+    const first=await GET();
+    expect(first.status).toBe(503);
+    expect(await first.json()).toMatchObject({code:'SUPABASE_SERVICE_KEY_MISSING'});
+    mock.check.mockRejectedValueOnce(new Error('SUPABASE_URL_NOT_CONFIGURED'));
+    const second=await GET();
+    expect(await second.json()).toMatchObject({code:'SUPABASE_URL_MISSING'});
+  });
   it('gives a safe configuration code without leaking exception text',async()=>{
     vi.spyOn(console,'error').mockImplementation(()=>{});
     mock.check.mockRejectedValue(new Error('STORAGE_NOT_CONFIGURED secret value'));
