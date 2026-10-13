@@ -1,5 +1,5 @@
 import {describe,expect,it} from 'vitest';
-import {parseSlipText,needsSlipOcrRecovery} from '../src/lib/slip';
+import {parseSlipText,needsSlipOcrRecovery,mergeSlipOcrReadings} from '../src/lib/slip';
 import {prepareAutoSlip} from '../src/lib/slipAutoSave';
 
 /**
@@ -77,6 +77,11 @@ describe('additional K PLUS layouts from seven image examples',()=>{
     expect(slip.recipient).toBe('พร้อมเพย์ อี-วอลเล็ต / G-Wallet');
     expect(slip.direction).toBeNull();
     expect(slip.directionReason).toContain('ไม่บันทึกเป็นรายจ่ายอัตโนมัติ');
+    const noisySecondPass=parseSlipText(text.replace('เติมเงินสำเร็จ','ชำระเงินสำเร็จ'));
+    const merged=mergeSlipOcrReadings(slip,noisySecondPass);
+    expect(merged.direction).toBeNull();
+    expect(merged.directionReason).toContain('เติมเงินเข้า e-Wallet');
+    expect(prepareAutoSlip(merged,[],'recover',Date.now()).status).toBe('incomplete');
     const decision=prepareAutoSlip(slip,[],'funding',Date.now());
     expect(decision.status).toBe('incomplete');
     if(decision.status==='incomplete')expect(decision.reason).toContain('ป้องกันยอดซ้ำ');
