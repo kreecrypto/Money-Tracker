@@ -96,10 +96,22 @@ export function imageType(b:Uint8Array,mime:string){
   return false;
 }
 export function appCors(request:Request){
+  const origin=request.headers.get('origin');
   const allowed=env('IPHONE_ALLOWED_APP_ORIGIN');
-  if(!allowed||request.headers.get('origin')!==allowed)return null;
-  return {'access-control-allow-origin':allowed,'access-control-allow-methods':'GET,POST,OPTIONS',
-    'access-control-allow-headers':'Authorization,Content-Type','cache-control':'no-store','vary':'Origin'};
+  // Same-origin GET requests commonly have no Origin header. Requests with an
+  // Origin must match either the actual request URL or the explicitly allowed
+  // legacy app origin. All review endpoints still require a valid Bearer token.
+  let requestOrigin:string;
+  try{requestOrigin=new URL(request.url).origin;}
+  catch{return null;}
+  if(origin&&origin!==requestOrigin&&origin!==allowed)return null;
+  const headers:Record<string,string>={'cache-control':'no-store','vary':'Origin'};
+  if(origin){
+    headers['access-control-allow-origin']=origin;
+    headers['access-control-allow-methods']='GET,POST,OPTIONS';
+    headers['access-control-allow-headers']='Authorization,Content-Type';
+  }
+  return headers;
 }
 export function options(request:Request){
   const headers=appCors(request);

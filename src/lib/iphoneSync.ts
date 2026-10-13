@@ -10,9 +10,16 @@ const TOKEN_KEY='money-tracker-iphone-review-token-v1';
 const SEEN_KEY='money-tracker-iphone-seen-v1';
 
 function host(){
-  const text=String(import.meta.env.VITE_IPHONE_BRIDGE_URL||'').trim();
-  try{const u=new URL(text);return u.protocol==='https:'?u.origin:null;}
-  catch{return null;}
+  const configured=String(import.meta.env.VITE_IPHONE_BRIDGE_URL||'').trim();
+  // Keep explicit bridge URLs for existing deployments, but let the unified
+  // Money Tracker project call its own /api endpoints without a second domain.
+  if(configured){
+    try{const u=new URL(configured);return u.protocol==='https:'?u.origin:null;}
+    catch{return null;}
+  }
+  if(typeof window==='undefined')return null;
+  const {protocol,hostname,origin}=window.location;
+  return protocol==='https:'||(protocol==='http:'&&hostname==='localhost')?origin:null;
 }
 export function iphoneConfigured(){return host()!==null;}
 export function iphoneConnected(){
