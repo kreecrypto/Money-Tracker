@@ -6,8 +6,8 @@ describe('multi-image slip upload safety',()=>{
     for(const type of ['image/jpeg','image/png','image/webp'])
       expect(validateSlipImage({type,size:524_288})).toBeNull();
   });
-  it('rejects HEIC and unsupported file types with an actionable error',()=>{
-    expect(validateSlipImage({type:'image/heic',size:128_000})).toContain('HEIC');
+  it('accepts iPhone HEIC for local decoding but rejects unsupported file types',()=>{
+    expect(validateSlipImage({type:'image/heic',size:128_000})).toBeNull();
     expect(validateSlipImage({type:'application/pdf',size:100})).toContain('JPG');
   });
   it('blocks empty and oversized photos individually while allowing the batch to proceed',()=>{
