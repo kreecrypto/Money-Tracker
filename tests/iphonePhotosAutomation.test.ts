@@ -161,11 +161,12 @@ describe('Photos Automation OCR text API',()=>{
     expect((await r.json())).toMatchObject({reason:'DIRECTION_CONFLICT'});
     expect(mock.save).not.toHaveBeenCalled();
   });
-  it('does not auto-save when OCR cannot prove the transaction amount',async()=>{
+  it('skips amount-unreadable bank text instead of guessing the balance as payment',async()=>{
     const text='KBank Live\\nรายการโอน/ถอน\\n9 ต.ค. 69 18:44 น.\\nจำนวนเงิน\\nยอดเงินคงเหลือ 400,070.79 บาท';
     const r=await POST(post(text));
-    expect(r.status).toBe(202);
-    expect((await r.json())).toMatchObject({status:'pending',missingFields:expect.arrayContaining(['amount'])});
+    expect(r.status).toBe(200);
+    expect((await r.json())).toMatchObject({status:'skipped',reason:'no_transaction_amount'});
+    expect(mock.save).not.toHaveBeenCalled();
   });
   it('returns duplicate instead of creating new pending item',async()=>{
     mock.save.mockResolvedValue(null);
