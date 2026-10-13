@@ -17,6 +17,8 @@ type Props={
   onComplete:(summary:BatchSummary)=>void;
   onBusyChange:(busy:boolean)=>void;
   onUndoBatch:(ids:string[])=>Promise<void>;
+  onQueuePending:(slip:SlipFields,name:string,reason:string)=>Promise<{id:string;duplicate:boolean}>;
+  onResolvePending:(id:string)=>Promise<void>;
   onClose:()=>void;
 };
 type ProcessingStage='download'|'recognize'|'retry'|'save';
@@ -48,7 +50,7 @@ async function originalImageHash(file:File):Promise<string|undefined>{
   }catch{return undefined;}
 }
 
-export default function SlipScanner({onApply,onComplete,onBusyChange,onUndoBatch,onClose}:Props){
+export default function SlipScanner({onApply,onComplete,onBusyChange,onUndoBatch,onQueuePending,onResolvePending,onClose}:Props){
   const galleryRef=useRef<HTMLInputElement>(null);
   const cameraRef=useRef<HTMLInputElement>(null);
   const attentionRef=useRef<HTMLDivElement>(null);
@@ -167,6 +169,17 @@ export default function SlipScanner({onApply,onComplete,onBusyChange,onUndoBatch
             reading.imageHash=hash;
             setStage('save');
             const outcome=await onApply(reading);
+            // Persist unresolved OCR immediately, even if the user closes the scanner.
+            // Store structured fields only: never the image or raw OCR text.
+            if(outcome.status==='incomplete'){
+              try{
+                const queued=await onQueuePending(reading,file.name,outcome.reason||'อ่านข้อมูลไม่ครบ');
+                outcome.pendingId=queued.id;
+              }catch(error){
+                outcome.reason=(outcome.reason||'ต้องตรวจข้อมูล')+' · เก็บรายการรอตรวจในเครื่องไม่สำเร็จ: '+
+                  (error instanceof Error?error.message:'โปรดลองใหม่');
+              }
+            }
             publish({name:file.name,...outcome,recipient:outcome.recipient||reading.recipient||undefined,amountSatang:outcome.amountSatang||reading.amountSatang||undefined,date:outcome.date||reading.date||undefined});
             if(outcome.status==='incomplete'){
               attention[i]=toCorrection(reading);
@@ -255,9 +268,15 @@ export default function SlipScanner({onApply,onComplete,onBusyChange,onUndoBatch
         return;
       }
       const next=rows.map((row,i)=>i===index?{
-        ...row,...outcome,recipient:corrected.recipient||undefined,
+        ...row,...outcome,pendingId:undefined,recipient:corrected.recipient||undefined,
         amountSatang:corrected.amountSatang||undefined,date:corrected.date||undefined,
       }:row);
+      if(rows[index]?.pendingId){
+        try{await onResolvePending(rows[index].pendingId!);}
+        catch(error){setCorrectionErrors(previous=>({...previous,[-1]:
+          'บันทึกรายการสำเร็จแล้ว แต่ลบออกจากคิวรอตรวจไม่สำเร็จ: '+
+          (error instanceof Error?error.message:'โปรดลองใหม่')}));}
+      }
       setRows(next);
       setCorrections(previous=>{const updated={...previous};delete updated[index];return updated;});
       onComplete(summarizeSlipBatch(next));
@@ -265,9 +284,14 @@ export default function SlipScanner({onApply,onComplete,onBusyChange,onUndoBatch
       setCorrectionErrors(previous=>({...previous,[index]:err instanceof Error?err.message:'บันทึกไม่สำเร็จ'}));
     }finally{setFixingIndex(null);}
   };
-  const excludeWallet= (index:number)=>{
+  const excludeWallet=async(index:number)=>{
     const draft=corrections[index];
     if(!draft||!isWalletFundingSlip(draft.source)||busy||undoing)return;
+    if(rows[index]?.pendingId){
+      try{await onResolvePending(rows[index].pendingId!);}
+      catch(error){setCorrectionErrors(previous=>({...previous,[index]:
+        error instanceof Error?error.message:'ไม่สามารถลบรายการจากคิวรอตรวจ'}));return;}
+    }
     const next=rows.map((row,i)=>i===index?{
       ...row,status:'excluded' as const,
       reason:'โอนเงินระหว่างบัญชีของตัวเอง — ไม่นับเป็นรายรับหรือรายจ่าย',
@@ -298,7 +322,7 @@ export default function SlipScanner({onApply,onComplete,onBusyChange,onUndoBatch
       <strong>{complete?'เพิ่มรูปอีกชุด':'เพิ่มหลายสลิปพร้อมกัน'}</strong>
       <span>สูงสุด 20 รูป/ครั้ง · JPG, PNG, WebP, HEIC · ไม่เกิน 10 MB/รูป</span>
       <div className="slip-actions"><button type="button" className="btn btn-primary slip-pick" disabled={undoing||needsAttention.length>0} onClick={()=>galleryRef.current?.click()}><Upload size={18}/> เลือกรูปจาก iPhone</button><button type="button" className="btn btn-secondary" disabled={undoing||needsAttention.length>0} onClick={()=>cameraRef.current?.click()}><Camera size={18}/> ถ่ายรูป</button><button type="button" className="btn btn-secondary" disabled={undoing||needsAttention.length>0} onClick={()=>void pasteFromShortcuts()}><ClipboardPaste size={18}/> นำเข้ารูปจาก Shortcut</button></div>
-      {needsAttention.length>0?<p className="slip-awaiting-review" role="status">มี {needsAttention.length} รูปที่ยังไม่บันทึก กรุณาตรวจข้อมูลด้านล่างก่อนเพิ่มชุดใหม่</p>:<span>จาก Shortcut: Copy to Clipboard → เปิดแอป → แตะนำเข้า 1 ครั้ง · อ่านข้อความบนอุปกรณ์ โดยไม่ส่งรูปเข้า API</span>}
+      {needsAttention.length>0?<p className="slip-awaiting-review" role="status">มี {needsAttention.length} รูปที่ยังไม่รวมในยอดรายรับ–รายจ่าย กรุณาตรวจข้อมูลด้านล่างหรือกลับมาตรวจจากหน้า “รายการ”</p>:<span>จาก Shortcut: Copy to Clipboard → เปิดแอป → แตะนำเข้า 1 ครั้ง · อ่านข้อความบนอุปกรณ์ โดยไม่ส่งรูปเข้า API</span>}
       {clipboardError&&<p className="slip-warning" role="alert">{clipboardError}</p>}
     </div>}
     <input ref={galleryRef} aria-label="เลือกรูปสลิปหลายรูป" multiple type="file" className="visually-hidden" accept="image/png,image/jpeg,image/webp,image/heic,image/heif,.heic,.heif" onChange={e=>void scan(e)}/>
@@ -320,6 +344,7 @@ export default function SlipScanner({onApply,onComplete,onBusyChange,onUndoBatch
       {(summary.undone||0)>0&&<p className="slip-batch-note">ยกเลิกการบันทึกแล้ว {summary.undone} รายการ</p>}
       {summary.saved>0&&<button type="button" className="btn btn-secondary slip-undo" disabled={undoing} onClick={()=>void undoSaved()}><Undo2 size={16}/>{undoing?'กำลังยกเลิกรายการ…':'ยกเลิกการบันทึกชุดนี้ ('+summary.saved+')'}</button>}
       {correctionErrors[-1]&&<p role="alert" className="error-message">{correctionErrors[-1]}</p>}
+      {summary.queued>0&&<p className="slip-queued-note" role="status">เก็บไว้ใน “รายการ → รอตรวจจากสลิป” แล้ว {summary.queued} รูป ปิดหน้านี้แล้วกลับมาแก้ภายหลังได้</p>}
       {needsAttention.length>0&&<button type="button" className="btn btn-primary slip-batch-finish" onClick={()=>attentionRef.current?.scrollIntoView({behavior:'smooth',block:'start'})}>ตรวจ {needsAttention.length} รายการที่ยังไม่บันทึก</button>}
       <button type="button" className={'btn '+(needsAttention.length>0?'btn-secondary':'btn-primary')+' slip-batch-finish'} disabled={undoing} onClick={onClose}>{needsAttention.length>0?'เสร็จสิ้นและปิด':'เสร็จสิ้น'}</button>
     </div>}
@@ -334,11 +359,12 @@ export default function SlipScanner({onApply,onComplete,onBusyChange,onUndoBatch
     </div>}
     {needsAttention.length>0&&<div ref={attentionRef} className="slip-attention" aria-label="แก้ไขสลิปที่อ่านไม่ครบ">
       <div className="slip-attention-title"><AlertTriangle size={17}/><strong>ตรวจและเติมข้อมูลที่ขาด</strong></div>
-      <p>รายการเหล่านี้ยังไม่ถูกบันทึก ตรวจวันที่ ยอดเงิน และประเภทรายการก่อนบันทึก</p>
+      <p>ตรวจวันที่ ยอดเงิน และประเภทรายการก่อนบันทึก หรือกลับมาแก้ภายหลังได้จากเมนู “รายการ → รอตรวจจากสลิป”</p>
       {needsAttention.map(([rawIndex,draft])=>{
         const index=Number(rawIndex);
         return <div key={rawIndex} className="slip-attention-card">
           <strong>{rows[index]?.name||'ใบเสร็จ'}</strong>
+          {rows[index]?.pendingId&&<p className="slip-queued-inline">เก็บไว้ในเครื่องแล้ว · กลับมาตรวจภายหลังได้</p>}
           {isWalletFundingSlip(draft.source)&&<div className="slip-wallet-guidance" role="note"><AlertTriangle size={17}/><span>พบการเติมเงิน e-Wallet หากเป็นการย้ายเงินระหว่างบัญชีตัวเอง ให้เลือก “ไม่นับรายการนี้” เพื่อไม่ให้รายจ่ายซ้ำกับการใช้เงินจาก Wallet ภายหลัง</span></div>}
           <div className="slip-attention-fields">
             <label>จำนวนเงิน (บาท)<input inputMode="decimal" value={draft.amount} onChange={e=>changeCorrection(index,{amount:e.target.value})} placeholder="0.00"/></label>
@@ -350,7 +376,7 @@ export default function SlipScanner({onApply,onComplete,onBusyChange,onUndoBatch
           </div>
           {correctionErrors[index]&&<p className="error-message" role="alert">{correctionErrors[index]}</p>}
           <button type="button" className="btn btn-primary slip-correct-save" disabled={fixingIndex!==null||busy} onClick={()=>void saveCorrection(index)}><Check size={16}/>{fixingIndex===index?'กำลังบันทึก…':'บันทึกข้อมูลที่ตรวจแล้ว'}</button>
-          {isWalletFundingSlip(draft.source)&&<button type="button" className="btn btn-ghost slip-wallet-exclude" disabled={fixingIndex!==null||busy} onClick={()=>excludeWallet(index)}>ไม่นับรายการนี้ (โอนเงินระหว่างบัญชีตัวเอง)</button>}
+          {isWalletFundingSlip(draft.source)&&<button type="button" className="btn btn-ghost slip-wallet-exclude" disabled={fixingIndex!==null||busy} onClick={()=>void excludeWallet(index)}>ไม่นับรายการนี้ (โอนเงินระหว่างบัญชีตัวเอง)</button>}
         </div>;
       })}
     </div>}
