@@ -69,3 +69,22 @@ export function parseKPlusSlip(ocrLines: string[]): KPlusSlip | null {
       :'สลิป K PLUS ยังระบุบัญชีผู้โอนหรือผู้รับไม่ครบ กรุณาตรวจสอบ',
   };
 }
+
+/**
+ * Wallet funding is an asset transfer (bank -> wallet), not necessarily a
+ * purchase. Recording it as an expense and then recording wallet purchases
+ * again would double count spending. Require a deliberate user decision.
+ */
+export function parseKPlusTopUp(ocrLines:string[]):{recipient:string;directionReason:string}|null{
+  const lines=ocrLines.map(textLine).filter(Boolean);
+  const header=lines.slice(0,5).join(' ');
+  if(!/เติม\s*เงิน\s*สำเร็จ/iu.test(header))return null;
+  if(!lines.some(line=>SENDER_BANK.test(line)))return null;
+  if(!lines.some(line=>MASKED_ACCOUNT.test(line)))return null;
+  const wallet=lines.find(line=>/(?:g[\s-]*wallet|พร้อม\s*เพย์\s*อี[\s-]*วอลเล็ต|e[\s-]*wallet)/iu.test(line));
+  if(!wallet)return null;
+  return {
+    recipient: wallet.slice(0,160),
+    directionReason:'เติมเงินเข้า e-Wallet อาจเป็นการโอนเงินระหว่างบัญชีของตนเอง จึงยังไม่บันทึกเป็นรายจ่ายอัตโนมัติ',
+  };
+}
