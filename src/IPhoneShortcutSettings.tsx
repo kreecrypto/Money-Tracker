@@ -10,6 +10,8 @@ function Draft({draft,onReviewed}:{draft:IPhoneDraft;onReviewed:()=>Promise<void
   const [type,setType]=useState<'income'|'expense'>(draft.type||'expense');
   const [amount,setAmount]=useState(draft.amountSatang?String(draft.amountSatang/100):'');
   const [date,setDate]=useState(draft.date||todayLocal());
+  const [time,setTime]=useState(draft.time||'');
+  const [recipient,setRecipient]=useState(draft.recipient||'');
   const [category,setCategory]=useState(draft.category||'อื่น ๆ');
   const [note,setNote]=useState(draft.note);
   const [method,setMethod]=useState<'cash'|'bank'|'card'|'wallet'>(draft.method||'bank');
@@ -25,14 +27,14 @@ function Draft({draft,onReviewed}:{draft:IPhoneDraft;onReviewed:()=>Promise<void
     setWaiting(true);setError('');
     try{
       await iphoneReview(draft.id,decision,decision==='confirm'?{
-        type,amountSatang:cents!,date,category,note:note.slice(0,500),method
+        type,amountSatang:cents!,date,time:time||null,recipient:recipient.trim()||null,category,note:note.slice(0,500),method
       }:undefined);
       await onReviewed();
     }catch(e){setError(e instanceof Error?e.message:'ดำเนินการไม่สำเร็จ');}
     finally{setWaiting(false);}
   };
   return <article className="iphone-draft" aria-label="รายการรอตรวจสอบจาก iPhone">
-    <p className="iphone-draft-source"><Camera size={14}/> {draft.source} <span>· กรุณาตรวจสอบก่อนบันทึก</span></p>
+    <p className="iphone-draft-source"><Camera size={14}/> {draft.source} <span>· ข้อมูลยังไม่ครบ กรุณาตรวจสอบ</span></p>
     <div className="iphone-draft-grid">
       <div><label className="field-label" htmlFor={'iphone-type-'+draft.id}>ประเภทรายการ</label>
         <select id={'iphone-type-'+draft.id} value={type} onChange={e=>switchType(e.target.value as 'income'|'expense')}>
@@ -48,6 +50,10 @@ function Draft({draft,onReviewed}:{draft:IPhoneDraft;onReviewed:()=>Promise<void
           {categories.map(c=><option key={c} value={c}>{c}</option>)}
         </select></div>
     </div>
+    <div className="iphone-draft-grid">
+      <div><label className="field-label" htmlFor={'iphone-time-'+draft.id}>เวลาทำรายการ</label><input id={'iphone-time-'+draft.id} type="time" value={time} onChange={e=>setTime(e.target.value)}/></div>
+      <div><label className="field-label" htmlFor={'iphone-recipient-'+draft.id}>ชื่อผู้รับ</label><input id={'iphone-recipient-'+draft.id} maxLength={160} value={recipient} onChange={e=>setRecipient(e.target.value)}/></div>
+    </div>
     <label className="field-label" htmlFor={'iphone-note-'+draft.id}>รายละเอียด (ไม่บังคับ)</label>
     <input id={'iphone-note-'+draft.id} maxLength={500} value={note} onChange={e=>setNote(e.target.value)}/>
     <label className="field-label" htmlFor={'iphone-method-'+draft.id}>ช่องทาง</label>
@@ -55,7 +61,7 @@ function Draft({draft,onReviewed}:{draft:IPhoneDraft;onReviewed:()=>Promise<void
       {Object.entries(METHODS).map(([key,label])=><option key={key} value={key}>{label}</option>)}
     </select>
     {error&&<p className="error-message" role="alert">{error}</p>}
-    <p className="iphone-draft-help">OCR แนะนำยอด {draft.amountSatang!==null?'฿'+baht(draft.amountSatang):'ไม่สำเร็จ'} · ระบบยังไม่บันทึกจนกว่าจะกดยืนยัน</p>
+    <p className="iphone-draft-help">OCR อ่านยอด {draft.amountSatang!==null?'฿'+baht(draft.amountSatang):'ไม่สำเร็จ'} · รายการนี้ยังไม่ถูกนับเพราะมีข้อมูลกำกวม</p>
     <div className="iphone-draft-actions">
       <button className="btn btn-primary" disabled={waiting} onClick={()=>{void send('confirm');}}><CheckCircle2 size={17}/> ยืนยันบันทึก</button>
       <button className="btn btn-ghost bordered" disabled={waiting} onClick={()=>{void send('discard');}}>ไม่บันทึกรายการนี้</button>
@@ -81,7 +87,7 @@ export default function IPhoneShortcutSettings({onImported}:{onImported:()=>Prom
     try{
       iphoneConnect(token.trim());setLinked(true);setToken('');
       const result=await refresh();
-      setNote('เชื่อมสำเร็จ · ซิงก์รายการที่ยืนยันแล้ว '+result.imported+' รายการ');
+      setNote('เชื่อมสำเร็จ · ซิงก์รายการที่บันทึกแล้ว '+result.imported+' รายการ');
     }catch(e){setLinked(iphoneConnected());setNote(e instanceof Error?e.message:'เชื่อมไม่สำเร็จ');}
     finally{setBusy(false);}
   };
@@ -98,7 +104,7 @@ export default function IPhoneShortcutSettings({onImported}:{onImported:()=>Prom
   return <section className="surface settings-card iphone-card" aria-label="iPhone Shortcut">
     <div className="settings-icon green"><Smartphone size={23}/></div>
     <h3>iPhone Photos → เงินวันนี้</h3>
-    <p>Photos Auto Slip Sync สำหรับ iOS 26/27 (K PLUS เท่านั้น): เมื่อปิดแอปธนาคาร Shortcuts สามารถค้นหารูปล่าสุด อ่านข้อความบน iPhone แล้วส่งเฉพาะข้อความที่คล้ายสลิปเข้าระบบเพื่อรอยืนยัน โดยไม่ต้องเชื่อม LINE OA ของธนาคาร</p>
+    <p>Photos Auto Slip Sync สำหรับ iOS 26/27 (K PLUS เท่านั้น): เมื่อ Shortcuts ทำงาน จะอ่านข้อความจากรูปสลิปบน iPhone แล้วส่งเฉพาะ Text เข้า API · สลิปที่อ่านครบและระบุรายรับ/รายจ่ายได้ชัดเจนจะบันทึกอัตโนมัติ ส่วนข้อความไม่ครบจะเข้าคิวตรวจสอบ โดยไม่ต้องเชื่อม LINE OA ของธนาคาร</p>
     <details className="iphone-photos-setup">
       <summary>วิธีเปิด Auto Slip Sync บน iPhone (iOS 26)</summary>
       <ol>
@@ -106,7 +112,7 @@ export default function IPhoneShortcutSettings({onImported}:{onImported:()=>Prom
         <li>กรองข้อความบน iPhone ให้พบ K PLUS/กสิกร <strong>และ</strong> คำว่าทำรายการสำเร็จ <strong>และ</strong> ป้ายยอดเงิน (รวมถึง จำนวน:) ก่อนส่ง</li>
         <li>ส่งเฉพาะข้อความ OCR ไปยัง API ผ่าน POST JSON โดยใช้ Upload Token เฉพาะเครื่อง</li>
         <li>Shortcuts → Automation → App → เลือก K PLUS → Is Closed → Run Immediately → เลือก Shortcut นี้</li>
-        <li>กลับมาหน้านี้เพื่อตรวจยอด เลือกเงินเข้า/ออกและยืนยัน</li>
+        <li>กลับมาหน้านี้เพื่อดูรายการที่อ่านไม่ครบเท่านั้น; รายการที่สมบูรณ์จะซิงก์เข้า Dashboard โดยไม่ต้องยืนยัน</li>
       </ol>
       <p className="iphone-photos-caution">ไม่ใช่การเฝ้าดู Photos ตลอดเวลา หากสลิปยังไม่ถูกบันทึกตอนปิดแอป อาจต้องใช้ Automation ตามเวลาช่วยตรวจอีกครั้ง</p>
       <a href="https://github.com/kreecrypto/Money-Tracker/blob/main/docs/IOS26_PHOTOS_AUTO_SLIP.md" target="_blank" rel="noopener noreferrer">อ่านคู่มือ Shortcuts แบบละเอียด</a>
@@ -131,9 +137,9 @@ export default function IPhoneShortcutSettings({onImported}:{onImported:()=>Prom
         </div>
         <h4 className="iphone-pending-heading">รอตรวจสอบ {rows.length} รายการ</h4>
         {rows.length?rows.map(row=><Draft key={row.id} draft={row} onReviewed={afterReview}/>):
-          <p className="iphone-empty">ไม่มีรายการรอตรวจสอบ · ส่งข้อความจาก Shortcut แล้วกดตรวจรายการใหม่</p>}
+          <p className="iphone-empty">ไม่มีรายการรอตรวจสอบ · รายการสมบูรณ์จะถูกบันทึกและซิงก์อัตโนมัติ</p>}
       </>}
     {note&&<p className="line-status" role="status">{note}</p>}
-    <small className="hint">ใช้ได้เมื่อ API พร้อมและตั้งค่ารหัสใน Vercel แล้ว รายการที่ยืนยันจะเก็บใน IndexedDB ของเบราว์เซอร์นี้ (ยังไม่ใช่ Cloud Sync สองทาง)</small>
+    <small className="hint">ใช้ได้เมื่อ API พร้อมและตั้งค่ารหัสใน Vercel แล้ว รายการจาก Shortcut บันทึกใน Supabase และนำเข้ามาใน IndexedDB แบบทางเดียวเมื่อเปิด App; การลบ/แก้ไขใน App ยังไม่ซิงก์กลับ Cloud</small>
   </section>;
 }
