@@ -59,8 +59,7 @@ export function prepareAutoSlip(
     t.amountSatang===transaction.amountSatang &&
     t.date===transaction.date &&
     t.method===transaction.method &&
-    t.time!==undefined &&
-    t.time===transaction.time &&
+    (t.time===undefined||t.time===transaction.time) &&
     !!t.recipient &&
     normalize(t.recipient)===normalize(recipient)
   ));
