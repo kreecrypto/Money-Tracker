@@ -74,6 +74,7 @@ describe('additional K PLUS layouts from seven image examples',()=>{
     expect(slip.date).toBe('2026-10-11');
     expect(slip.time).toBe('17:55');
     expect(slip.method).toBe('wallet');
+    expect(slip.recipient).toBe('พร้อมเพย์ อี-วอลเล็ต / G-Wallet');
     expect(slip.direction).toBeNull();
     expect(slip.directionReason).toContain('ไม่บันทึกเป็นรายจ่ายอัตโนมัติ');
     expect(prepareAutoSlip(slip,[],'funding',Date.now()).status).toBe('incomplete');
