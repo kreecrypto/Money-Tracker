@@ -29,6 +29,8 @@ export type PhotosCandidate={
   reason:'receipt'|'not_receipt'|'unsupported_bank'|'no_transaction_amount'|'unreadable';
   amountSatang:number|null;
   date:string|null;
+  time:string|null;
+  recipient:string|null;
   type:'income'|'expense'|null;
   category:'อื่น ๆ';
   note:string;
@@ -43,7 +45,7 @@ export type PhotosCandidate={
  */
 export function inspectPhotosOCR(input:string):PhotosCandidate{
   const text=normalized(input).slice(0,12000);
-  const base={category:'อื่น ๆ' as const,amountSatang:null,date:null,
+  const base={category:'อื่น ๆ' as const,amountSatang:null,date:null,time:null,recipient:null,
     type:null,sourceLabel:'iPhone Photos',fingerprint:null,normalizedText:text};
   if(!text||text.length<12)return {...base,accept:false,reason:'unreadable',note:'อ่านข้อความสลิปไม่ชัดเจน'};
   if(!TRANSACTION.test(text))
@@ -63,12 +65,19 @@ export function inspectPhotosOCR(input:string):PhotosCandidate{
   const slip=parseSlipText(safeText);
   const amountSatang=notice?.amountSatang??slip.amountSatang;
   const date=notice?.date??slip.date;
-  const type=notice?.type??null;
+  // Generic forwarded transfer screenshots do not establish whose money moved.
+  // When the slip explicitly shows a sender account and named recipient,
+  // a successful outgoing K PLUS transfer can be classified as expense.
+  const outgoingWithParties=/(?:โอนเงินสำเร็จ|transfer successful)/i.test(text)&&
+    /(?:จากบัญชี|ผู้โอน|sender|from account)/i.test(text)&&
+    /(?:ถึง|ผู้รับ(?:เงิน)?|โอนไปยัง|recipient)/i.test(text);
+  const type=notice?.type??slip.direction??(outgoingWithParties?'expense':null);
   const sourceLabel='KBank / Photos';
   const fingerprint=transactionReference(text)||notice?.fingerprintSource||null;
   return {
     accept:true,reason:'receipt',amountSatang,date,type,
-    category:'อื่น ๆ',note:sourceLabel+' (ตรวจสอบก่อนบันทึก)',
+    time:notice?.time??slip.time,recipient:slip.recipient,
+    category:'อื่น ๆ',note:sourceLabel,
     sourceLabel,
     fingerprint,
     normalizedText:text
