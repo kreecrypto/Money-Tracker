@@ -16,9 +16,9 @@ export async function GET():Promise<Response>{
     const code=message==='SUPABASE_URL_NOT_CONFIGURED'?'SUPABASE_URL_MISSING':
       message==='SUPABASE_SERVICE_ROLE_KEY_NOT_CONFIGURED'?'SUPABASE_SERVICE_KEY_MISSING':
       message==='INVALID_SUPABASE_URL'?'SUPABASE_URL_INVALID':
-      message==='STORAGE_NOT_CONFIGURED'?'STORAGE_CONFIGURATION':
-      /^DATABASE_ERROR_(401|403)$/.test(message)?'STORAGE_AUTH':
-      message==='DATABASE_ERROR_404'?'STORAGE_SCHEMA':
+      message.startsWith('STORAGE_NOT_CONFIGURED')?'STORAGE_CONFIGURATION':
+      /^DATABASE_ERROR_(401|403)(?:\s|$)/.test(message)?'STORAGE_AUTH':
+      message.startsWith('DATABASE_ERROR_404')?'STORAGE_SCHEMA':
       /^DATABASE_ERROR_/.test(message)?'STORAGE_QUERY':'STORAGE_CONNECTION';
     console.error('[iphone-health] unavailable:',code);
     return json({status:'unavailable',storage:'unavailable',code},503);
