@@ -11,6 +11,8 @@ export async function GET(request:Request){
     return json({transactions:rows.map(x=>({
       id:'iphone-'+x.id,amountSatang:Number(x.amount_satang),type:x.type,
       date:x.transaction_date,category:x.category,note:x.note,method:x.method,
+      ...(x.transaction_time?{time:x.transaction_time}:{}),
+      ...(x.recipient?{recipient:x.recipient}:{}),
       createdAt:Date.parse(x.reviewed_at||x.created_at)
     }))},200,headers);
   }catch{return json({error:'STORAGE_UNAVAILABLE'},503,headers);}
