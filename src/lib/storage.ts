@@ -51,7 +51,7 @@ export async function savePendingSlip(item:PendingSlip):Promise<{id:string;dupli
   const store=tx.objectStore(PENDING);
   const existing=await request<unknown[]>(store.getAll());
   const duplicate=existing.filter(isValidPendingSlip).find(p=>pendingFingerprintMatch(p,item));
-  if(!duplicate)store.put(item);
+  if(!duplicate||duplicate.id===item.id)store.put(item);
   await completed(tx);
   return {id:duplicate?.id||item.id,duplicate:!!duplicate&&duplicate.id!==item.id};
 }
