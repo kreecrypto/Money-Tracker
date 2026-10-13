@@ -1,7 +1,8 @@
 import {useEffect,useRef,useState,type ChangeEvent} from 'react';
-import {Camera,CheckCircle2,FileImage,ScanLine,ShieldCheck,Upload,X,Square,Undo2,AlertTriangle,Check,LoaderCircle} from 'lucide-react';
+import {Camera,CheckCircle2,FileImage,ScanLine,ShieldCheck,Upload,X,Square,Undo2,AlertTriangle,Check,LoaderCircle,ClipboardPaste} from 'lucide-react';
 import {parseSlipText,mergeSlipOcrReadings,needsSlipOcrRecovery,type SlipFields} from './lib/slip';
 import {prepareSlipRecoveryImage,prepareSlipOcrFile} from './lib/slipImage';
+import {clipboardSlipFiles} from './lib/shortcutClipboard';
 import {receiptLayoutLines,receiptReconciliationError} from './lib/receiptIntelligence';
 import {baht,toSatang,type EntryType,type Method} from './lib/finance';
 import {
@@ -68,6 +69,7 @@ export default function SlipScanner({onApply,onComplete,onBusyChange,onUndoBatch
   const [fixingIndex,setFixingIndex]=useState<number|null>(null);
   const [undoing,setUndoing]=useState(false);
   const [complete,setComplete]=useState(false);
+  const [clipboardError,setClipboardError]=useState('');
 
   useEffect(()=>{
     mountedRef.current=true;
@@ -96,10 +98,9 @@ export default function SlipScanner({onApply,onComplete,onBusyChange,onUndoBatch
     });
     setCorrectionErrors(previous=>({...previous,[index]:''}));
   };
-  const scan=async(e:ChangeEvent<HTMLInputElement>)=>{
-    const files=Array.from(e.currentTarget.files||[]);
-    e.currentTarget.value='';
+  const scanFiles=async(files:File[])=>{
     if(!files.length||runningRef.current)return;
+    setClipboardError('');
     runningRef.current=true;stopRef.current=false;
     setBusy(true);setStopRequested(false);onBusyChange(true);
     setRows([]);setCorrections({});setCorrectionErrors({});setComplete(false);
@@ -193,6 +194,29 @@ export default function SlipScanner({onApply,onComplete,onBusyChange,onUndoBatch
       }
     }
   };
+  const scan=async(e:ChangeEvent<HTMLInputElement>)=>{
+    const files=Array.from(e.currentTarget.files||[]);
+    e.currentTarget.value='';
+    await scanFiles(files);
+  };
+  const pasteFromShortcuts=async()=>{
+    if(runningRef.current)return;
+    setClipboardError('');
+    const clipboard=navigator.clipboard;
+    if(!clipboard?.read){
+      setClipboardError('เบราว์เซอร์นี้ไม่รองรับการวางรูป กรุณาใช้ปุ่มเลือกรูปจาก iPhone');
+      return;
+    }
+    try{
+      // Invoke read directly from the tap so iOS can grant paste permission.
+      const files=await clipboardSlipFiles(()=>clipboard.read());
+      await scanFiles(files);
+    }catch(err){
+      setClipboardError(err instanceof Error&&err.name==='NotAllowedError'
+        ?'กรุณาอนุญาตให้ Money Tracker วางรูปจาก Clipboard แล้วกดอีกครั้ง'
+        :err instanceof Error?err.message:'ไม่สามารถวางภาพได้ กรุณาเลือกรูปจาก iPhone');
+    }
+  };
   const saveCorrection=async(index:number)=>{
     const draft=corrections[index];
     if(!draft||fixingIndex!==null||undoing)return;
@@ -252,7 +276,9 @@ export default function SlipScanner({onApply,onComplete,onBusyChange,onUndoBatch
       <div className="slip-upload-icon" aria-hidden="true"><FileImage size={28}/></div>
       <strong>{complete?'เพิ่มรูปอีกชุด':'เลือกหลายรูปเพื่อบันทึกทีเดียว'}</strong>
       <span>สูงสุด 20 รูป/ครั้ง · JPG, PNG, WebP, HEIC · ไม่เกิน 10 MB/รูป</span>
-      <div className="slip-actions"><button type="button" className="btn btn-primary slip-pick" disabled={undoing} onClick={()=>galleryRef.current?.click()}><Upload size={18}/> เลือกรูปจาก iPhone</button><button type="button" className="btn btn-secondary" disabled={undoing} onClick={()=>cameraRef.current?.click()}><Camera size={18}/> ถ่ายรูป</button></div>
+      <div className="slip-actions"><button type="button" className="btn btn-primary slip-pick" disabled={undoing} onClick={()=>galleryRef.current?.click()}><Upload size={18}/> เลือกรูปจาก iPhone</button><button type="button" className="btn btn-secondary" disabled={undoing} onClick={()=>cameraRef.current?.click()}><Camera size={18}/> ถ่ายรูป</button><button type="button" className="btn btn-secondary" disabled={undoing} onClick={()=>void pasteFromShortcuts()}><ClipboardPaste size={18}/> นำเข้ารูปจาก Shortcut</button></div>
+      <span>จาก Shortcut: Copy to Clipboard → เปิดแอป → แตะนำเข้า 1 ครั้ง · OCR บนอุปกรณ์ ไม่มีอัปโหลดรูปไป API</span>
+      {clipboardError&&<p className="slip-warning" role="alert">{clipboardError}</p>}
     </div>}
     <input ref={galleryRef} aria-label="เลือกรูปสลิปหลายรูป" multiple type="file" className="visually-hidden" accept="image/png,image/jpeg,image/webp,image/heic,image/heif,.heic,.heif" onChange={e=>void scan(e)}/>
     <input ref={cameraRef} aria-label="ถ่ายรูปสลิป" type="file" className="visually-hidden" accept="image/*" capture="environment" onChange={e=>void scan(e)}/>
