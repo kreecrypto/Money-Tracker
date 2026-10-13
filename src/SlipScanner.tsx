@@ -210,7 +210,7 @@ export default function SlipScanner({onApply,onComplete,onBusyChange,onUndoBatch
       const corrected:SlipFields={
         ...draft.source,amountSatang,date:draft.date,time:draft.time,recipient:draft.recipient.trim(),
         direction:draft.direction,directionReason:'ผู้ใช้ตรวจและยืนยันข้อมูลจากสลิป',
-        method:draft.method,category:draft.category,
+        method:draft.method,category:draft.direction==='income'?'อื่น ๆ':draft.category,
         source:keepReceipt?draft.source.source:undefined,
         receipt:keepReceipt?receipt:undefined,
         warnings:[],
