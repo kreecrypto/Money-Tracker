@@ -6,6 +6,7 @@ export type IPhoneDraft={
   status:'pending'|'confirmed'|'discarded';type:EntryType|null;amount_satang:number|null;
   transaction_date:string|null;category:string;note:string;method:Method;source_label:string;
   created_at:string;reviewed_at:string|null;
+  transaction_time:string|null;recipient:string|null;
 };
 export const MAX_IMAGE_BYTES=3*1024*1024; // allow multipart overhead below Vercel's 4.5MB cap
 export const sha=(data:Uint8Array|string)=>createHash('sha256').update(data).digest('hex');
@@ -49,18 +50,19 @@ const esc=(s:string)=>encodeURIComponent(s);
 const table='money_tracker_iphone_drafts';
 export async function saveDraft(row:Pick<IPhoneDraft,
   'owner_key'|'image_digest'|'bank_fingerprint'|'type'|'amount_satang'|'transaction_date'|'category'|'note'|'method'|'source_label'
->){
+> & {status?:'pending'|'confirmed';transaction_time?:string|null;recipient?:string|null}){
+  const {status='pending',...fields}=row;
   const data=await db(table+'?on_conflict=owner_key,image_digest','POST',
-    {...row,status:'pending'},'resolution=ignore-duplicates,return=representation');
+    {...fields,status,reviewed_at:status==='confirmed'?new Date().toISOString():null},'resolution=ignore-duplicates,return=representation');
   return data[0]||null;
 }
 export async function pendingDrafts(){
   return await db(table+'?owner_key=eq.'+esc(ownerKey())+
-    '&status=eq.pending&select=id,amount_satang,type,transaction_date,category,note,method,source_label,created_at&order=created_at.desc&limit=50','GET');
+    '&status=eq.pending&select=id,amount_satang,type,transaction_date,category,note,method,source_label,created_at,transaction_time,recipient&order=created_at.desc&limit=50','GET');
 }
 export async function confirmedDrafts(){
   return await db(table+'?owner_key=eq.'+esc(ownerKey())+
-    '&status=eq.confirmed&select=id,amount_satang,type,transaction_date,category,note,method,source_label,created_at,reviewed_at&order=reviewed_at.desc&limit=500','GET');
+    '&status=eq.confirmed&select=id,amount_satang,type,transaction_date,category,note,method,source_label,created_at,reviewed_at,transaction_time,recipient&order=reviewed_at.desc&limit=500','GET');
 }
 export async function reviewDraft(id:string,decision:'confirm'|'discard',entry?:{
   type:EntryType;amountSatang:number;date:string;category:string;note:string;method:Method;
