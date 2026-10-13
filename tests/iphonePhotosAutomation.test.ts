@@ -90,10 +90,10 @@ vi.mock('../server/iphone/bridge',async importOriginal=>{
 });
 import {POST} from '../api/iphone/photos';
 const UPLOAD='B'.repeat(64),REVIEW='A'.repeat(64);
-function post(text:string,token=UPLOAD,contentType='application/json'){
+function post(text:string,token=UPLOAD,contentType='application/json',direction?:'income'|'expense'){
   return new Request('https://example.com/api/iphone/photos',{
     method:'POST',headers:{authorization:'Bearer '+token,'content-type':contentType},
-    body:JSON.stringify({text})
+    body:JSON.stringify({text,...(direction?{direction}:{})})
   });
 }
 beforeEach(()=>{
@@ -127,17 +127,45 @@ describe('Photos Automation OCR text API',()=>{
     expect((await r.json())).toMatchObject({status:'skipped',reason:'unsupported_bank'});
     expect(mock.save).not.toHaveBeenCalled();
   });
-  it('stages only parsed private values; no raw OCR or balances in db payload',async()=>{
+  it('auto-saves a complete outgoing KBank notice; never stores raw OCR or balances',async()=>{
     const r=await POST(post(KBANK_ALERT));
-    expect(r.status).toBe(202);
-    expect((await r.json())).toMatchObject({status:'pending',reviewRequired:true});
+    expect(r.status).toBe(201);
+    expect((await r.json())).toMatchObject({status:'saved',reviewRequired:false});
     const row=mock.save.mock.calls[0][0];
-    expect(row).toMatchObject({amount_satang:11900,
-      method:'bank',source_label:'KBank / Photos'});
+    expect(row).toMatchObject({amount_satang:11900,transaction_date:'2026-10-09',
+      transaction_time:'18:44',type:'expense',method:'bank',source_label:'KBank / Photos'});
+    expect(mock.save.mock.calls[0][1]).toBe('confirmed');
     const serialized=JSON.stringify(row);
     expect(serialized).not.toContain('400,070.79');
     expect(serialized).not.toContain('เลขที่');
     expect(serialized).not.toContain('KBank Live');
+  });
+  it('auto-saves an outgoing transfer slip only with an explicit Shortcut direction hint',async()=>{
+    const r=await POST(post(KPLUS_IOS27_PHOTO_TEXT,UPLOAD,'application/json','expense'));
+    expect(r.status).toBe(201);
+    expect((await r.json())).toMatchObject({status:'saved',reviewRequired:false});
+    const row=mock.save.mock.calls[0][0];
+    expect(row).toMatchObject({type:'expense',amount_satang:1,transaction_date:'2026-10-11',
+      transaction_time:'21:09'});
+    expect(mock.save.mock.calls[0][1]).toBe('confirmed');
+  });
+  it('retains a generic transfer as pending if no direction can be established',async()=>{
+    const r=await POST(post(KPLUS));
+    expect(r.status).toBe(202);
+    expect((await r.json())).toMatchObject({status:'pending',reviewRequired:true,missingFields:['direction']});
+    expect(mock.save.mock.calls[0][1]).toBe('pending');
+  });
+  it('rejects a conflicting direction hint rather than reversing an incoming transfer',async()=>{
+    const r=await POST(post(KBANK_ALERT,UPLOAD,'application/json','income'));
+    expect(r.status).toBe(422);
+    expect((await r.json())).toMatchObject({reason:'DIRECTION_CONFLICT'});
+    expect(mock.save).not.toHaveBeenCalled();
+  });
+  it('does not auto-save when OCR cannot prove the transaction amount',async()=>{
+    const text='KBank Live\\nรายการโอน/ถอน\\n9 ต.ค. 69 18:44 น.\\nจำนวนเงิน\\nยอดเงินคงเหลือ 400,070.79 บาท';
+    const r=await POST(post(text));
+    expect(r.status).toBe(202);
+    expect((await r.json())).toMatchObject({status:'pending',missingFields:expect.arrayContaining(['amount'])});
   });
   it('returns duplicate instead of creating new pending item',async()=>{
     mock.save.mockResolvedValue(null);
