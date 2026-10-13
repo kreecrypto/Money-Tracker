@@ -59,10 +59,14 @@ export async function POST(request:Request):Promise<Response>{
     if(e instanceof SyntaxError)return json({error:'BAD_JSON'},400);
     // Never log the OCR text, account identifiers, tokens or database credentials.
     const reason=e instanceof Error?e.message:'';
-    const code=/NOT_CONFIGURED|INVALID_SUPABASE_URL|REVIEW_SECRET/.test(reason)?'STORAGE_CONFIGURATION':
-      /DATABASE_ERROR_401|DATABASE_ERROR_403/.test(reason)?'STORAGE_AUTH':
-      /DATABASE_ERROR_404/.test(reason)?'STORAGE_SCHEMA':
-      /DATABASE_ERROR_/.test(reason)?'STORAGE_WRITE_FAILED':'STORAGE_CONNECTION';
+    const code=reason==='REVIEW_SECRET_NOT_CONFIGURED'?'REVIEW_TOKEN_INVALID':
+      reason==='SUPABASE_URL_NOT_CONFIGURED'?'SUPABASE_URL_MISSING':
+      reason==='SUPABASE_SERVICE_ROLE_KEY_NOT_CONFIGURED'?'SUPABASE_SERVICE_KEY_MISSING':
+      reason==='INVALID_SUPABASE_URL'?'SUPABASE_URL_INVALID':
+      reason==='STORAGE_NOT_CONFIGURED'?'STORAGE_CONFIGURATION':
+      /^DATABASE_ERROR_(401|403)$/.test(reason)?'STORAGE_AUTH':
+      reason==='DATABASE_ERROR_404'?'STORAGE_SCHEMA':
+      /^DATABASE_ERROR_/.test(reason)?'STORAGE_WRITE_FAILED':'STORAGE_CONNECTION';
     console.error('[iphone-photos] persistence:',code);
     return json({error:'STORAGE_UNAVAILABLE',stage:'storage',code},503);
   }
