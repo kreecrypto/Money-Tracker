@@ -86,3 +86,23 @@
 .slip-actions .btn{min-height:44px}
 .icon-btn,.slip-close{touch-action:manipulation}
 .btn-secondary:focus-visible,.btn-ghost:focus-visible,.type-switch button:focus-visible{outline:3px solid #205f52;outline-offset:2px}
+
+
+/* 2026-10-13 IA audit: visible iPhone review queue and honest sync feedback. */
+.iphone-inbox-banner{display:flex;align-items:center;justify-content:space-between;gap:18px;padding:16px 18px;margin:14px 0 18px;border:1px solid #b8dcd4;background:#f0faf7;border-radius:16px}
+.iphone-inbox-banner.is-error{border-color:#e7c5b8;background:#fff7f3}
+.iphone-inbox-banner-copy{display:flex;flex-direction:column;gap:5px;min-width:0}
+.iphone-inbox-banner-copy strong{font-size:15px;font-weight:750;color:#185946}
+.iphone-inbox-banner.is-error strong{color:#924d31}
+.iphone-inbox-banner-copy span{color:#4e645e;font-size:13px;line-height:1.55}
+.iphone-inbox-banner .btn{flex-shrink:0;display:inline-flex;align-items:center;justify-content:center;gap:5px}
+.inbox-view-tabs{display:flex;flex-wrap:wrap;gap:8px;margin:0 0 16px}
+.inbox-view-tabs button{font:inherit;font-size:14px;font-weight:650;border-radius:10px;border:1px solid #ccdcd6;background:#fff;color:#3c5750;padding:11px 16px;min-height:44px}
+.inbox-view-tabs button.active{background:#126857;color:#fff;border-color:#126857}
+.inbox-view-tabs button:focus-visible{outline:3px solid #205f52;outline-offset:3px}
+@media(max-width:660px){
+  .iphone-inbox-banner{align-items:stretch;flex-direction:column;gap:12px;padding:15px;margin:12px 0 15px}
+  .iphone-inbox-banner .btn{width:100%}
+  .inbox-view-tabs{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:7px}
+  .inbox-view-tabs button{font-size:12px;padding:9px 8px;white-space:normal;line-height:1.45}
+}
