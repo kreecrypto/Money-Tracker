@@ -48,6 +48,14 @@ async function db(path:string,method:'GET'|'POST'|'PATCH',body?:object,prefer='r
 }
 const esc=(s:string)=>encodeURIComponent(s);
 const table='money_tracker_iphone_drafts';
+/**
+ * Small, read-only production liveness probe. Do not return any record,
+ * owner identifier or configured secret to callers.
+ */
+export async function storageHealth():Promise<void>{
+  await db(table+'?select=id&limit=0','GET');
+}
+
 export async function saveDraft(row:Pick<IPhoneDraft,
   'owner_key'|'image_digest'|'bank_fingerprint'|'type'|'amount_satang'|'transaction_date'|'category'|'note'|'method'|'source_label'
 > & {status?:'pending'|'confirmed';transaction_time?:string|null;recipient?:string|null}){
