@@ -61,7 +61,7 @@ try {
       await page.locator('.modal .modal-heading button').click();
       record('mobile-home-actions',name,{...mobileHome,openedOCR,pageErrors:errors});
     }
-    const menu=['รายการทั้งหมด','รายงาน','ตั้งค่า'];
+    const menu=['รายการ','รายงาน','ตั้งค่า'];
     const views=['transactions','reports','settings'];
     for(let i=0;i<menu.length;i++){
       const buttons=page.locator(width<=660?'.mobile-bottom-nav button':'.sidebar .nav-item').nth(i+1);
@@ -106,7 +106,7 @@ try {
     if(state.modalOpen) await page.locator('.modal .modal-heading button').first().evaluate(el=>el.click());
     await page.evaluate(()=>{
       const nav=innerWidth<=660?document.querySelector('.mobile-bottom-nav'):document.querySelector('.sidebar');
-      const target=Array.from(nav?.querySelectorAll('button')||[]).find(x=>x.textContent?.includes('รายการทั้งหมด'));
+      const target=Array.from(nav?.querySelectorAll('button')||[]).find(x=>['รายการ','รายการทั้งหมด'].includes(x.textContent?.trim()||''));
       target?.click();
     });
     await page.waitForTimeout(180);
