@@ -325,3 +325,34 @@ body,.app-shell{background:var(--mobile-canvas);color:var(--mobile-ink)}
  .slip-attention-fields{gap:10px}
 }
 @media(prefers-reduced-motion:reduce){.slip-processing-icon svg{animation:none}}
+
+/* Slip-first review clarity: incomplete batches are not a success state. */
+.slip-batch-summary.requires-review{
+  background:#fff9f1;border-color:#e4d1ad;color:#664519;
+}
+.slip-batch-summary.requires-review .slip-batch-summary-title{color:#70491e}
+.slip-batch-summary.requires-review .slip-batch-counts b{color:#70491e}
+.slip-batch-summary .slip-batch-summary-title strong{font-size:14px;line-height:1.5}
+.slip-batch-summary .slip-batch-summary-title svg{flex:none}
+.slip-batch-finish+.slip-batch-finish{margin-top:8px}
+.slip-awaiting-review,.slip-wallet-guidance{
+  font-size:12px;line-height:1.65;color:#684b22;background:#fff7e9;
+  border:1px solid #e7cfaa;border-radius:12px;padding:12px;
+}
+.slip-awaiting-review{width:100%;margin:10px 0 0;text-align:left}
+.slip-wallet-guidance{display:flex;align-items:flex-start;gap:9px;margin:12px 0 4px}
+.slip-wallet-guidance svg{flex:none;margin-top:1px}
+.slip-wallet-exclude{
+  width:100%;min-height:48px;justify-content:center;line-height:1.5;
+  margin-top:8px;white-space:normal;text-align:center;
+  border:1px solid #c6d3c9;background:#fff;color:#2c5842;
+}
+.slip-wallet-exclude:hover:not(:disabled){background:#f4f8f5}
+.slip-attention{scroll-margin-top:92px}
+.slip-attention-fields select:required:invalid{border-color:#ba8648;color:#73552c}
+.slip-batch-status.excluded{background:#eef2fa;color:#3c5678}
+@media(max-width:390px){
+  .slip-batch-counts{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .slip-batch-counts span{min-height:55px}
+  .slip-batch-summary-title strong{font-size:13px}
+}
