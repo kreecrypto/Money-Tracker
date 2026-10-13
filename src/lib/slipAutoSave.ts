@@ -13,6 +13,8 @@ export function prepareAutoSlip(
   id:string,
   createdAt:number,
 ):AutoSlipDecision {
+  if(slip.imageHash&&existing.some(t=>t.slipHash===slip.imageHash))
+    return {status:'duplicate',reason:'รูปภาพสลิปนี้เคยบันทึกแล้ว'};
   if(slip.warnings.some(w=>w.includes('ต่างกัน')))
     return {status:'incomplete',reason:'OCR อ่านข้อมูลไม่ตรงกันระหว่างสองรอบ จึงยังไม่บันทึก กรุณาลองรูปใหม่หรือกรอกเอง'};
   if(!slip.direction)
@@ -40,6 +42,7 @@ export function prepareAutoSlip(
     recipient,
     method:slip.method||'bank',
     ...(slip.receipt?{receipt:slip.receipt}:{}),
+    ...(slip.imageHash?{slipHash:slip.imageHash}:{}),
     createdAt,
   };
   if(!isValidTransaction(transaction))
@@ -56,7 +59,8 @@ export function prepareAutoSlip(
     t.amountSatang===transaction.amountSatang &&
     t.date===transaction.date &&
     t.method===transaction.method &&
-    (t.time===undefined||t.time===transaction.time) &&
+    t.time!==undefined &&
+    t.time===transaction.time &&
     !!t.recipient &&
     normalize(t.recipient)===normalize(recipient)
   ));
