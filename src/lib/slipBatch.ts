@@ -3,8 +3,8 @@ export const MAX_SLIP_FILE_BYTES=10*1024*1024;
 const SUPPORTED_IMAGE_TYPES=new Set(['image/jpeg','image/png','image/webp']);
 
 export type SlipBatchStatus='saved'|'duplicate'|'incomplete'|'error'|'cancelled'|'undone'|'excluded';
-export type SlipBatchOutcome={status:SlipBatchStatus;reason?:string;transactionId?:string;recipient?:string;amountSatang?:number;date?:string};
-export type SlipBatchRow={name:string;status:SlipBatchStatus;reason?:string;transactionId?:string;recipient?:string;amountSatang?:number;date?:string};
+export type SlipBatchOutcome={status:SlipBatchStatus;reason?:string;transactionId?:string;recipient?:string;amountSatang?:number;date?:string;pendingId?:string};
+export type SlipBatchRow={name:string;status:SlipBatchStatus;reason?:string;transactionId?:string;recipient?:string;amountSatang?:number;date?:string;pendingId?:string};
 
 export function validateSlipImage(file:Pick<File,'size'|'type'>&{name?:string}):string|null {
   const heic=/\.(?:heic|heif)$/iu.test(file.name||'');
@@ -19,6 +19,7 @@ export function summarizeSlipBatch(rows:SlipBatchRow[]) {
   const cancelled=rows.filter(r=>r.status==='cancelled').length;
   const undone=rows.filter(r=>r.status==='undone').length;
   const excluded=rows.filter(r=>r.status==='excluded').length;
+  const queued=rows.filter(r=>r.status==='incomplete'&&!!r.pendingId).length;
   return {
     total:rows.length,
     saved:rows.filter(r=>r.status==='saved').length,
@@ -28,6 +29,7 @@ export function summarizeSlipBatch(rows:SlipBatchRow[]) {
     ...(cancelled?{cancelled}:{}),
     ...(undone?{undone}:{}),
     ...(excluded?{excluded}:{}),
+    queued,
   };
 }
 

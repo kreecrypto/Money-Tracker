@@ -27,12 +27,15 @@ describe('multi-image slip upload safety',()=>{
       {name:'scan5.heic',status:'error' as const},
     ];
     expect(summarizeSlipBatch(rows)).toEqual({
-      total:5,saved:2,duplicate:1,incomplete:1,errors:1,
+      total:5,saved:2,duplicate:1,incomplete:1,errors:1,queued:0,
     });
+  });
+  it('identifies pending drafts safely stored for later',()=>{
+    expect(summarizeSlipBatch([{name:'a',status:'incomplete',pendingId:'pending-a'}]).queued).toBe(1);
   });
   it('reports an empty batch without claiming any save',()=>{
     expect(summarizeSlipBatch([])).toEqual({
-      total:0,saved:0,duplicate:0,incomplete:0,errors:0,
+      total:0,saved:0,duplicate:0,incomplete:0,errors:0,queued:0,
     });
   });
 });

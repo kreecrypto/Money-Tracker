@@ -1,8 +1,10 @@
 import {DEFAULT_SETTINGS,type Settings,type Transaction,isValidTransaction} from './finance';
+import {isValidPendingSlip,pendingFingerprintMatch,type PendingSlip} from './pendingSlips';
 const DB_NAME='ngoentoday-db';
-const VERSION=1;
+const VERSION=2;
 const STORE='transactions';
 const SETTINGS='settings';
+const PENDING='pending_slips';
 let opening:Promise<IDBDatabase>|null=null;
 function getDB():Promise<IDBDatabase>{
   if (!('indexedDB' in window)) return Promise.reject(new Error('เบราว์เซอร์นี้ไม่รองรับการบันทึกข้อมูล'));
@@ -12,6 +14,7 @@ function getDB():Promise<IDBDatabase>{
       const db=req.result;
       if(!db.objectStoreNames.contains(STORE)) db.createObjectStore(STORE,{keyPath:'id'});
       if(!db.objectStoreNames.contains(SETTINGS)) db.createObjectStore(SETTINGS,{keyPath:'key'});
+      if(!db.objectStoreNames.contains(PENDING)) db.createObjectStore(PENDING,{keyPath:'id'});
     };
     req.onsuccess=()=>resolve(req.result);
     req.onerror=()=>reject(req.error||new Error('เปิดฐานข้อมูลไม่สำเร็จ'));
@@ -30,5 +33,31 @@ export async function replaceAll(transactions:Transaction[],settings:Settings){
   const db=await getDB();const tx=db.transaction([STORE,SETTINGS],'readwrite');
   const store=tx.objectStore(STORE);store.clear(); transactions.forEach(t=>store.put(t));
   tx.objectStore(SETTINGS).put({key:'monthlyBudgetSatang',value:settings.monthlyBudgetSatang});
+  await completed(tx);
+}
+
+/** Pending OCR drafts live in the same local IndexedDB, but are NOT transactions. */
+export async function loadPendingSlips():Promise<PendingSlip[]>{
+  const db=await getDB();
+  const rows=await request<unknown[]>(db.transaction(PENDING,'readonly').objectStore(PENDING).getAll());
+  return rows.filter(isValidPendingSlip).sort((a,b)=>b.updatedAt-a.updatedAt);
+}
+
+/** Use one read/write transaction so simultaneous batches cannot duplicate a pending slip. */
+export async function savePendingSlip(item:PendingSlip):Promise<{id:string;duplicate:boolean}>{
+  if(!isValidPendingSlip(item))throw new Error('ข้อมูลรายการรอตรวจไม่ถูกต้อง');
+  const db=await getDB();
+  const tx=db.transaction(PENDING,'readwrite');
+  const store=tx.objectStore(PENDING);
+  const existing=await request<unknown[]>(store.getAll());
+  const duplicate=existing.filter(isValidPendingSlip).find(p=>pendingFingerprintMatch(p,item));
+  if(!duplicate||duplicate.id===item.id)store.put(item);
+  await completed(tx);
+  return {id:duplicate?.id||item.id,duplicate:!!duplicate&&duplicate.id!==item.id};
+}
+export async function deletePendingSlip(id:string):Promise<void>{
+  const db=await getDB();
+  const tx=db.transaction(PENDING,'readwrite');
+  tx.objectStore(PENDING).delete(id);
   await completed(tx);
 }

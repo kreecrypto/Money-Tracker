@@ -78,6 +78,36 @@ try {
       }
       await scan(page,views[i],name);
     }
+    if(name==='iphone390'){
+      // Local IndexedDB persistence check: pending draft survives a page reload,
+      // can be corrected into a single ledger transaction, and disappears afterward.
+      await page.evaluate(async()=>{
+        const store=await import('/src/lib/storage.ts');
+        await store.savePendingSlip({
+          id:'audit-pending-25',name:'sample-kplus.jpg',
+          createdAt:Date.now(),updatedAt:Date.now(),
+          amountSatang:2500,date:'2026-10-11',time:'17:10',
+          recipient:'ร้านค้าตัวอย่าง',direction:null,method:'bank',category:'อื่น ๆ',
+          directionReason:'ต้องตรวจประเภทรายการ',
+          reason:'OCR ระบุประเภทไม่ได้',kind:'slip',
+        });
+      });
+      await page.reload({waitUntil:'networkidle'});
+      const homeBadge=await page.locator('.pending-home-alert').isVisible();
+      await page.locator('.mobile-bottom-nav button').nth(1).click();
+      await page.getByRole('button',{name:/รอตรวจจากสลิป/}).click();
+      const pendingBefore=await page.locator('.pending-slip-card').count();
+      await page.getByRole('button',{name:'ตรวจและแก้ไข'}).click();
+      await scan(page,'pending-slip-review-form',name);
+      await page.locator('.pending-slip-form select').first().selectOption('expense');
+      await page.getByRole('button',{name:'บันทึกรายการนี้'}).click();
+      await page.waitForTimeout(250);
+      const pendingAfter=await page.locator('.pending-slip-card').count();
+      await page.getByRole('button',{name:'บันทึกแล้ว'}).click();
+      const savedVisible=await page.getByText('ร้านค้าตัวอย่าง').count()>0;
+      record('pending-queue-smoke',name,{homeBadge,pendingBefore,pendingAfter,savedVisible,pageErrors:errors});
+      await page.locator('.mobile-bottom-nav button').nth(3).click();
+    }
     const add=page.locator(width<=660?'.mobile-fab':'.top-add');
     await add.click({timeout:3500});
     const slipDefault=await page.locator('.modal .slip-panel').isVisible();
@@ -142,6 +172,7 @@ try {
     ||(x.view==='slip-first-default'&&(!x.slipDefault||!x.uploadPrimary||!x.autoSaveNext||!x.multiSelectable||!x.batchLimitVisible||x.reviewButtonCount>0||x.pageErrors?.length))
     ||(x.view==='manual-entry-alternative'&&(!x.manualAvailable||x.pageErrors?.length))
     ||(x.view==='save-smoke'&&(!x.savedVisible||x.pageErrors?.length))
+    ||(x.view==='pending-queue-smoke'&&(!x.homeBadge||x.pendingBefore!==1||x.pendingAfter!==0||!x.savedVisible||x.pageErrors?.length))
     ||(x.view==='restore-smoke'&&(!x.initiallyDisabled||!x.enabledAfterAcknowledgement||!x.closed||x.pageErrors?.length))
     ||(x.view==='mobile-home-actions'&&(!x.correctHierarchy||!x.quickActionsVisible||!x.bottomNavVisible||!x.openedOCR||x.pageErrors?.length))
   ).map(x=>({viewport:x.viewport,view:x.view,overflowPx:x.overflowPx,axe:x.axe?.violations?.map(v=>v.id),savedVisible:x.savedVisible,restore:[x.initiallyDisabled,x.enabledAfterAcknowledgement,x.closed]}));
