@@ -77,7 +77,9 @@ describe('additional K PLUS layouts from seven image examples',()=>{
     expect(slip.recipient).toBe('พร้อมเพย์ อี-วอลเล็ต / G-Wallet');
     expect(slip.direction).toBeNull();
     expect(slip.directionReason).toContain('ไม่บันทึกเป็นรายจ่ายอัตโนมัติ');
-    expect(prepareAutoSlip(slip,[],'funding',Date.now()).status).toBe('incomplete');
+    const decision=prepareAutoSlip(slip,[],'funding',Date.now());
+    expect(decision.status).toBe('incomplete');
+    if(decision.status==='incomplete')expect(decision.reason).toContain('ป้องกันยอดซ้ำ');
   });
 
   it('does not infer wallet top-up without K PLUS sender evidence',()=>{
