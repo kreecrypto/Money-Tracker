@@ -106,7 +106,11 @@ function parseAmount(lines:string[]):{amountSatang:number|null;ambiguous:boolean
       // Handles "จำนวน:" followed by "฿" on one line and 85.00 on the next.
       // No scanning past arbitrary text, fee, account or reference rows.
       const next=lines[i+1]||'';
-      if(standalone.test(next))candidates=parseMoney(normalizeMoney(next));
+      // K PLUS bill slips often put the amount in a right-aligned OCR box:
+      // "จำนวน:" and "30.00 บาท" may be separate lines; the amount can also
+      // be followed by an unrelated fee caption on the same reconstructed row.
+      const nextPayment=next.split(/(?:ค่าธรรมเนียม|เลขที่รายการ|รหัสอ้างอิง|reference)/iu,1)[0].trim();
+      if(standalone.test(nextPayment))candidates=parseMoney(normalizeMoney(nextPayment));
       else if(currencyOnly.test(next)&&(i+2)<lines.length&&standalone.test(lines[i+2]))
         candidates=parseMoney(normalizeMoney(lines[i+2]));
     }
