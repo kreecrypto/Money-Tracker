@@ -34,6 +34,7 @@ describe('slip upload -> immediate auto save (without review)',()=>{
       date:'2026-10-12',
       time:'13:15',
       recipient:'SYNPHAET BANGNA CO.,LTD.',
+      sender:'นาย ผู้ชำระเงิน',
       category:'อื่น ๆ',
       note:'',
       method:'bank',
