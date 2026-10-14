@@ -45,3 +45,23 @@ Run npm test, npm run typecheck, and npm run build. The synthetic fixtures verif
 - `เติมเงินสำเร็จ` to a G-Wallet / PromptPay e-Wallet is treated as wallet funding with ambiguous expense direction. The user must decide whether to record a bank-only cash flow or exclude an internal wallet transfer. This protects budgets from counting both the funding and later wallet spend as separate purchases.
 - The public GitHub tests contain substituted identities, references and bank details, not real uploaded slip images; raw image-level Tesseract testing on iPhone is still required.
 - Run `pnpm test` and `pnpm build` for the expanded regression suite.
+
+## OCR robustness update — 14 October 2026
+
+### Payment accuracy (K PLUS / generic bank text)
+- The payment amount parser now scans all trusted payment labels in the *same* slip. If two labels disagree (e.g., จำนวน 125.50 versus ยอดชำระ 128.50), no value is automatically selected; the record is placed in **รอตรวจจากสลิป**.
+- For line-wrapped amounts, the next line must itself look like a monetary value. Merchant names, item counts, references, fee and account lines are not candidates.
+- Correctly labelled repeated amounts and the existing one-satang K PLUS fixture continue to parse.
+
+### Image recovery / confidence
+- Narrow screenshots may be upscaled up to 2× for the **recovery pass** only, bounded by 1800px width, 2100px height and 2.7 megapixels.
+- Enhanced canvases use an opaque white base for transparent PNG pixels; the original image is not modified or stored.
+- Tesseract page confidence below **55** triggers an additional enhanced OCR pass even if the first pass found four fields. For those low-confidence captures, a second pass must have confidence >= 55 and independently agree on amount, date, time, recipient and cash-flow direction before auto-save. Otherwise the slip remains in the existing local pending-review queue.
+- 55 is a conservative product heuristic, **not** a calibrated probability of correctness or proof of payment. High page confidence likewise cannot prove any single amount is right.
+- Recovering OCR data is local to the browser; images and full OCR transcripts are not persisted. The pending queue only stores the structured fields needed for review.
+
+### QA and known limitations
+- `tests/ocrRobustness.test.ts` checks contradictory payment amounts, unrelated numbers, item counts, one satang, low-confidence rechecks and image-scaling bounds.
+- Passing synthetic text fixtures and typechecks is **not** an image recognition accuracy claim.
+- Before deploying, run a privacy-safe real-device matrix on iPhone Safari: K PLUS bill/transfer/top-up, 7-Eleven and subsidized wallet receipts; direct camera, Photos JPG/PNG/HEIC, 1/20 files, small/blurred/low-light screenshots, auto-save versus pending-review, OCR retry speed and memory, cross-session pending persistence, and duplicate prevention.
+- This update does not add support for other banks or QR-payment verification.
