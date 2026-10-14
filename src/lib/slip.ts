@@ -9,6 +9,8 @@ export type SlipFields = {
   date: string | null;
   time: string | null;
   recipient: string | null;
+  /** Name of the party transferring money; null if OCR cannot establish it. */
+  sender?: string | null;
   /** Null when the receipt cannot reliably establish the user's cash-flow direction. */
   direction: EntryType | null;
   directionReason: string;
@@ -219,6 +221,32 @@ function parseRecipient(lines:string[]):string|null {
 }
 
 
+function parseSender(lines:string[],kplus:boolean):string|null {
+  const senderLabel=/^(?:ชื่อ\s*ผู้(?:โอน|ส่ง|จ่าย)|ผู้(?:โอน|ส่ง|จ่าย)(?:เงิน)?|จาก(?:บัญชี)?|sender|from|payer)\s*[:：-]?\s*(.*)$/iu;
+  const bankOrAccount=/^(?:ธ\.?\s*|ธนาคาร|bank|บัญชี|account|เลข(?:ที่)?บัญชี|[xX*\d -]{6,}|วันที่|เวลา|จำนวน|ยอด|ค่าธรรมเนียม|ถึง|ผู้รับ|recipient|to\s*:)/iu;
+  const candidate=(value:string):string|null=>{
+    const name=value.replace(/(?:\b\d[\d\s*xX*-]{6,}\b|\b\d{6,}\b).*/u,'').replace(/\s+/gu,' ').trim();
+    return name.length>=3&&name.length<=100&&/[\p{L}]/u.test(name)&&!bankOrAccount.test(name)?name:null;
+  };
+  for(let i=0;i<lines.length;i++){
+    const match=lines[i].match(senderLabel);
+    if(!match)continue;
+    const inline=candidate(match[1]);
+    if(inline)return inline;
+    // Bank slips often put "จาก" on a row by itself, followed by a name.
+    if(!match[1].trim()&&i+1<lines.length){
+      const next=candidate(lines[i+1]);
+      if(next)return next;
+    }
+  }
+  if(kplus){
+    const bank=lines.findIndex(x=>/^(?:ธ\.?\s*กสิกรไทย|ธนาคาร\s*กสิกรไทย|kasikorn\s*bank|kbank)/iu.test(x));
+    if(bank>0&&/^(?:นาย|นางสาว|นาง|น\.?ส\.?|คุณ|mr\.?|mrs\.?|ms\.?)\s*[^\d]+/iu.test(lines[bank-1]))
+      return candidate(lines[bank-1]);
+  }
+  return null;
+}
+
 /**
  * Classify only explicit payment or incoming/outgoing transaction language.
  * A generic transfer confirmation is not proof of the uploader's direction:
@@ -267,6 +295,7 @@ export function parseSlipText(rawText:string,layoutLines:string[]=[]):SlipFields
   const date=parseDate(lines);
   const time=parseTime(lines);
   const recipient=special?special.recipient:(walletTopUp?.recipient||kplus?.recipient||parseRecipient(lines));
+  const sender=special?null:parseSender(lines,!!kplus);
   const inferred=inferSlipDirection(rawText);
   // A complete K PLUS sender-side confirmation is outgoing for its sender.
   // Keep incoming and contradictory OCR evidence conservative.
@@ -290,7 +319,7 @@ export function parseSlipText(rawText:string,layoutLines:string[]=[]):SlipFields
   if(date===null)warnings.push('อ่านวันที่ไม่ชัดเจน กรุณาตรวจและกรอกวันที่ก่อนบันทึก');
   if(time===null)warnings.push('อ่านเวลาไม่ชัดเจน กรุณากรอกเวลาตามสลิป');
   if(recipient===null)warnings.push('อ่านชื่อผู้รับไม่ชัดเจน กรุณาตรวจและกรอกชื่อผู้รับ');
-  return {amountSatang,date,time,recipient,direction,directionReason,source,method,category,receipt:receipt||undefined,rawText,warnings};
+  return {amountSatang,date,time,recipient,sender,direction,directionReason,source,method,category,receipt:receipt||undefined,rawText,warnings};
 }
 
 
@@ -315,6 +344,7 @@ export function mergeSlipOcrReadings(first:SlipFields,second:SlipFields):SlipFie
   const date=select('วันที่',first.date,second.date);
   const time=select('เวลา',first.time,second.time);
   const recipient=select('ชื่อผู้รับ',first.recipient,second.recipient);
+  const sender=select('ชื่อผู้ส่ง',first.sender??null,second.sender??null);
   // Wallet funding is a transfer, not proof of consumption. Preserve this even
   // if a noisy recovery pass misclassifies its success header as a payment.
   const walletFunding=[first,second].some(reading=>reading.directionReason.includes('เติมเงินเข้า e-Wallet'));
@@ -356,6 +386,6 @@ export function mergeSlipOcrReadings(first:SlipFields,second:SlipFields):SlipFie
   if(date===null&&!conflicts.some(x=>x.includes('วันที่')))warnings.push('อ่านวันที่ไม่ได้ กรุณากรอกเอง');
   if(time===null&&!conflicts.some(x=>x.includes('เวลา')))warnings.push('อ่านเวลาไม่ได้ กรุณากรอกเอง');
   if(recipient===null&&!conflicts.some(x=>x.includes('ชื่อผู้รับ')))warnings.push('อ่านชื่อผู้รับไม่ได้ กรุณากรอกเอง');
-  return {amountSatang,date,time,recipient,direction,directionReason,source,method,category,receipt,warnings,rawText:
+  return {amountSatang,date,time,recipient,sender,direction,directionReason,source,method,category,receipt,warnings,rawText:
     first.rawText+'\n\n--- รอบปรับภาพ ---\n'+second.rawText};
 }
