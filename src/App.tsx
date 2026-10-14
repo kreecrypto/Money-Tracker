@@ -14,6 +14,7 @@ import {lineLinked,syncLineInbox} from './lib/lineSync';
 import type {SlipFields} from './lib/slip';
 import {prepareAutoSlip} from './lib/slipAutoSave';
 import type {SlipBatchOutcome,SlipBatchSummary} from './lib/slipBatch';
+import {dailyTotals,groupTransactionsByDay,dateSectionLabel} from './lib/spendingInsights';
 
 type Page='home'|'transactions'|'reports'|'settings';
 type Filter='all'|'income'|'expense';
@@ -58,9 +59,15 @@ function TransactionRow({entry,onEdit,onDelete}:{entry:Transaction;onEdit:(t:Tra
   </details>}
   </div>;
 }
-function TxList({items,onEdit,onDelete,limit}:{items:Transaction[];onEdit:(t:Transaction)=>void;onDelete:(t:Transaction)=>void;limit?:number}){
+function TxList({items,onEdit,onDelete,limit,groupByDay=false}:{items:Transaction[];onEdit:(t:Transaction)=>void;onDelete:(t:Transaction)=>void;limit?:number;groupByDay?:boolean}){
   const visible=limit?items.slice(0,limit):items;
-  return <div className="tx-list">{visible.map(x=><TransactionRow key={x.id} entry={x} onEdit={onEdit} onDelete={onDelete}/>)}</div>;
+  if(!groupByDay)return <div className="tx-list">{visible.map(x=><TransactionRow key={x.id} entry={x} onEdit={onEdit} onDelete={onDelete}/>)}</div>;
+  const today=todayLocal();
+  const yesterday=new Date(today+'T12:00:00');yesterday.setDate(yesterday.getDate()-1);
+  return <div className="tx-list tx-list-grouped">{groupTransactionsByDay(visible).map(group=><section className="transaction-day-group" key={group.date} aria-label={'รายการวันที่ '+dateText(group.date)}>
+    <div className="transaction-day-heading"><strong>{dateSectionLabel(group.date,today,todayLocal(yesterday),dateText)}</strong><span>{group.items.length} รายการ</span></div>
+    {group.items.map(entry=><TransactionRow key={entry.id} entry={entry} onEdit={onEdit} onDelete={onDelete}/>)}
+  </section>)}</div>;
 }
 function EntryModal({initial,existing,startWithScanner,close,submit,submitImported,undoImported,notifyBatch,queuePending,resolvePending}:{initial:Transaction|null;existing:Transaction[];startWithScanner:boolean;close:()=>void;submit:(t:Transaction)=>Promise<void>;submitImported:(t:Transaction)=>Promise<void>;undoImported:(ids:string[])=>Promise<void>;notifyBatch:(summary:SlipBatchSummary)=>void;queuePending:(slip:SlipFields,name:string,reason:string)=>Promise<{id:string;duplicate:boolean}>;resolvePending:(id:string)=>Promise<void>}){
   const [type,setType]=useState<EntryType>(initial?.type||'expense');
@@ -133,7 +140,7 @@ function EntryModal({initial,existing,startWithScanner,close,submit,submitImport
   return <div className="modal-backdrop" onMouseDown={e=>{if(e.target===e.currentTarget&&!pending&&!batchBusy)safeClose();}}><section ref={dialogRef} tabIndex={-1} className="modal" role="dialog" aria-modal="true" aria-labelledby="modal-title"><div className="modal-heading"><div><span className="eyebrow">SLIP-FIRST ENTRY</span><h2 id="modal-title">{initial?'แก้ไขรายการ':scannerOpen?'อัปโหลดสลิป':'กรอกรายการเอง'}</h2></div><button className="icon-btn" title="ปิด" aria-label="ปิด" disabled={pending||batchBusy} onClick={safeClose}><X size={21}/></button></div>
   <form onSubmit={save}>
   {!initial&&<div className="slip-entry slip-entry-first">
-    {scannerOpen&&<div className="slip-flow" aria-label="ขั้นตอนบันทึกสลิป"><span className="current">1 เลือกสลิป</span><span>2 บันทึกอัตโนมัติ</span></div>}
+    {scannerOpen&&<div className="slip-flow" aria-label="ขั้นตอนบันทึกสลิป"><span className="current">1 เลือกรูป</span><span>2 อ่าน OCR</span><span>3 บันทึกหรือรอตรวจ</span></div>}
     <div className="slip-mode-picker" role="group" aria-label="วิธีเพิ่มรายการ">
       <button type="button" aria-pressed={scannerOpen} className={scannerOpen?'active':''} disabled={batchBusy} onClick={()=>setScannerOpen(true)}><ScanLine size={17}/> อัปโหลดสลิป</button>
       <button type="button" aria-pressed={!scannerOpen} className={!scannerOpen?'active':''} disabled={batchBusy} onClick={()=>{if(!confirmLeave())return;pendingReviewRef.current=0;setScannerOpen(false);setError('');}}><Plus size={17}/> กรอกเอง</button>
@@ -201,6 +208,7 @@ export default function App(){
   const sums=useMemo(()=>summarize(selected),[selected]);
   const allSums=useMemo(()=>summarize(items),[items]);
   const byCategory=useMemo(()=>expenseByCategory(selected),[selected]);
+  const todaySummary=useMemo(()=>dailyTotals(items,todayLocal()),[items]);
   const usedBudget=percent(sums.expense,settings.monthlyBudgetSatang);
   const filtered=useMemo(()=>selected.filter(x=>(filter==='all'||x.type===filter) && (!search.trim()||`${x.category} ${x.note} ${x.recipient||''} ${x.time||''} ${x.receipt?.receiptId||''} ${(x.receipt?.items||[]).map(i=>i.name).join(' ')} ${METHODS[x.method]}`.toLocaleLowerCase('th-TH').includes(search.trim().toLocaleLowerCase('th-TH')))),[selected,filter,search]);
   const history=useMemo(()=>{const [y,m]=month.split('-').map(Number);return lastMonths(6,new Date(y,m-1,1)).map(period=>({...period,...summarize(monthly(items,period.key))}));},[items,month]);
@@ -280,6 +288,10 @@ export default function App(){
           <button type="button" className="mobile-action-scan" onClick={openAdd}><span className="quick-action-symbol"><ScanLine size={22}/></span><span><strong>เพิ่มสลิปหรือใบเสร็จ</strong><small>อ่านและบันทึกอัตโนมัติเมื่อข้อมูลครบ</small></span><ArrowRight size={17}/></button>
           <button type="button" className="mobile-action-add" onClick={openManual}><span className="quick-action-symbol"><Plus size={20}/></span><span><strong>กรอกรายการเอง</strong><small>เมื่อไม่มีสลิป</small></span><ArrowRight size={17}/></button>
         </section>
+        <section className="daily-snapshot" aria-label="สรุปเงินเข้าออกวันนี้">
+          <div className="daily-snapshot-main"><span>วันนี้ใช้ไป</span><strong>฿{baht(todaySummary.expense)}</strong><small>จากรายการที่บันทึก {todaySummary.count} รายการ</small></div>
+          <div className="daily-snapshot-income"><span><ArrowDownLeft size={16}/> รับเงินวันนี้</span><strong>+฿{baht(todaySummary.income)}</strong></div>
+        </section>
         {pendingSlips.length>0&&<section className="pending-home-alert" role="status" aria-label="รายการรอตรวจจากสลิป">
           <div className="pending-home-icon"><ScanLine size={19}/></div>
           <div><strong>มีสลิป {pendingSlips.length} รูปรอตรวจ</strong>
@@ -297,7 +309,14 @@ export default function App(){
           </button>
         </section>}
         <section className="surface transactions-surface"><div className="section-header"><div><span className="card-overline">RECENT ACTIVITY</span><h3>รายการล่าสุด</h3></div><button className="text-action" onClick={()=>setView('transactions')}>ดูทั้งหมด <ArrowRight size={16}/></button></div>{selected.length?<TxList items={selected} onEdit={onEdit} onDelete={onDelete} limit={6}/>:<Empty title={items.length?'เดือนนี้ยังไม่มีรายการ':'เริ่มต้นด้วยสลิปใบแรก'} description="เลือกรูปสลิปหรือใบเสร็จ ระบบจะอ่านและบันทึกเมื่อข้อมูลครบ" add={openAdd} actionLabel="เพิ่มสลิป"/>}</section>
-        <div className="home-report-link"><button type="button" className="btn btn-ghost bordered" onClick={()=>setView('reports')}><BarChart3 size={17}/> ดูรายงานและกราฟทั้งหมด <ArrowRight size={16}/></button></div>
+        <section className="surface home-spending-card" aria-label="สัดส่วนรายจ่ายเดือนที่เลือก">
+           <div className="section-header"><div><span className="card-overline">SPENDING INSIGHTS</span><h3>3 หมวดที่ใช้จ่ายสูงสุด</h3></div><button type="button" className="text-action" onClick={()=>setView('reports')}>ดูทั้งหมด <ArrowRight size={16}/></button></div>
+           {byCategory.length>0?<div className="home-category-list">{byCategory.slice(0,3).map((category,index)=><div className="home-category-row" key={category.name}>
+             <div className="home-category-info"><span><b className="home-category-rank">{index+1}</b>{category.name}</span><strong>฿{baht(category.total)}</strong></div>
+             <div className="home-category-track" role="progressbar" aria-label={category.name+' คิดเป็นร้อยละของรายจ่ายเดือนที่เลือก'} aria-valuemin={0} aria-valuemax={100} aria-valuenow={percent(category.total,sums.expense)}><span style={{width:percent(category.total,sums.expense)+'%'}}/></div>
+           </div>)}</div>:<p className="home-category-empty">ยังไม่มีรายจ่ายในเดือนนี้ สแกนสลิปหรือเพิ่มรายการเพื่อดูว่าใช้เงินไปกับอะไรบ้าง</p>}
+         </section>
+         <div className="home-report-link"><button type="button" className="btn btn-ghost bordered" onClick={()=>setView('reports')}><BarChart3 size={17}/> ดูรายงานและกราฟทั้งหมด <ArrowRight size={16}/></button></div>
       </div>}
       {view==='transactions'&&<>
         <div className="inbox-view-tabs" role="group" aria-label="หมวดรายการ">
@@ -311,7 +330,7 @@ export default function App(){
         </div>
         {slipInboxTab?<PendingSlipsInbox items={pendingSlips} onSave={savePendingTransaction} onKeep={keepPendingDraft} onDiscard={discardPendingDraft} onAdd={openAdd}/>:
          inboxTab?<IPhoneShortcutSettings variant="review" onImported={reload} onPendingChanged={setIphonePending}/>:
-      <section className="surface transaction-page"><div className="list-tools"><div className="search-box"><Search size={19}/><input aria-label="ค้นหารายการ" placeholder="ค้นหาจากรายละเอียด หมวดหมู่ หรือช่องทาง..." value={search} onChange={e=>setSearch(e.target.value)}/></div><div className="filter-tabs" aria-label="กรองประเภทรายการ">{([['all','ทั้งหมด'],['income','รายรับ'],['expense','รายจ่าย']] as const).map(([key,label])=><button key={key} className={filter===key?'selected':''} onClick={()=>setFilter(key)}>{label}</button>)}</div></div><div className="list-count"><SlidersHorizontal size={16}/> {filtered.length} รายการ <span>· {monthText(month)}</span></div>{filtered.length?<TxList items={filtered} onEdit={onEdit} onDelete={onDelete}/>:<Empty icon="🔎" title="ไม่พบรายการ" description="ลองเปลี่ยนเดือน คำค้นหา หรือตัวกรองอีกครั้ง" add={selected.length===0?openAdd:undefined}/>}</section>
+      <section className="surface transaction-page"><div className="list-tools"><div className="search-box"><Search size={19}/><input type="search" aria-label="ค้นหารายการ" placeholder="ค้นหาชื่อร้าน หมวดหมู่ หรือรหัสอ้างอิง" value={search} onChange={e=>setSearch(e.target.value)}/>{search&&<button className="search-clear" type="button" aria-label="ล้างคำค้นหา" onClick={()=>setSearch('')}><X size={16}/></button>}</div><div className="filter-tabs" aria-label="กรองประเภทรายการ">{([['all','ทั้งหมด'],['income','รายรับ'],['expense','รายจ่าย']] as const).map(([key,label])=><button key={key} className={filter===key?'selected':''} onClick={()=>setFilter(key)}>{label}</button>)}</div></div><div className="list-count"><SlidersHorizontal size={16}/> แสดง {filtered.length} จาก {selected.length} รายการ <span>· {monthText(month)}</span>{(search||filter!=='all')&&<button className="filter-reset" type="button" onClick={()=>{setSearch('');setFilter('all');}}>ล้างตัวกรอง</button>}</div>{filtered.length?<TxList items={filtered} onEdit={onEdit} onDelete={onDelete} groupByDay/>:<Empty icon="🔎" title={selected.length?'ไม่พบรายการตามเงื่อนไข':'ยังไม่มีรายการในเดือนนี้'} description={selected.length?'ลองล้างคำค้นหาหรือตัวกรองเพื่อดูรายการทั้งหมด':'สแกนสลิปหรือเพิ่มรายการแรกของเดือนนี้'} add={selected.length===0?openAdd:()=>{setSearch('');setFilter('all');}} actionLabel={selected.length?'ล้างตัวกรอง':'เพิ่มสลิป'}/>}</section>
         }
       </>}
       {view==='reports'&&<><div className="stat-triplet"><MoneyCard title="รายรับรวม" value={sums.income} icon="income"/><MoneyCard title="รายจ่ายรวม" value={sums.expense} icon="expense"/><MoneyCard title="เงินสุทธิ" value={sums.net} icon="net"/></div><section className="two-column"><div className="surface chart-surface"><div className="section-header"><div><span className="card-overline">CASH FLOW</span><h3>แนวโน้ม 6 เดือนถึงเดือนที่เลือก</h3></div><div className="chart-legend"><span><i className="legend-income"/>รายรับ</span><span><i className="legend-expense"/>รายจ่าย</span></div></div><div className="bars-chart" role="img" aria-label="แผนภูมิแท่งรายรับและรายจ่ายย้อนหลัง 6 เดือน"><div className="bars-grid"><div/><div/><div/><div/></div>{history.map(h=><div className="bar-slot" key={h.key}><div className="bar-pair"><div className="bar income-bar" title={`รายรับ ${h.label}: ฿${baht(h.income)}`} style={{height:`${h.income?Math.max(3,(h.income/maxBar)*100):0}%`}}/><div className="bar expense-bar" title={`รายจ่าย ${h.label}: ฿${baht(h.expense)}`} style={{height:`${h.expense?Math.max(3,(h.expense/maxBar)*100):0}%`}}/></div><span>{h.label}</span></div>)}</div></div>
