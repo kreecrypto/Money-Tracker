@@ -66,34 +66,48 @@ function parseMoney(line:string):number[] {
   return [...new Set(values)];
 }
 
-function parseAmount(lines:string[]):number|null {
+/**
+ * Financial totals must agree across labelled amounts. If OCR sees two
+ * different "amount / paid" figures, neither one is safe for auto-save.
+ * A disconnected number in an account/reference/fee block is never promoted.
+ */
+function parseAmount(lines:string[]):{amountSatang:number|null;ambiguous:boolean} {
+  const amounts=new Set<number>();
+  let sawLabel=false;
+  let ambiguous=false;
   for(let i=0;i<lines.length;i++){
     const line=lines[i];
-    if(!AMOUNT_LABEL.test(line)||EXCLUDED_AMOUNT.test(line))continue;
-    // Keep only text following the label where possible.
     const label=AMOUNT_LABEL.exec(line);
-    const after=label?line.slice(label.index+label[0].length):line;
-    let candidates=parseMoney(after);
-    if(!candidates.length)candidates=parseMoney(line.slice(0,label?.index??0));
-    if(candidates.length===1)return candidates[0];
-    if(candidates.length>1)continue;
-    // A receipt's amount can be separated from its label by a blank/icon line.
-    // Never read through a fee or reference label.
-    for(let offset=1;offset<=3;offset++){
-      const next=lines[i+offset]||'';
-      if(!next||EXCLUDED_AMOUNT.test(next))break;
-      candidates=parseMoney(next);
-      if(candidates.length===1)return candidates[0];
-      if(candidates.length>1)break;
+    if(!label||EXCLUDED_AMOUNT.test(line))continue;
+    sawLabel=true;
+    const after=line.slice(label.index+label[0].length);
+    const countOnly=/(?:ชิ้น|สินค้า|รายการสินค้า|items?|quantity|qty)/iu.test(after)
+      && !/(?:฿|THB|บาท|\d+[.]\d{2})/iu.test(after);
+    let candidates=countOnly?[]:parseMoney(after);
+    if(!candidates.length&&!countOnly){
+      // Label and payment can be split across lines on narrow screenshots.
+      // Only accept a standalone monetary line, not a merchant or a QR ID.
+      const before=line.slice(0,label.index).trim();
+      if(/^(?:฿\s*|THB\s*)?[\d,]+(?:\.\d{2})?\s*(?:บาท)?$/iu.test(before))
+        candidates=parseMoney(before);
+      for(let offset=1;!candidates.length&&offset<=2;offset++){
+        const next=lines[i+offset]||'';
+        if(!/^(?:฿\s*|THB\s*)?[\d,]+(?:\.\d{2})?\s*(?:บาท)?$/iu.test(next))break;
+        candidates=parseMoney(next);
+      }
     }
+    if(candidates.length>1)ambiguous=true;
+    if(candidates.length===1)amounts.add(candidates[0]);
   }
-  // Without an amount label, use only a single explicit currency value.
-  const candidates=new Set<number>();
+  if(sawLabel)return {amountSatang:!ambiguous&&amounts.size===1?[...amounts][0]:null,
+    ambiguous:ambiguous||amounts.size>1};
+  // If there is no amount label, require one unique explicit currency amount.
+  const currency=new Set<number>();
   for(const line of lines){
     if(EXCLUDED_AMOUNT.test(line)||!/(?:฿|\bTHB\b|บาท)/iu.test(line))continue;
-    for(const value of parseMoney(line))candidates.add(value);
+    for(const value of parseMoney(line))currency.add(value);
   }
-  return candidates.size===1?[...candidates][0]:null;
+  return {amountSatang:currency.size===1?[...currency][0]:null,ambiguous:currency.size>1};
 }
 
 function formatDate(y:number,m:number,d:number):string|null {
@@ -220,7 +234,8 @@ export function parseSlipText(rawText:string,layoutLines:string[]=[]):SlipFields
   const walletTopUp=special?null:parseKPlusTopUp(lines);
   // A confirmed bill or wallet payment requires the actual tender/paid amount,
   // never the gross item subtotal or discount.
-  const amountSatang=special?special.amountSatang:parseAmount(lines);
+  const amountResult=special?null:parseAmount(lines);
+  const amountSatang=special?special.amountSatang:amountResult!.amountSatang;
   const date=parseDate(lines);
   const time=parseTime(lines);
   const recipient=special?special.recipient:(walletTopUp?.recipient||kplus?.recipient||parseRecipient(lines));
@@ -240,6 +255,7 @@ export function parseSlipText(rawText:string,layoutLines:string[]=[]):SlipFields
       ...(recipient?{storeName:recipient}:{}),
     }:undefined;
   const warnings:string[]=[];
+  if(amountResult?.ambiguous)warnings.push('พบยอดเงินที่ขัดแย้งกันในสลิปเดียวกัน กรุณาตรวจยอดก่อนบันทึก');
   if(walletTopUp)warnings.push('เป็นรายการเติมเงิน e-Wallet ซึ่งอาจทำให้รายจ่ายซ้ำหากบันทึกการใช้จ่ายจากกระเป๋าเงินด้วย กรุณาตรวจสอบ');
   if(!lines.length)warnings.push('ไม่พบตัวอักษรในรูปภาพ ลองถ่ายใหม่ให้ชัดขึ้น');
   if(amountSatang===null)warnings.push('ไม่สามารถระบุยอดโอนได้อย่างมั่นใจ กรุณากรอกยอดเอง');
