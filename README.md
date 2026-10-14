@@ -16,6 +16,36 @@ Mobile-first, Thai-language, offline-first **daily income and expense tracker** 
 
 Receipt Intelligence adds optional transaction.receipt metadata while keeping older IndexedDB and JSON backups valid. For supported receipts it stores receiptId, items[], subtotalSatang, discountSatang, subsidySatang, feeSatang, paidSatang and itemsComplete; the transaction amount remains the actual paid amount. Transactions can expand to show itemization and CSV exports include detail columns. Tesseract word coordinates are used to recover line item price alignment, but OCR is not guaranteed accurate and real-device tests on iPhone Safari remain necessary. No receipt images are uploaded or retained.
 
+## OCR: classify from sender and recipient names
+
+In **Settings → ชื่อบัญชีของฉัน (สำหรับ OCR)**, register the full account-holder
+names appearing on your bank transfer slips (up to ten exact-name aliases,
+one per line; e.g. Thai and English spellings). These names are stored
+in this browser's IndexedDB, and included in JSON backups. No bank login
+or account number is required.
+
+For transfer slips, OCR extracts **ผู้ส่ง/ผู้โอน/จาก** and **ผู้รับ/ถึง**.
+Both names must be readable; aliases are matched after standardizing titles,
+punctuation and spacing, **not** by substring/fuzzy matching:
+
+| Sender | Recipient | Classification |
+| --- | --- | --- |
+| My registered name | Other name | **Expense** |
+| Other name | My registered name | **Income** |
+| My registered name | Another registered alias of mine | **Internal transfer — excluded** |
+| Both unknown, one missing, or no registered names | — | **Needs review — no auto-save** |
+
+This ownership check overrides sender-side transfer-success assumptions from
+K PLUS, which cannot prove who uploaded the slip. For receipts clearly labelled
+as bill payments or paid retail purchases, existing expense rules still apply.
+Wallet top-ups remain review-only so moving money between own accounts does
+not double-count expenditure. Unknown/conflicting OCR is queued for review
+rather than guessed.
+
+On income from an identified transfer, the transaction keeps the printed
+recipient and sender separately; the transaction list displays the **sender**
+as the counterparty. Original images and OCR text are never retained.
+
 ## Batch upload workflow
 
 1. Tap **อัปโหลดสลิป** → **เลือกภาพสลิป**, select multiple photos in the iPhone Photos picker, then confirm selection. The file input uses the browser's native `multiple` attribute.
