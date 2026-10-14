@@ -550,3 +550,7 @@ body,.app-shell{background:var(--mobile-canvas);color:var(--mobile-ink)}
   .slip-result-row .slip-result-fix{width:100%;margin-left:0}
   .slip-evidence img{max-height:55dvh}
 }
+
+/* Locally stored account holder aliases for slip direction matching. */
+.owner-names-input{display:block;box-sizing:border-box;width:100%;min-height:100px;resize:vertical;margin:8px 0 10px;padding:12px;border:1px solid #cbd7d2;border-radius:12px;background:var(--surface,#fff);color:inherit;font:inherit;line-height:1.55}
+.owner-names-input:focus-visible{outline:3px solid #83ba9b;outline-offset:2px}
