@@ -53,8 +53,8 @@ try {
     if(width<=660){
       const mobileHome=await page.evaluate(()=>{
         const el=name=>document.querySelector(name)?.getBoundingClientRect();
-        const hero=el('.hero-card'),quick=el('.mobile-quick-actions'),recent=el('.transactions-surface'),nav=el('.mobile-bottom-nav');
-        return {correctHierarchy:!!(hero&&quick&&recent&&quick.top<recent.top&&recent.top<hero.top),quickActionsVisible:!!(quick&&quick.width>0),bottomNavVisible:!!(nav&&nav.width===innerWidth)};
+        const hero=el('.hero-card'),quick=el('.mobile-quick-actions'),today=el('.daily-snapshot'),recent=el('.transactions-surface'),categories=el('.home-spending-card'),nav=el('.mobile-bottom-nav');
+        return {correctHierarchy:!!(hero&&quick&&today&&recent&&categories&&quick.top<today.top&&today.top<recent.top&&recent.top<categories.top&&categories.top<hero.top),quickActionsVisible:!!(quick&&quick.width>0),bottomNavVisible:!!(nav&&nav.width===innerWidth)};
       });
       await page.locator('.mobile-action-scan').click();
       const openedOCR=await page.locator('.modal .slip-panel').isVisible();
@@ -79,6 +79,15 @@ try {
       await scan(page,views[i],name);
     }
     if(name==='iphone390'){
+      // Money Manager-style grouped ledger and accessible filter recovery.
+      await page.locator('.mobile-bottom-nav button').nth(1).click();
+      const dailyGroupVisible=await page.locator('.transaction-day-heading').count()>=0;
+      await page.locator('.transaction-page input[aria-label="ค้นหารายการ"]').fill('ไม่พบรายการนี้แน่นอน');
+      const resetVisible=await page.getByRole('button',{name:'ล้างตัวกรอง'}).isVisible();
+      await page.getByRole('button',{name:'ล้างตัวกรอง'}).first().click();
+      const searchReset=await page.locator('.transaction-page input[aria-label="ค้นหารายการ"]').inputValue()==='';
+      record('competitive-ledger-smoke',name,{dailyGroupVisible,resetVisible,searchReset,pageErrors:errors});
+
       // Local IndexedDB persistence check: pending draft survives a page reload,
       // can be corrected into a single ledger transaction, and disappears afterward.
       await page.evaluate(async()=>{
@@ -112,7 +121,7 @@ try {
     await add.click({timeout:3500});
     const slipDefault=await page.locator('.modal .slip-panel').isVisible();
     const uploadPrimary=await page.getByRole('button',{name:'เลือกรูปจาก iPhone'}).isVisible();
-    const autoSaveNext=await page.getByText('2 บันทึกอัตโนมัติ').isVisible();
+    const autoSaveNext=await page.getByText('2 อ่าน OCR').isVisible() && await page.getByText('3 บันทึกหรือรอตรวจ').isVisible();
     const multiSelectable=await page.locator('input[aria-label="เลือกรูปสลิปหลายรูป"]').evaluate(el=>el instanceof HTMLInputElement&&el.multiple);
     const batchLimitVisible=await page.getByText(/สูงสุด 20 รูป\/ครั้ง/).isVisible();
     const reviewButtonCount=await page.getByRole('button',{name:/ตรวจทานและบันทึก/}).count();
@@ -175,6 +184,7 @@ try {
     ||(x.view==='pending-queue-smoke'&&(!x.homeBadge||x.pendingBefore!==1||x.pendingAfter!==0||!x.savedVisible||x.pageErrors?.length))
     ||(x.view==='restore-smoke'&&(!x.initiallyDisabled||!x.enabledAfterAcknowledgement||!x.closed||x.pageErrors?.length))
     ||(x.view==='mobile-home-actions'&&(!x.correctHierarchy||!x.quickActionsVisible||!x.bottomNavVisible||!x.openedOCR||x.pageErrors?.length))
+    ||(x.view==='competitive-ledger-smoke'&&(!x.dailyGroupVisible||!x.resetVisible||!x.searchReset||x.pageErrors?.length))
   ).map(x=>({viewport:x.viewport,view:x.view,overflowPx:x.overflowPx,axe:x.axe?.violations?.map(v=>v.id),savedVisible:x.savedVisible,restore:[x.initiallyDisabled,x.enabledAfterAcknowledgement,x.closed]}));
   if(critical.length){console.error('UX_ACCEPTANCE_FAIL',JSON.stringify(critical));process.exitCode=1;}
   else console.log('UX_ACCEPTANCE_PASS: 6 viewport, mobile quick OCR, slip-first, manual fallback, save, restore, responsive and WCAG scans');
