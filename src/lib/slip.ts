@@ -318,7 +318,11 @@ export function mergeSlipOcrReadings(first:SlipFields,second:SlipFields):SlipFie
     direction?(first.direction===direction?first.directionReason:second.directionReason):
     'สลิปยังไม่สามารถระบุรายรับหรือรายจ่ายได้ชัดเจน กรุณาเลือกเอง'
   );
-  const warnings=[...conflicts];
+  // Never let a cleaner retry erase an ambiguity discovered inside either
+  // OCR pass; the second result cannot establish which conflicting total was real.
+  const persistentWarnings=[...first.warnings,...second.warnings]
+    .filter(w=>w.includes('ขัดแย้ง')||w.includes('ความมั่นใจต่ำ'));
+  const warnings=[...new Set([...conflicts,...persistentWarnings])];
   if(walletFunding)warnings.push('พบรายการเติมเงิน e-Wallet โปรดตรวจสอบก่อนบันทึกเพื่อป้องกันการนับรายจ่ายซ้ำ');
   if(amountSatang===null&&!conflicts.some(x=>x.includes('จำนวนเงิน')))warnings.push('อ่านจำนวนเงินไม่ได้ กรุณากรอกเอง');
   if(date===null&&!conflicts.some(x=>x.includes('วันที่')))warnings.push('อ่านวันที่ไม่ได้ กรุณากรอกเอง');
