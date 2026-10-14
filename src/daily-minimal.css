@@ -485,6 +485,7 @@ body,.app-shell{background:var(--mobile-canvas);color:var(--mobile-ink)}
   .home-dashboard .mobile-action-scan small{color:#eaf8ef}
   .home-dashboard .mobile-action-add{background:#fff;color:var(--mobile-ink);border-color:var(--mobile-line)}
   .home-dashboard .mobile-action-add .quick-action-symbol{background:#eaf4ef;color:var(--mobile-accent)}
+  .home-dashboard .mobile-action-add small{color:#52655b!important}
   .home-spending-card{margin-bottom:18px}
 }
 @media(max-width:660px){
