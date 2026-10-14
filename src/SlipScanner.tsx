@@ -3,6 +3,7 @@ import {Camera,CheckCircle2,FileImage,ScanLine,ShieldCheck,Upload,Square,Undo2,A
 import {parseSlipText,mergeSlipOcrReadings,needsSlipOcrRecovery,type SlipFields} from './lib/slip';
 import {prepareSlipRecoveryImage,prepareSlipOcrFile} from './lib/slipImage';
 import {isLowOcrConfidence,requiresLowConfidenceReview} from './lib/ocrConfidence';
+import {withOcrDeadline,OCR_MODEL_TIMEOUT_MS,OCR_PASS_TIMEOUT_MS,OcrDeadlineError} from './lib/ocrDeadline';
 import {clipboardSlipFiles} from './lib/shortcutClipboard';
 import {receiptLayoutLines,receiptReconciliationError} from './lib/receiptIntelligence';
 import {baht,toSatang,EXPENSE_CATEGORIES,INCOME_CATEGORIES,type EntryType,type Method} from './lib/finance';
@@ -129,7 +130,7 @@ export default function SlipScanner({onApply,onComplete,onBusyChange,onUndoBatch
       if(valid){
         const {createWorker,PSM}=await import('tesseract.js');
         if(stopRef.current)return;
-        worker=await createWorker(['tha','eng'],1,{
+        const starting=createWorker(['tha','eng'],1,{
           logger:message=>{
             if(mountedRef.current&&message.status==='recognizing text'){
               setStage(current=>current==='retry'?'retry':'recognize');
@@ -137,6 +138,14 @@ export default function SlipScanner({onApply,onComplete,onBusyChange,onUndoBatch
             }
           },
         });
+        try{
+          worker=await withOcrDeadline(starting,OCR_MODEL_TIMEOUT_MS,'โหลดระบบ OCR ');
+        }catch(error){
+          // The timed-out worker may complete its download later; terminate it
+          // instead of leaving a WASM worker running in the background.
+          void starting.then(lateWorker=>lateWorker.terminate()).catch(()=>{});
+          throw error;
+        }
         if(!mountedRef.current)return;
         workerRef.current=worker;
         for(let i=0;i<selected.length;i++){
@@ -153,7 +162,7 @@ export default function SlipScanner({onApply,onComplete,onBusyChange,onUndoBatch
             showPreview(ocrFile);
             await worker.setParameters({tessedit_pageseg_mode:PSM.AUTO});
             setStage('recognize');
-            const initial=await worker.recognize(ocrFile,{}, {text:true,blocks:true});
+            const initial=await withOcrDeadline(worker.recognize(ocrFile,{}, {text:true,blocks:true}),OCR_PASS_TIMEOUT_MS,'อ่านสลิปรอบแรก ');
             const firstReading=parseSlipText(initial.data.text,receiptLayoutLines(initial.data.blocks));
             let reading=firstReading;
             let recoveredReading:SlipFields|null=null;
@@ -165,12 +174,16 @@ export default function SlipScanner({onApply,onComplete,onBusyChange,onUndoBatch
                 const enhanced=await prepareSlipRecoveryImage(ocrFile);
                 if(mountedRef.current&&!stopRef.current){
                   await worker.setParameters({tessedit_pageseg_mode:PSM.SPARSE_TEXT});
-                  const retry=await worker.recognize(enhanced,{}, {text:true,blocks:true});
+                  const retry=await withOcrDeadline(worker.recognize(enhanced,{}, {text:true,blocks:true}),OCR_PASS_TIMEOUT_MS,'อ่านสลิปรอบสอง ');
                   recoveredReading=parseSlipText(retry.data.text,receiptLayoutLines(retry.data.blocks));
                   recoveredConfidence=retry.data.confidence;
                   reading=mergeSlipOcrReadings(reading,recoveredReading);
                 }
-              }catch{/* A failed image enhancement does not discard the first reading. */}
+              }catch(error){
+                // A decode/enhancement failure can keep the first reading, but a
+                // stuck WASM recognition must stop the worker before next image.
+                if(error instanceof OcrDeadlineError)throw error;
+              }
             }
             if(!mountedRef.current||stopRef.current)break;
             if(requiresLowConfidenceReview(firstReading,recoveredReading,
@@ -197,7 +210,10 @@ export default function SlipScanner({onApply,onComplete,onBusyChange,onUndoBatch
               setCorrections({...attention});
             }
           }catch(err){
+            if(stopRef.current)break;
             publish({name:file.name,status:'error',reason:err instanceof Error?err.message:'ประมวลผลภาพไม่สำเร็จ'});
+            // Do not reuse an OCR worker whose recognition deadline expired.
+            if(err instanceof OcrDeadlineError){stopRef.current=true;break;}
           }
         }
       }else{
@@ -344,7 +360,11 @@ export default function SlipScanner({onApply,onComplete,onBusyChange,onUndoBatch
       <p>{stopRequested?'กำลังหยุดหลังขั้นตอนปัจจุบัน…':stage==='save'?'กำลังตรวจรายการซ้ำและบันทึก…':stage==='retry'?'กำลังปรับภาพและอ่านซ้ำ…':stage==='recognize'?'กำลังอ่านข้อมูลจากสลิป '+progress+'%':'กำลังเตรียมภาพและระบบ OCR…'}</p>
       <div className="slip-progress-track" role="progressbar" aria-label="ความคืบหน้า OCR" aria-valuemin={0} aria-valuemax={100} aria-valuenow={Math.round((Math.max(0,activeIndex-1)+progress/100)/Math.max(1,totalFiles)*100)}><div style={{width:String(Math.round((Math.max(0,activeIndex-1)+(progress/100))/Math.max(1,totalFiles)*100))+'%'}}/></div>
       <span>{summary.saved} บันทึกแล้ว · {summary.duplicate} ซ้ำ · {summary.incomplete+summary.errors} ต้องตรวจ</span>
-      <button type="button" className="btn btn-secondary slip-stop" disabled={stopRequested} onClick={()=>{stopRef.current=true;setStopRequested(true);}}><Square size={16}/> {stopRequested?'กำลังหยุด…':'หยุดรูปที่เหลือ'}</button>
+      <button type="button" className="btn btn-secondary slip-stop" disabled={stopRequested} onClick={()=>{stopRef.current=true;setStopRequested(true);
+        // Tesseract calls may be CPU-bound; terminating the worker interrupts
+        // an in-flight recognition rather than waiting for the next image.
+        if(workerRef.current)void workerRef.current.terminate().catch(()=>{});
+      }}><Square size={16}/> {stopRequested?'กำลังหยุด…':'หยุดรูปที่เหลือ'}</button>
     </div>}
     {busy&&preview&&<figure className="slip-preview"><img src={preview} alt="รูปสลิปที่กำลังประมวลผล"/><figcaption>{filename}</figcaption></figure>}
     {complete&&<div className={'slip-batch-summary'+(summary.incomplete+summary.errors>0?' requires-review':'')} role="status" aria-live="polite">

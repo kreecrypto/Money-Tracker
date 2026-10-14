@@ -64,9 +64,12 @@ describe('financially safe K PLUS OCR fallbacks',()=>{
     expect(isLowOcrConfidence(34)).toBe(true);
     expect(isLowOcrConfidence(80)).toBe(false);
     expect(requiresLowConfidenceReview(first,same,34,88)).toBe(false);
-    expect(requiresLowConfidenceReview(first,same,34,40)).toBe(true);
+    // QR codes and logos lower page confidence; identical extracted financial
+    // fields from two separate passes should not force permanent review.
+    expect(requiresLowConfidenceReview(first,same,34,40)).toBe(false);
     expect(requiresLowConfidenceReview(first,null,34,null)).toBe(true);
     expect(requiresLowConfidenceReview(first,altered,34,88)).toBe(true);
+    expect(requiresLowConfidenceReview(first,altered,34,42)).toBe(true);
     expect(requiresLowConfidenceReview(first,altered,92,88)).toBe(false);
   });
 
