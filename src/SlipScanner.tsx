@@ -58,6 +58,7 @@ export default function SlipScanner({onApply,onComplete,onBusyChange,onUndoBatch
   const attentionRef=useRef<HTMLDivElement>(null);
   const workerRef=useRef<{terminate:()=>Promise<unknown>}|null>(null);
   const previewUrlRef=useRef<string|null>(null);
+  const reviewImageUrlsRef=useRef<Record<number,string>>({});
   const mountedRef=useRef(true);
   const runningRef=useRef(false);
   const stopRef=useRef(false);
@@ -83,6 +84,8 @@ export default function SlipScanner({onApply,onComplete,onBusyChange,onUndoBatch
       mountedRef.current=false;
       stopRef.current=true;
       if(previewUrlRef.current)URL.revokeObjectURL(previewUrlRef.current);
+      for(const url of Object.values(reviewImageUrlsRef.current))URL.revokeObjectURL(url);
+      reviewImageUrlsRef.current={};
       if(workerRef.current)void workerRef.current.terminate().catch(()=>{});
     };
   },[]);
@@ -104,6 +107,12 @@ export default function SlipScanner({onApply,onComplete,onBusyChange,onUndoBatch
     });
     setCorrectionErrors(previous=>({...previous,[index]:''}));
   };
+  const focusReview=(index:number)=>{
+    const card=document.getElementById('slip-review-'+index);
+    if(!card)return;
+    card.scrollIntoView({behavior:window.matchMedia('(prefers-reduced-motion: reduce)').matches?'auto':'smooth',block:'start'});
+    window.requestAnimationFrame(()=>card.querySelector<HTMLInputElement>('input[inputmode="decimal"]')?.focus({preventScroll:true}));
+  };
   const scanFiles=async(files:File[])=>{
     if(!files.length||runningRef.current)return;
     if(Object.keys(corrections).some(key=>rows[Number(key)]?.status==='incomplete')){
@@ -113,6 +122,8 @@ export default function SlipScanner({onApply,onComplete,onBusyChange,onUndoBatch
     setClipboardError('');
     runningRef.current=true;stopRef.current=false;
     setBusy(true);setStopRequested(false);onBusyChange(true);
+    for(const url of Object.values(reviewImageUrlsRef.current))URL.revokeObjectURL(url);
+    reviewImageUrlsRef.current={};
     setRows([]);setCorrections({});setCorrectionErrors({});setComplete(false);
     setProgress(0);setStage('download');setActiveIndex(0);
     setTotalFiles(files.length);clearPreview();
@@ -206,6 +217,9 @@ export default function SlipScanner({onApply,onComplete,onBusyChange,onUndoBatch
             }
             publish({name:file.name,...outcome,recipient:outcome.recipient||reading.recipient||undefined,amountSatang:outcome.amountSatang||reading.amountSatang||undefined,date:outcome.date||reading.date||undefined});
             if(outcome.status==='incomplete'){
+              // Keep the photo only in volatile browser memory for same-session
+              // review. Do not persist or send it through the API.
+              reviewImageUrlsRef.current[i]=URL.createObjectURL(ocrFile);
               attention[i]=toCorrection(reading);
               setCorrections({...attention});
             }
@@ -344,7 +358,7 @@ export default function SlipScanner({onApply,onComplete,onBusyChange,onUndoBatch
   return <section className="slip-panel slip-panel-primary slip-workspace" aria-label="อัปโหลดสลิปหรือใบเสร็จหลายรูป">
     <div className="slip-head"><div><ScanLine size={18}/><strong>เพิ่มสลิปหรือใบเสร็จ</strong></div></div>
     {!busy&&!complete&&<p className="slip-hint">เพิ่มสลิปได้ครั้งละ 20 รูป ระบบจะอ่านและบันทึกเมื่อข้อมูลครบ โดยไม่เพิ่มรายการที่ตรวจพบว่าซ้ำ</p>}
-    {!busy&&<div className="slip-upload-box">
+    {!busy&&(!complete||needsAttention.length===0)&&<div className="slip-upload-box">
       <div className="slip-upload-icon" aria-hidden="true"><FileImage size={28}/></div>
       <strong>{complete?'เพิ่มรูปอีกชุด':'เพิ่มหลายสลิปพร้อมกัน'}</strong>
       <span>สูงสุด 20 รูป/ครั้ง · JPG, PNG, WebP, HEIC · ไม่เกิน 10 MB/รูป</span>
@@ -387,6 +401,7 @@ export default function SlipScanner({onApply,onComplete,onBusyChange,onUndoBatch
         {row.amountSatang!==undefined&&<b className="slip-result-amount">฿{baht(row.amountSatang)}</b>}
         <span className={'slip-batch-status '+row.status}>{statusLabels[row.status]}</span>
         {row.reason&&row.status!=='saved'&&<small className="slip-result-reason">{row.reason}</small>}
+        {row.status==='incomplete'&&corrections[i]&&<button type="button" className="slip-result-fix" onClick={()=>focusReview(i)}>ดูภาพและกรอกยอด <Check size={16}/></button>}
       </li>)}</ul>
     </div>}
     {needsAttention.length>0&&<div ref={attentionRef} className="slip-attention" aria-label="แก้ไขสลิปที่อ่านไม่ครบ">
@@ -394,9 +409,10 @@ export default function SlipScanner({onApply,onComplete,onBusyChange,onUndoBatch
       <p>ตรวจวันที่ ยอดเงิน และประเภทรายการก่อนบันทึก หรือกลับมาแก้ภายหลังได้จากเมนู “รายการ → รอตรวจจากสลิป”</p>
       {needsAttention.map(([rawIndex,draft])=>{
         const index=Number(rawIndex);
-        return <div key={rawIndex} className="slip-attention-card">
+        return <div id={'slip-review-'+index} key={rawIndex} className="slip-attention-card">
           <strong>{rows[index]?.name||'ใบเสร็จ'}</strong>
-          {rows[index]?.pendingId&&<p className="slip-queued-inline">เก็บไว้ในเครื่องแล้ว · กลับมาตรวจภายหลังได้</p>}
+          {rows[index]?.pendingId&&<p className="slip-queued-inline">เก็บเฉพาะข้อมูลรายการไว้ในเครื่องแล้ว · กลับมาตรวจภายหลังได้</p>}
+          {reviewImageUrlsRef.current[index]&&<details className="slip-evidence"><summary>เปิดภาพสลิปเพื่อเทียบยอดเงินจริง</summary><img src={reviewImageUrlsRef.current[index]} alt={'ภาพสลิป '+(rows[index]?.name||'ที่รอตรวจ')+' สำหรับตรวจยอดจากต้นฉบับ'} loading="lazy"/><small>แสดงเฉพาะระหว่างเปิดหน้านี้ · ไม่เก็บภาพถาวร</small></details>}
           {isWalletFundingSlip(draft.source)&&<div className="slip-wallet-guidance" role="note"><AlertTriangle size={17}/><span>พบการเติมเงิน e-Wallet หากเป็นการย้ายเงินระหว่างบัญชีตัวเอง ให้เลือก “ไม่นับรายการนี้” เพื่อไม่ให้รายจ่ายซ้ำกับการใช้เงินจาก Wallet ภายหลัง</span></div>}
           <div className="slip-attention-fields">
             <label>จำนวนเงิน (บาท)<input inputMode="decimal" value={draft.amount} onChange={e=>changeCorrection(index,{amount:e.target.value})} placeholder="0.00"/></label>

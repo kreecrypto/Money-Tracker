@@ -71,43 +71,57 @@ function parseMoney(line:string):number[] {
  * different "amount / paid" figures, neither one is safe for auto-save.
  * A disconnected number in an account/reference/fee block is never promoted.
  */
-function parseAmount(lines:string[]):{amountSatang:number|null;ambiguous:boolean} {
+/**
+ * OCR often merges "จำนวนเงิน 80.00 บาท ค่าธรรมเนียม 0.00" on one row,
+ * or separates the amount and the currency into adjacent visual rows.
+ * Only the region after an explicit payment label and before a new field
+ * can contribute a labelled payment value.
+ */
+function parseAmount(lines:string[]):{amountSatang:number|null;ambiguous:boolean;labelled:boolean} {
   const amounts=new Set<number>();
   let sawLabel=false;
   let ambiguous=false;
+  const currencyOnly=/^(?:฿|THB|บาท)$/iu;
+  const standalone=/^(?:฿\s*|THB\s*)?[\d,]+(?:[.,]\s*\d{2})?\s*(?:บาท)?$/iu;
+  const normalizeMoney=(text:string)=>text.replace(/(\d[\d,]*)\s*[.,]\s*(\d{2})(?!\d)/gu,'$1.$2');
   for(let i=0;i<lines.length;i++){
     const line=lines[i];
     const label=AMOUNT_LABEL.exec(line);
-    if(!label||EXCLUDED_AMOUNT.test(line))continue;
+    if(!label)continue;
+    // A whole fee/balance line containing the word "จำนวน" is not a paid label.
+    const beforeLabel=line.slice(0,label.index);
+    const feeBefore=EXCLUDED_AMOUNT.exec(beforeLabel);
+    if(feeBefore && !/(?:บาท|THB|฿|\d{2}\s*[:.]\s*\d{2})/iu.test(beforeLabel.slice(feeBefore.index+feeBefore[0].length)))continue;
     sawLabel=true;
     const after=line.slice(label.index+label[0].length);
-    const countOnly=/(?:ชิ้น|สินค้า|รายการสินค้า|items?|quantity|qty)/iu.test(after)
-      && !/(?:฿|THB|บาท|\d+[.]\d{2})/iu.test(after);
-    let candidates=countOnly?[]:parseMoney(after);
+    const nextField=EXCLUDED_AMOUNT.exec(after);
+    const paymentSpan=nextField?after.slice(0,nextField.index):after;
+    const countOnly=/(?:ชิ้น|สินค้า|รายการสินค้า|items?|quantity|qty)/iu.test(paymentSpan)
+      && !/(?:฿|THB|บาท|\d+[.]\d{2})/iu.test(paymentSpan);
+    let candidates=countOnly?[]:parseMoney(normalizeMoney(paymentSpan));
     if(!candidates.length&&!countOnly){
-      // Label and payment can be split across lines on narrow screenshots.
-      // Only accept a standalone monetary line, not a merchant or a QR ID.
-      const before=line.slice(0,label.index).trim();
-      if(/^(?:฿\s*|THB\s*)?[\d,]+(?:\.\d{2})?\s*(?:บาท)?$/iu.test(before))
-        candidates=parseMoney(before);
-      for(let offset=1;!candidates.length&&offset<=2;offset++){
-        const next=lines[i+offset]||'';
-        if(!/^(?:฿\s*|THB\s*)?[\d,]+(?:\.\d{2})?\s*(?:บาท)?$/iu.test(next))break;
-        candidates=parseMoney(next);
-      }
+      // Handles "จำนวน:" followed by "฿" on one line and 85.00 on the next.
+      // No scanning past arbitrary text, fee, account or reference rows.
+      const next=lines[i+1]||'';
+      if(standalone.test(next))candidates=parseMoney(normalizeMoney(next));
+      else if(currencyOnly.test(next)&&(i+2)<lines.length&&standalone.test(lines[i+2]))
+        candidates=parseMoney(normalizeMoney(lines[i+2]));
     }
     if(candidates.length>1)ambiguous=true;
     if(candidates.length===1)amounts.add(candidates[0]);
   }
-  if(sawLabel)return {amountSatang:!ambiguous&&amounts.size===1?[...amounts][0]:null,
-    ambiguous:ambiguous||amounts.size>1};
-  // If there is no amount label, require one unique explicit currency amount.
+  if(sawLabel)return {
+    amountSatang:!ambiguous&&amounts.size===1?[...amounts][0]:null,
+    ambiguous:ambiguous||amounts.size>1,
+    labelled:true
+  };
+  // Without any payment label we require one unique explicit currency amount.
   const currency=new Set<number>();
   for(const line of lines){
     if(EXCLUDED_AMOUNT.test(line)||!/(?:฿|\bTHB\b|บาท)/iu.test(line))continue;
     for(const value of parseMoney(line))currency.add(value);
   }
-  return {amountSatang:currency.size===1?[...currency][0]:null,ambiguous:currency.size>1};
+  return {amountSatang:currency.size===1?[...currency][0]:null,ambiguous:currency.size>1,labelled:false};
 }
 
 function formatDate(y:number,m:number,d:number):string|null {
@@ -234,7 +248,21 @@ export function parseSlipText(rawText:string,layoutLines:string[]=[]):SlipFields
   const walletTopUp=special?null:parseKPlusTopUp(lines);
   // A confirmed bill or wallet payment requires the actual tender/paid amount,
   // never the gross item subtotal or discount.
-  const amountResult=special?null:parseAmount(lines);
+  const textAmount=special?null:parseAmount(lines);
+  // Spatially reconstructed text can recover a labelled figure broken into
+  // separate Tesseract paragraphs; it cannot override a conflicting text figure.
+  const layoutAmount=special||!layoutLines.length?null:parseAmount(
+    layoutLines.map(line=>normalizeSlipOcrText(line).trim()).filter(Boolean)
+  );
+  const amountResult=special?null:(()=>{
+    if(textAmount!.ambiguous||layoutAmount?.ambiguous)
+      return {amountSatang:null,ambiguous:true};
+    const raw=textAmount!.amountSatang;
+    const spatial=layoutAmount?.labelled?layoutAmount.amountSatang:null;
+    if(raw!==null&&spatial!==null&&raw!==spatial)
+      return {amountSatang:null,ambiguous:true};
+    return {amountSatang:raw??spatial,ambiguous:false};
+  })();
   const amountSatang=special?special.amountSatang:amountResult!.amountSatang;
   const date=parseDate(lines);
   const time=parseTime(lines);

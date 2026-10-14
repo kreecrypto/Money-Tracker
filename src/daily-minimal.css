@@ -516,3 +516,37 @@ body,.app-shell{background:var(--mobile-canvas);color:var(--mobile-ink)}
   .home-spending-card .section-header{align-items:flex-start}
   .home-spending-card .text-action{font-size:11px}
 }
+
+/* Real iPhone slip review: direct correction and photo comparison without
+   persisting the bank image to IndexedDB, Supabase or the public server. */
+.slip-result-fix{
+  min-height:44px;border:1px solid #a7cdb5;color:#17634b;background:#f4faf6;
+  border-radius:11px;padding:9px 13px;font:inherit;font-size:12px;font-weight:750;
+  display:inline-flex;align-items:center;justify-content:center;gap:8px;
+  cursor:pointer;max-width:100%;
+}
+.slip-result-fix:focus-visible,.slip-evidence summary:focus-visible{
+  outline:3px solid #83ba9b;outline-offset:3px;
+}
+.slip-result-row .slip-result-fix{margin-left:auto}
+.slip-evidence{
+  border:1px solid #d4e6da;border-radius:12px;background:#f8fcf9;
+  padding:0 12px 12px;margin:12px 0;
+}
+.slip-evidence summary{
+  cursor:pointer;padding:13px 0;min-height:44px;line-height:1.5;
+  color:#205f48;font-size:13px;font-weight:750;
+}
+.slip-evidence img{
+  display:block;width:100%;max-width:480px;height:auto;max-height:460px;
+  object-fit:contain;margin:0 auto;border-radius:8px;background:#fff;
+}
+.slip-evidence small{display:block;font-size:11px;line-height:1.6;color:#52685c;margin:7px 0 0}
+.slip-attention-card{scroll-margin-top:104px}
+.slip-batch-summary{scroll-margin-top:96px}
+@media(max-width:660px){
+  .modal:has(.slip-workspace){scroll-padding-top:86px}
+  .modal:has(.slip-workspace) .modal-heading{top:0}
+  .slip-result-row .slip-result-fix{width:100%;margin-left:0}
+  .slip-evidence img{max-height:55dvh}
+}
