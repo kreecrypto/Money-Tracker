@@ -36,7 +36,7 @@ function TransactionRow({entry,onEdit,onDelete}:{entry:Transaction;onEdit:(t:Tra
   const [actionsOpen,setActionsOpen]=useState(false);
   return <div className="transaction-with-receipt"><div className="transaction-row">
     <div className={`transaction-emoji ${entry.type}`} aria-hidden="true">{entry.category.slice(0,1)}</div>
-    <div className="transaction-copy"><strong>{entry.recipient||entry.note||entry.category}</strong><span>{entry.category}{entry.note&&entry.recipient?` · ${entry.note}`:""} <i>·</i> {METHODS[entry.method]}</span></div>
+    <div className="transaction-copy"><strong>{entry.recipient||entry.note||entry.category}</strong><span>{entry.category}{entry.sender?` · จาก ${entry.sender}`:''}{entry.note&&entry.recipient?` · ${entry.note}`:""} <i>·</i> {METHODS[entry.method]}</span></div>
     <div className="transaction-end"><b className={entry.type==='income'?'positive':'negative'}>{entry.type==='income'?'+':'−'}฿{baht(entry.amountSatang)}</b><span>{dateText(entry.date)}{entry.time?` · ${entry.time} น.`:""}</span></div>
     <div className="transaction-actions"><button aria-label={`แก้ไข ${entry.note||entry.category}`} title="แก้ไข" className="icon-btn" onClick={()=>onEdit(entry)}><Pencil size={17}/></button><button aria-label={`ลบ ${entry.note||entry.category}`} title="ลบ" className="icon-btn danger" onClick={()=>onDelete(entry)}><Trash2 size={17}/></button></div>
     <div className="mobile-row-actions"><button className="icon-btn mobile-row-more" title="จัดการรายการ" aria-label={`จัดการ ${entry.note||entry.category}`} aria-expanded={actionsOpen} onClick={()=>setActionsOpen(!actionsOpen)}><MoreHorizontal size={21}/></button>
