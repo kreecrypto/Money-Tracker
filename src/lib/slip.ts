@@ -2,6 +2,7 @@ import {toSatang,type EntryType,type Method,type ReceiptDetails} from './finance
 import {readReceiptDetails} from './receiptIntelligence.js';
 import {parseSpecialReceipt,type ReceiptSource} from './receiptFormats.js';
 import {parseKPlusSlip,parseKPlusTopUp} from './kplus.js';
+import {classifyByAccountNames,extractSlipParties,sanitizeOwnerNames} from './slipIdentity.js';
 
 /** OCR parsing is intentionally conservative: uncertain values stay empty for human review. */
 export type SlipFields = {
@@ -9,6 +10,8 @@ export type SlipFields = {
   date: string | null;
   time: string | null;
   recipient: string | null;
+  /** Payer extracted from the slip; not uploaded or stored in transactions. */
+  sender?: string | null;
   /** Null when the receipt cannot reliably establish the user's cash-flow direction. */
   direction: EntryType | null;
   directionReason: string;
@@ -239,7 +242,7 @@ export function inferSlipDirection(rawText:string):{direction:EntryType|null;dir
   return {direction:null,directionReason:'สลิปไม่ระบุชัดว่าเป็นเงินเข้าหรือเงินออก โปรดเลือกตามบัญชีของคุณ'};
 }
 
-export function parseSlipText(rawText:string,layoutLines:string[]=[]):SlipFields {
+export function parseSlipText(rawText:string,layoutLines:string[]=[],ownerNames:readonly string[]=[]):SlipFields {
   const lines=normalizeSlipOcrText(rawText).split(/\r?\n/u)
     .map(x=>x.replace(/^[0◯○•●@]\s+(?=[A-Z])/u,'').trim())
     .filter(Boolean);
@@ -266,12 +269,21 @@ export function parseSlipText(rawText:string,layoutLines:string[]=[]):SlipFields
   const amountSatang=special?special.amountSatang:amountResult!.amountSatang;
   const date=parseDate(lines);
   const time=parseTime(lines);
-  const recipient=special?special.recipient:(walletTopUp?.recipient||kplus?.recipient||parseRecipient(lines));
+  const labelledParties=extractSlipParties(lines,kplus?.recipient||null);
+  const sender=labelledParties.sender;
+  const recipient=special?special.recipient:(walletTopUp?.recipient||kplus?.recipient||labelledParties.recipient||parseRecipient(lines));
   const inferred=inferSlipDirection(rawText);
   // A complete K PLUS sender-side confirmation is outgoing for its sender.
   // Keep incoming and contradictory OCR evidence conservative.
-  const classified=(walletTopUp?{direction:null,directionReason:walletTopUp.directionReason}:special)??(kplus?.direction&&inferred.direction===null&&
-    !inferred.directionReason.includes('ทั้งเงินเข้าและเงินออก')?kplus:inferred);
+  const configuredNames=sanitizeOwnerNames([...ownerNames]);
+  const identityDirection=configuredNames.length>0
+    ?classifyByAccountNames({sender,recipient},configuredNames):null;
+  // Owner's sender/receiver identity is authoritative even when a forwarded
+  // K PLUS slip says "โอนเงินสำเร็จ" from the *other person's* perspective.
+  // Keep shop receipts and wallet-funding protections independent.
+  const classified=walletTopUp?{direction:null,directionReason:walletTopUp.directionReason}:
+    special??identityDirection??(kplus?.direction&&inferred.direction===null&&
+      !inferred.directionReason.includes('ทั้งเงินเข้าและเงินออก')?kplus:inferred);
   const {direction,directionReason}=classified;
   const source=special?.source;
   const method:Method|undefined=walletTopUp?'wallet':special?.method;
@@ -290,7 +302,7 @@ export function parseSlipText(rawText:string,layoutLines:string[]=[]):SlipFields
   if(date===null)warnings.push('อ่านวันที่ไม่ชัดเจน กรุณาตรวจและกรอกวันที่ก่อนบันทึก');
   if(time===null)warnings.push('อ่านเวลาไม่ชัดเจน กรุณากรอกเวลาตามสลิป');
   if(recipient===null)warnings.push('อ่านชื่อผู้รับไม่ชัดเจน กรุณาตรวจและกรอกชื่อผู้รับ');
-  return {amountSatang,date,time,recipient,direction,directionReason,source,method,category,receipt:receipt||undefined,rawText,warnings};
+  return {amountSatang,date,time,sender,recipient,direction,directionReason,source,method,category,receipt:receipt||undefined,rawText,warnings};
 }
 
 
@@ -315,11 +327,13 @@ export function mergeSlipOcrReadings(first:SlipFields,second:SlipFields):SlipFie
   const date=select('วันที่',first.date,second.date);
   const time=select('เวลา',first.time,second.time);
   const recipient=select('ชื่อผู้รับ',first.recipient,second.recipient);
+  const sender=select('ชื่อผู้ส่ง',first.sender??null,second.sender??null);
   // Wallet funding is a transfer, not proof of consumption. Preserve this even
   // if a noisy recovery pass misclassifies its success header as a payment.
   const walletFunding=[first,second].some(reading=>reading.directionReason.includes('เติมเงินเข้า e-Wallet'));
   const candidateDirection=select('ประเภทรายรับรายจ่าย',first.direction,second.direction);
-  const direction=walletFunding?null:candidateDirection;
+  const identityConflict=conflicts.some(x=>x.includes('ชื่อผู้ส่ง')||x.includes('ชื่อผู้รับ'));
+  const direction=walletFunding||identityConflict?null:candidateDirection;
   const source=walletFunding?undefined:
     first.source&&second.source&&first.source!==second.source?undefined:(first.source||second.source);
   if(first.source&&second.source&&first.source!==second.source)
@@ -356,6 +370,6 @@ export function mergeSlipOcrReadings(first:SlipFields,second:SlipFields):SlipFie
   if(date===null&&!conflicts.some(x=>x.includes('วันที่')))warnings.push('อ่านวันที่ไม่ได้ กรุณากรอกเอง');
   if(time===null&&!conflicts.some(x=>x.includes('เวลา')))warnings.push('อ่านเวลาไม่ได้ กรุณากรอกเอง');
   if(recipient===null&&!conflicts.some(x=>x.includes('ชื่อผู้รับ')))warnings.push('อ่านชื่อผู้รับไม่ได้ กรุณากรอกเอง');
-  return {amountSatang,date,time,recipient,direction,directionReason,source,method,category,receipt,warnings,rawText:
+  return {amountSatang,date,time,sender,recipient,direction,directionReason,source,method,category,receipt,warnings,rawText:
     first.rawText+'\n\n--- รอบปรับภาพ ---\n'+second.rawText};
 }
