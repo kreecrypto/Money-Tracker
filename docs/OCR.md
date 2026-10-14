@@ -65,3 +65,11 @@ Run npm test, npm run typecheck, and npm run build. The synthetic fixtures verif
 - Passing synthetic text fixtures and typechecks is **not** an image recognition accuracy claim.
 - Before deploying, run a privacy-safe real-device matrix on iPhone Safari: K PLUS bill/transfer/top-up, 7-Eleven and subsidized wallet receipts; direct camera, Photos JPG/PNG/HEIC, 1/20 files, small/blurred/low-light screenshots, auto-save versus pending-review, OCR retry speed and memory, cross-session pending persistence, and duplicate prevention.
 - This update does not add support for other banks or QR-payment verification.
+
+## iPhone image OCR follow-up (14 October 2026)
+
+- On-device OCR cannot be diagnosed from Vercel server logs. A successful HTTP response or deploy is not evidence that Safari recognized a slip image.
+- The previous low-confidence gate could require manual review even when two independent OCR passes agreed on all five ledger fields because **page-level confidence** includes QR codes, logos and watermarks. Two agreeing readings now permit auto-save even if both pages have low confidence; any missing/contradictory field still requires review.
+- OCR startup has a 90-second deadline and each recognition pass has a 65-second deadline. A stuck recognition shows a Thai error and stops the remaining batch rather than reusing a potentially broken worker.
+- The stop action terminates the browser OCR worker rather than waiting for the current page to finish. No bank photo or OCR transcript is sent to the server.
+- These changes do not prove image accuracy on real iPhone Photos or HEIC. Reproduce using one original screenshot at a time, record whether the failure is loading, recognizing, retry, saving or pending review, and compare the parsed amount/date/time/merchant to the image. Redact identities and bank account numbers before sharing any evidence.
