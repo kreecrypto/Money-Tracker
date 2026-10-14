@@ -1,4 +1,5 @@
 import {METHODS,type Settings,type Transaction,isValidTransaction,baht} from './finance';
+import {sanitizeOwnerNames} from './slipIdentity';
 export function createBackup(items:Transaction[],settings:Settings){return JSON.stringify({app:'ngoentoday',version:1,exportedAt:new Date().toISOString(),transactions:items,settings},null,2);}
 export function parseBackup(text:string){
   const data:unknown=JSON.parse(text);
@@ -11,7 +12,10 @@ export function parseBackup(text:string){
   const s=value.settings as Partial<Settings>|null;
   const budget=s?.monthlyBudgetSatang;
   if(!Number.isSafeInteger(budget)||!Number.isInteger(budget)|| (budget??-1)<0) throw new Error('งบประมาณในไฟล์ไม่ถูกต้อง');
-  return {transactions:value.transactions as Transaction[],settings:{monthlyBudgetSatang:budget!}};
+  if(s?.ownerNames!==undefined&&(!Array.isArray(s.ownerNames)||s.ownerNames.length>8||
+    s.ownerNames.some(name=>typeof name!=='string'||name.length>160)))
+    throw new Error('ชื่อบัญชีในไฟล์สำรองไม่ถูกต้อง');
+  return {transactions:value.transactions as Transaction[],settings:{monthlyBudgetSatang:budget!,ownerNames:sanitizeOwnerNames(s?.ownerNames)}};
 }
 function safeCsvCell(s:string){const safe=/^[\s]*[=+\-@\t\r]/.test(s)?`'${s}`:s; return `"${safe.replaceAll('"','""')}"`;}
 export function toCsv(items:Transaction[]){

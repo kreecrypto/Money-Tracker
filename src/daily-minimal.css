@@ -550,3 +550,17 @@ body,.app-shell{background:var(--mobile-canvas);color:var(--mobile-ink)}
   .slip-result-row .slip-result-fix{width:100%;margin-left:0}
   .slip-evidence img{max-height:55dvh}
 }
+
+
+/* OCR sender/recipient identity settings — mobile-first and keyboard accessible. */
+.ocr-owner-card .ocr-owner-input{
+  display:block;width:100%;min-width:0;box-sizing:border-box;
+  border:1px solid #d3e1d9;border-radius:10px;background:#fff;color:#20392d;
+  padding:12px;font:inherit;font-size:14px;line-height:1.65;resize:vertical;
+  margin:8px 0 10px;
+}
+.ocr-owner-card .ocr-owner-input:focus-visible{
+  outline:3px solid #7dc8b9;outline-offset:2px;
+}
+.ocr-owner-card .hint{display:block;font-size:12px;line-height:1.7;margin:0 0 14px;color:#53685e}
+.ocr-owner-card .btn{min-height:44px}
