@@ -32,13 +32,13 @@ export function sanitizeOwnerNames(values:unknown):string[] {
 
 const SENDER=/^(?:ชื่อ\s*ผู้(?:โอน|ส่ง|จ่าย)|ผู้(?:โอน|ส่ง|จ่าย)(?:เงิน)?|จาก(?:บัญชี)?|sender|from|payer)\s*[:：\-]?\s*(.*)$/iu;
 const RECIPIENT=/^(?:ชื่อ\s*ผู้รับ(?:เงิน)?|ผู้รับ(?:เงิน|โอน)?|โอนไปยัง|ถึง|recipient|to|payee)\s*[:：\-]?\s*(.*)$/iu;
-const BAD_NAME=/^(?:ธ\.?|ธนาคาร|bank\b|บัญชี|เลข(?:ที่|บัญชี)|รหัส|prompt\s*pay|พร้อมเพย์|จำนวน|ยอด|วันที่|เวลา|date\b|time\b|reference|ref\b|หมายเหตุ|ชำระ|โอนเงินสำเร็จ|จ่ายบิลสำเร็จ)/iu;
+const BAD_NAME=/^(?:ธ\.|ธนาคาร|bank\b|account\b|บัญชี|เลข(?:ที่|บัญชี)|รหัส|prompt\s*pay|พร้อมเพย์|จำนวน|ยอด|วันที่|เวลา|date\b|time\b|reference|ref\b|หมายเหตุ|ชำระ|โอนเงินสำเร็จ|จ่ายบิลสำเร็จ)/iu;
 const BANK_NAME=/(?:ธ\.?\s*กสิกรไทย|ธนาคาร\s*กสิกรไทย|kasikorn\s*bank|kbank)/iu;
 const MASKED=/[xX*]{2,}(?:[\s-]?[xX*\d]){4,}/u;
 
 function personName(value:string):string|null {
   const cleaned=value.replace(/^[◯○●•▫▸→✓]\s*/u,'')
-    .replace(/\s+(?:ธ\.?|ธนาคาร|bank|เลขบัญชี|account)\b.*$/iu,'')
+    .replace(/\s+(?:ธ\.|ธนาคาร|bank|เลขบัญชี|account)\b.*$/iu,'')
     .replace(/\s+/gu,' ').trim();
   if(cleaned.length<3||cleaned.length>160||BAD_NAME.test(cleaned)||
     /(?:\d{2}[:/]\d{2}|\d{5,}|[xX*]{3})/u.test(cleaned)||
