@@ -21,8 +21,8 @@ export function parseBackup(text:string){
 }
 function safeCsvCell(s:string){const safe=/^[\s]*[=+\-@\t\r]/.test(s)?`'${s}`:s; return `"${safe.replaceAll('"','""')}"`;}
 export function toCsv(items:Transaction[]){
-  const headers=['วันที่','เวลา','ประเภท','จำนวน (บาท)','ชื่อผู้รับ','หมวดหมู่','หมายเหตุ','ช่องทาง','รหัสรายการ','รหัสใบเสร็จ','ยอดก่อนส่วนลด','ส่วนลด','สิทธิช่วยจ่าย','ค่าธรรมเนียม','รายการสินค้า (JSON)'];
-  const rows=items.map(x=>[x.date,x.time||'',x.type==='income'?'รายรับ':'รายจ่าย',baht(x.amountSatang),x.recipient||'',x.category,x.note,METHODS[x.method],x.id,x.receipt?.receiptId||'',x.receipt?.subtotalSatang!==undefined?baht(x.receipt.subtotalSatang):'',x.receipt?.discountSatang!==undefined?baht(x.receipt.discountSatang):'',x.receipt?.subsidySatang!==undefined?baht(x.receipt.subsidySatang):'',x.receipt?.feeSatang!==undefined?baht(x.receipt.feeSatang):'',x.receipt?.items.length?JSON.stringify(x.receipt.items):'']);
+  const headers=['วันที่','เวลา','ประเภท','จำนวน (บาท)','ชื่อผู้รับ','ชื่อผู้ส่ง','หมวดหมู่','หมายเหตุ','ช่องทาง','รหัสรายการ','รหัสใบเสร็จ','ยอดก่อนส่วนลด','ส่วนลด','สิทธิช่วยจ่าย','ค่าธรรมเนียม','รายการสินค้า (JSON)'];
+  const rows=items.map(x=>[x.date,x.time||'',x.type==='income'?'รายรับ':'รายจ่าย',baht(x.amountSatang),x.recipient||'',x.sender||'',x.category,x.note,METHODS[x.method],x.id,x.receipt?.receiptId||'',x.receipt?.subtotalSatang!==undefined?baht(x.receipt.subtotalSatang):'',x.receipt?.discountSatang!==undefined?baht(x.receipt.discountSatang):'',x.receipt?.subsidySatang!==undefined?baht(x.receipt.subsidySatang):'',x.receipt?.feeSatang!==undefined?baht(x.receipt.feeSatang):'',x.receipt?.items.length?JSON.stringify(x.receipt.items):'']);
   return '\uFEFF'+[headers,...rows].map(r=>r.map(v=>safeCsvCell(String(v))).join(',')).join('\r\n');
 }
 export function downloadText(filename:string,text:string,type:string){const a=document.createElement('a');const url=URL.createObjectURL(new Blob([text],{type}));a.href=url;a.download=filename;document.body.appendChild(a);a.click();a.remove();window.setTimeout(()=>URL.revokeObjectURL(url),1500);}
