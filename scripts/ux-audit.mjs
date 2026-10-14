@@ -81,12 +81,12 @@ try {
     if(name==='iphone390'){
       // Money Manager-style grouped ledger and accessible filter recovery.
       await page.locator('.mobile-bottom-nav button').nth(1).click();
-      const dailyGroupVisible=await page.locator('.transaction-day-heading').count()>=0;
+      const ledgerAvailable=await page.locator('.transaction-page').isVisible();
       await page.locator('.transaction-page input[aria-label="ค้นหารายการ"]').fill('ไม่พบรายการนี้แน่นอน');
-      const resetVisible=await page.getByRole('button',{name:'ล้างตัวกรอง'}).isVisible();
-      await page.getByRole('button',{name:'ล้างตัวกรอง'}).first().click();
+      const resetVisible=await page.locator('.filter-reset').isVisible();
+      await page.locator('.filter-reset').click();
       const searchReset=await page.locator('.transaction-page input[aria-label="ค้นหารายการ"]').inputValue()==='';
-      record('competitive-ledger-smoke',name,{dailyGroupVisible,resetVisible,searchReset,pageErrors:errors});
+      record('competitive-ledger-smoke',name,{ledgerAvailable,resetVisible,searchReset,pageErrors:errors});
 
       // Local IndexedDB persistence check: pending draft survives a page reload,
       // can be corrected into a single ledger transaction, and disappears afterward.
@@ -150,7 +150,8 @@ try {
     });
     await page.waitForTimeout(180);
     const confirmed=await page.getByText('รายการทดสอบ UX Audit').count();
-    record('save-smoke',name,{savedVisible:confirmed>0,saveState:state,pageErrors:errors});
+    const groupedDateVisible=await page.locator('.transaction-day-heading').count()>0;
+    record('save-smoke',name,{savedVisible:confirmed>0,groupedDateVisible,saveState:state,pageErrors:errors});
     await page.evaluate(()=>{
       const nav=innerWidth<=660?document.querySelector('.mobile-bottom-nav'):document.querySelector('.sidebar');
       Array.from(nav?.querySelectorAll('button')||[]).find(x=>x.textContent?.includes('ตั้งค่า')||x.getAttribute('aria-label')==='ตั้งค่า')?.click();
@@ -180,11 +181,11 @@ try {
     ||(x.axe?.violations?.length||0)>0
     ||(x.view==='slip-first-default'&&(!x.slipDefault||!x.uploadPrimary||!x.autoSaveNext||!x.multiSelectable||!x.batchLimitVisible||x.reviewButtonCount>0||x.pageErrors?.length))
     ||(x.view==='manual-entry-alternative'&&(!x.manualAvailable||x.pageErrors?.length))
-    ||(x.view==='save-smoke'&&(!x.savedVisible||x.pageErrors?.length))
+    ||(x.view==='save-smoke'&&(!x.savedVisible||!x.groupedDateVisible||x.pageErrors?.length))
     ||(x.view==='pending-queue-smoke'&&(!x.homeBadge||x.pendingBefore!==1||x.pendingAfter!==0||!x.savedVisible||x.pageErrors?.length))
     ||(x.view==='restore-smoke'&&(!x.initiallyDisabled||!x.enabledAfterAcknowledgement||!x.closed||x.pageErrors?.length))
     ||(x.view==='mobile-home-actions'&&(!x.correctHierarchy||!x.quickActionsVisible||!x.bottomNavVisible||!x.openedOCR||x.pageErrors?.length))
-    ||(x.view==='competitive-ledger-smoke'&&(!x.dailyGroupVisible||!x.resetVisible||!x.searchReset||x.pageErrors?.length))
+    ||(x.view==='competitive-ledger-smoke'&&(!x.ledgerAvailable||!x.resetVisible||!x.searchReset||x.pageErrors?.length))
   ).map(x=>({viewport:x.viewport,view:x.view,overflowPx:x.overflowPx,axe:x.axe?.violations?.map(v=>v.id),savedVisible:x.savedVisible,restore:[x.initiallyDisabled,x.enabledAfterAcknowledgement,x.closed]}));
   if(critical.length){console.error('UX_ACCEPTANCE_FAIL',JSON.stringify(critical));process.exitCode=1;}
   else console.log('UX_ACCEPTANCE_PASS: 6 viewport, mobile quick OCR, slip-first, manual fallback, save, restore, responsive and WCAG scans');
