@@ -1,6 +1,8 @@
 import {useEffect,useRef,useState,type ChangeEvent} from 'react';
 import {Camera,CheckCircle2,FileImage,ScanLine,ShieldCheck,Upload,Square,Undo2,AlertTriangle,Check,LoaderCircle,ClipboardPaste} from 'lucide-react';
 import {parseSlipText,mergeSlipOcrReadings,needsSlipOcrRecovery,type SlipFields} from './lib/slip';
+import {classifySlipByOwner} from './lib/slipIdentity';
+import {loadSettings} from './lib/storage';
 import {prepareSlipRecoveryImage,prepareSlipOcrFile} from './lib/slipImage';
 import {isLowOcrConfidence,requiresLowConfidenceReview} from './lib/ocrConfidence';
 import {withOcrDeadline,OCR_MODEL_TIMEOUT_MS,OCR_PASS_TIMEOUT_MS,OcrDeadlineError} from './lib/ocrDeadline';
@@ -138,6 +140,7 @@ export default function SlipScanner({onApply,onComplete,onBusyChange,onUndoBatch
     const valid=selected.some(file=>validateSlipImage(file)===null);
     let worker:Awaited<ReturnType<typeof import('tesseract.js').createWorker>>|null=null;
     try{
+      const accountHolderNames=(await loadSettings()).accountHolderNames||[];
       if(valid){
         const {createWorker,PSM}=await import('tesseract.js');
         if(stopRef.current)return;
@@ -201,7 +204,16 @@ export default function SlipScanner({onApply,onComplete,onBusyChange,onUndoBatch
               initial.data.confidence,recoveredConfidence)){
               reading.warnings.push('OCR ความมั่นใจต่ำและยังยืนยันข้อมูลได้ไม่ครบ กรุณาตรวจจากภาพก่อนบันทึก');
             }
+            const identity=classifySlipByOwner(reading,accountHolderNames);
+            reading=identity.slip;
             reading.imageHash=hash;
+            if(identity.selfTransfer&&reading.amountSatang!==null&&reading.date&&reading.time&&
+              !reading.warnings.some(w=>w.includes('ต่างกัน')||w.includes('ขัดแย้ง')||w.includes('ความมั่นใจต่ำ'))){
+              publish({name:file.name,status:'excluded',
+                reason:'ชื่อผู้ส่งและผู้รับตรงกับบัญชีของฉันทั้งคู่ — เป็นการโอนภายใน ไม่บันทึกยอด',
+                recipient:reading.recipient||undefined,amountSatang:reading.amountSatang,date:reading.date});
+              continue;
+            }
             setStage('save');
             const outcome=await onApply(reading);
             // Persist unresolved OCR immediately, even if the user closes the scanner.
