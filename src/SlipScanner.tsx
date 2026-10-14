@@ -369,14 +369,15 @@ export default function SlipScanner({onApply,onComplete,onBusyChange,onUndoBatch
     {busy&&preview&&<figure className="slip-preview"><img src={preview} alt="รูปสลิปที่กำลังประมวลผล"/><figcaption>{filename}</figcaption></figure>}
     {complete&&<div className={'slip-batch-summary'+(summary.incomplete+summary.errors>0?' requires-review':'')} role="status" aria-live="polite">
       <div className="slip-batch-summary-title">{summary.incomplete+summary.errors>0?<AlertTriangle size={18}/>:<CheckCircle2 size={18}/>}<strong>{slipBatchHeading(summary)}</strong></div>
-      <div className="slip-batch-counts"><span>บันทึกแล้ว<b>{summary.saved}</b></span><span>ซ้ำ<b>{summary.duplicate}</b></span><span>รอตรวจ/ไม่สำเร็จ<b>{summary.incomplete+summary.errors}</b></span>{(summary.excluded||0)>0&&<span>ไม่นับรายการ<b>{summary.excluded}</b></span>}</div>
+      <div className="slip-batch-counts"><span>บันทึกแล้ว<b>{summary.saved}</b></span><span>ซ้ำ<b>{summary.duplicate}</b></span><span>รอตรวจ<b>{summary.incomplete}</b></span><span>อ่านไม่สำเร็จ<b>{summary.errors}</b></span>{(summary.excluded||0)>0&&<span>ไม่นับรายการ<b>{summary.excluded}</b></span>}</div>
       {summary.saved>0&&<div className="slip-batch-total"><span>รวมยอดที่บันทึกในชุดนี้</span><strong>฿{baht(rows.filter(row=>row.status==='saved').reduce((total,row)=>total+(row.amountSatang||0),0))}</strong></div>}
+      {summary.errors>0&&<p className="slip-batch-note" role="note">มี {summary.errors} รูปที่ยังอ่านหรือบันทึกไม่สำเร็จ กรุณาลองเพิ่มรูปนั้นอีกครั้ง โดยเริ่มครั้งละ 1 รูป</p>}
       {(summary.cancelled||0)>0&&<p className="slip-batch-note">ยกเลิกไป {summary.cancelled} รูป รายการที่บันทึกสำเร็จก่อนหยุดยังอยู่ในแอป</p>}
       {(summary.undone||0)>0&&<p className="slip-batch-note">ยกเลิกการบันทึกแล้ว {summary.undone} รายการ</p>}
       {summary.saved>0&&<button type="button" className="btn btn-secondary slip-undo" disabled={undoing} onClick={()=>void undoSaved()}><Undo2 size={16}/>{undoing?'กำลังยกเลิกรายการ…':'ยกเลิกการบันทึกชุดนี้ ('+summary.saved+')'}</button>}
       {correctionErrors[-1]&&<p role="alert" className="error-message">{correctionErrors[-1]}</p>}
       {summary.queued>0&&<p className="slip-queued-note" role="status">เก็บไว้ใน “รายการ → รอตรวจจากสลิป” แล้ว {summary.queued} รูป ปิดหน้านี้แล้วกลับมาแก้ภายหลังได้</p>}
-      {needsAttention.length>0&&<button type="button" className="btn btn-primary slip-batch-finish" onClick={()=>attentionRef.current?.scrollIntoView({behavior:'smooth',block:'start'})}>ตรวจ {needsAttention.length} รายการที่ยังไม่บันทึก</button>}
+      {needsAttention.length>0&&<button type="button" className="btn btn-primary slip-batch-finish" onClick={()=>attentionRef.current?.scrollIntoView({behavior:window.matchMedia('(prefers-reduced-motion: reduce)').matches?'auto':'smooth',block:'start'})}>ตรวจ {needsAttention.length} รายการที่ยังไม่บันทึก</button>}
       <button type="button" className={'btn '+(needsAttention.length>0?'btn-secondary':'btn-primary')+' slip-batch-finish'} disabled={undoing} onClick={onClose}>{needsAttention.length>0?'เสร็จสิ้นและปิด':'เสร็จสิ้น'}</button>
     </div>}
     {rows.length>0&&<div className="slip-batch-results" aria-label="ผลการประมวลผลแต่ละรูป">
