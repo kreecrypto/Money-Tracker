@@ -94,8 +94,9 @@ try {
       });
       await page.reload({waitUntil:'networkidle'});
       const homeBadge=await page.locator('.pending-home-alert').isVisible();
+      const navPendingCount=await page.locator('.mobile-nav-badge').textContent();
       await page.locator('.mobile-bottom-nav button').nth(1).click();
-      await page.getByRole('button',{name:/รอตรวจจากสลิป/}).click();
+      await page.getByRole('button',{name:/รอตรวจสลิป/}).click();
       const pendingBefore=await page.locator('.pending-slip-card').count();
       await page.getByRole('button',{name:'ตรวจและแก้ไข'}).click();
       await scan(page,'pending-slip-review-form',name);
@@ -105,14 +106,14 @@ try {
       const pendingAfter=await page.locator('.pending-slip-card').count();
       await page.getByRole('button',{name:'บันทึกแล้ว'}).click();
       const savedVisible=await page.getByText('ร้านค้าตัวอย่าง').count()>0;
-      record('pending-queue-smoke',name,{homeBadge,pendingBefore,pendingAfter,savedVisible,pageErrors:errors});
+      record('pending-queue-smoke',name,{homeBadge,navPendingCount,pendingBefore,pendingAfter,savedVisible,pageErrors:errors});
       await page.locator('.mobile-bottom-nav button').nth(3).click();
     }
     const add=page.locator(width<=660?'.mobile-fab':'.top-add');
     await add.click({timeout:3500});
     const slipDefault=await page.locator('.modal .slip-panel').isVisible();
     const uploadPrimary=await page.getByRole('button',{name:'เลือกรูปจาก iPhone'}).isVisible();
-    const autoSaveNext=await page.getByText('2 บันทึกอัตโนมัติ').isVisible();
+    const autoSaveNext=(await page.getByText('2 อ่าน OCR').isVisible())&&(await page.getByText('3 บันทึกหรือรอตรวจ').isVisible());
     const multiSelectable=await page.locator('input[aria-label="เลือกรูปสลิปหลายรูป"]').evaluate(el=>el instanceof HTMLInputElement&&el.multiple);
     const batchLimitVisible=await page.getByText(/สูงสุด 20 รูป\/ครั้ง/).isVisible();
     const reviewButtonCount=await page.getByRole('button',{name:/ตรวจทานและบันทึก/}).count();
@@ -142,6 +143,17 @@ try {
     await page.waitForTimeout(180);
     const confirmed=await page.getByText('รายการทดสอบ UX Audit').count();
     record('save-smoke',name,{savedVisible:confirmed>0,saveState:state,pageErrors:errors});
+    if(confirmed>0){
+      await page.locator('.transaction-page .filter-tabs').getByRole('button',{name:'รายรับ'}).click();
+      const emptyFiltered=await page.getByText('ไม่พบรายการที่ตรงกับตัวกรอง').isVisible();
+      await page.locator('.transaction-page .clear-filters').click();
+      const restoredAfterClear=await page.getByText('รายการทดสอบ UX Audit').count()>0;
+      await page.locator('input[aria-label="ค้นหารายการ"]').fill('ไม่พบร้านค้านี้');
+      const clearSearchVisible=await page.getByRole('button',{name:'ล้างคำค้นหา'}).isVisible();
+      await page.getByRole('button',{name:'ล้างคำค้นหา'}).click();
+      const restoredAfterSearch=await page.getByText('รายการทดสอบ UX Audit').count()>0;
+      record('filter-reset-smoke',name,{emptyFiltered,restoredAfterClear,clearSearchVisible,restoredAfterSearch,pageErrors:errors});
+    }
     await page.evaluate(()=>{
       const nav=innerWidth<=660?document.querySelector('.mobile-bottom-nav'):document.querySelector('.sidebar');
       Array.from(nav?.querySelectorAll('button')||[]).find(x=>x.textContent?.includes('ตั้งค่า')||x.getAttribute('aria-label')==='ตั้งค่า')?.click();
@@ -172,7 +184,8 @@ try {
     ||(x.view==='slip-first-default'&&(!x.slipDefault||!x.uploadPrimary||!x.autoSaveNext||!x.multiSelectable||!x.batchLimitVisible||x.reviewButtonCount>0||x.pageErrors?.length))
     ||(x.view==='manual-entry-alternative'&&(!x.manualAvailable||x.pageErrors?.length))
     ||(x.view==='save-smoke'&&(!x.savedVisible||x.pageErrors?.length))
-    ||(x.view==='pending-queue-smoke'&&(!x.homeBadge||x.pendingBefore!==1||x.pendingAfter!==0||!x.savedVisible||x.pageErrors?.length))
+    ||(x.view==='pending-queue-smoke'&&(!x.homeBadge||x.navPendingCount!=='1'||x.pendingBefore!==1||x.pendingAfter!==0||!x.savedVisible||x.pageErrors?.length))
+    ||(x.view==='filter-reset-smoke'&&(!x.emptyFiltered||!x.restoredAfterClear||!x.clearSearchVisible||!x.restoredAfterSearch||x.pageErrors?.length))
     ||(x.view==='restore-smoke'&&(!x.initiallyDisabled||!x.enabledAfterAcknowledgement||!x.closed||x.pageErrors?.length))
     ||(x.view==='mobile-home-actions'&&(!x.correctHierarchy||!x.quickActionsVisible||!x.bottomNavVisible||!x.openedOCR||x.pageErrors?.length))
   ).map(x=>({viewport:x.viewport,view:x.view,overflowPx:x.overflowPx,axe:x.axe?.violations?.map(v=>v.id),savedVisible:x.savedVisible,restore:[x.initiallyDisabled,x.enabledAfterAcknowledgement,x.closed]}));
