@@ -11,6 +11,13 @@ export function isWalletFundingSlip(source:Pick<SlipFields,'directionReason'>):b
   return source.directionReason.includes('เติมเงินเข้า e-Wallet');
 }
 
+export function isInternalTransferSlip(source:Pick<SlipFields,'directionReason'>):boolean {
+  return source.directionReason.includes('โอนเงินระหว่างบัญชีของตัวเอง');
+}
+export function canExcludeTransferSlip(source:Pick<SlipFields,'directionReason'>):boolean {
+  return isWalletFundingSlip(source)||isInternalTransferSlip(source);
+}
+
 export function pendingReviewCount(summary:Pick<SlipBatchSummary,'incomplete'>):number{
   return summary.incomplete;
 }
