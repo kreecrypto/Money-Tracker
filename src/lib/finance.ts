@@ -38,8 +38,8 @@ export type Transaction = {
   slipHash?: string;
   createdAt: number;
 };
-export type Settings = { monthlyBudgetSatang: number };
-export const DEFAULT_SETTINGS: Settings = { monthlyBudgetSatang: 0 };
+export type Settings = { monthlyBudgetSatang: number; accountHolderNames?: string[] };
+export const DEFAULT_SETTINGS: Settings = { monthlyBudgetSatang: 0, accountHolderNames: [] };
 export const EXPENSE_CATEGORIES = ['อาหารและเครื่องดื่ม','เดินทาง','ช้อปปิ้ง','บ้านและค่าน้ำไฟ','สุขภาพ','บันเทิง','การศึกษา','ผ่อนชำระ/หนี้','อื่น ๆ'] as const;
 export const INCOME_CATEGORIES = ['เงินเดือน','งานเสริม','โบนัส','ดอกเบี้ย/ลงทุน','เงินคืน','อื่น ๆ'] as const;
 export const METHODS: Record<Method,string> = {cash:'เงินสด',bank:'โอน/ธนาคาร',card:'บัตรเครดิต',wallet:'e-Wallet'};
