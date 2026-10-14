@@ -1,5 +1,6 @@
 import {DEFAULT_SETTINGS,type Settings,type Transaction,isValidTransaction} from './finance';
 import {isValidPendingSlip,pendingFingerprintMatch,type PendingSlip} from './pendingSlips';
+import {parseAccountHolderNames} from './slipIdentity';
 const DB_NAME='ngoentoday-db';
 const VERSION=2;
 const STORE='transactions';
@@ -26,13 +27,34 @@ function request<T>(req:IDBRequest<T>):Promise<T>{return new Promise((resolve,re
 export async function loadTransactions(){ const db=await getDB(); const data=await request<Transaction[]>(db.transaction(STORE,'readonly').objectStore(STORE).getAll()); return data.filter(isValidTransaction).sort((a,b)=>b.date.localeCompare(a.date)||(b.time||'').localeCompare(a.time||'')||b.createdAt-a.createdAt); }
 export async function saveTransaction(item:Transaction){const db=await getDB(); const tx=db.transaction(STORE,'readwrite'); await request(tx.objectStore(STORE).put(item)); await completed(tx);}
 export async function deleteTransaction(id:string){const db=await getDB();const tx=db.transaction(STORE,'readwrite');await request(tx.objectStore(STORE).delete(id));await completed(tx);}
-export async function loadSettings():Promise<Settings>{const db=await getDB(); const row=await request<{key:string;value:number}|undefined>(db.transaction(SETTINGS,'readonly').objectStore(SETTINGS).get('monthlyBudgetSatang'));return {monthlyBudgetSatang:Number.isSafeInteger(row?.value)&&row!.value>=0 ? row!.value:DEFAULT_SETTINGS.monthlyBudgetSatang};}
-export async function saveSettings(settings:Settings){const db=await getDB(); const tx=db.transaction(SETTINGS,'readwrite'); await request(tx.objectStore(SETTINGS).put({key:'monthlyBudgetSatang',value:settings.monthlyBudgetSatang}));await completed(tx);}
+export async function loadSettings():Promise<Settings>{
+  const db=await getDB();
+  const tx=db.transaction(SETTINGS,'readonly');
+  const store=tx.objectStore(SETTINGS);
+  const [budget,owner]=await Promise.all([
+    request<{key:string;value:number}|undefined>(store.get('monthlyBudgetSatang')),
+    request<{key:string;value:unknown}|undefined>(store.get('accountHolderNames')),
+  ]);
+  let names:string[]=[];
+  if(Array.isArray(owner?.value)&&owner.value.every((v:unknown)=>typeof v==='string')){
+    try{names=parseAccountHolderNames(owner.value.join('\n'));}catch{names=[];}
+  }
+  return {monthlyBudgetSatang:Number.isSafeInteger(budget?.value)&&budget!.value>=0
+    ?budget!.value:DEFAULT_SETTINGS.monthlyBudgetSatang,accountHolderNames:names};
+}
+export async function saveSettings(settings:Settings){
+  const names=parseAccountHolderNames((settings.accountHolderNames||[]).join('\n'));
+  const db=await getDB(),tx=db.transaction(SETTINGS,'readwrite'),store=tx.objectStore(SETTINGS);
+  store.put({key:'monthlyBudgetSatang',value:settings.monthlyBudgetSatang});
+  store.put({key:'accountHolderNames',value:names});
+  await completed(tx);
+}
 function completed(tx:IDBTransaction){return new Promise<void>((resolve,reject)=>{tx.oncomplete=()=>resolve();tx.onerror=()=>reject(tx.error);tx.onabort=()=>reject(tx.error||new Error('บันทึกไม่สำเร็จ'));});}
 export async function replaceAll(transactions:Transaction[],settings:Settings){
   const db=await getDB();const tx=db.transaction([STORE,SETTINGS],'readwrite');
   const store=tx.objectStore(STORE);store.clear(); transactions.forEach(t=>store.put(t));
   tx.objectStore(SETTINGS).put({key:'monthlyBudgetSatang',value:settings.monthlyBudgetSatang});
+  tx.objectStore(SETTINGS).put({key:'accountHolderNames',value:parseAccountHolderNames((settings.accountHolderNames||[]).join('\n'))});
   await completed(tx);
 }
 
