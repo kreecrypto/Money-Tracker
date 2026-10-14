@@ -15,8 +15,8 @@ export function prepareAutoSlip(
 ):AutoSlipDecision {
   if(slip.imageHash&&existing.some(t=>t.slipHash===slip.imageHash))
     return {status:'duplicate',reason:'รูปภาพสลิปนี้เคยบันทึกแล้ว'};
-  if(slip.warnings.some(w=>w.includes('ต่างกัน')))
-    return {status:'incomplete',reason:'OCR อ่านข้อมูลไม่ตรงกันระหว่างสองรอบ จึงยังไม่บันทึก กรุณาลองรูปใหม่หรือกรอกเอง'};
+  if(slip.warnings.some(w=>w.includes('ต่างกัน')||w.includes('ขัดแย้ง')))
+    return {status:'incomplete',reason:'OCR พบข้อมูลการเงินที่ขัดแย้งกัน จึงยังไม่บันทึก กรุณาตรวจจากภาพหรือกรอกเอง'};
   if(slip.warnings.some(w=>w.includes('ความมั่นใจต่ำ')))
     return {status:'incomplete',reason:'OCR อ่านภาพด้วยความมั่นใจต่ำและยังยืนยันยอดเงินหรือข้อมูลธุรกรรมไม่ได้ กรุณาตรวจสลิปก่อนบันทึก'};
   if(!slip.direction&&slip.directionReason.includes('เติมเงินเข้า e-Wallet'))
