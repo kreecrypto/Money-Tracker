@@ -2,6 +2,7 @@ import {useEffect,useRef,useState,type ChangeEvent} from 'react';
 import {Camera,CheckCircle2,FileImage,ScanLine,ShieldCheck,Upload,Square,Undo2,AlertTriangle,Check,LoaderCircle,ClipboardPaste} from 'lucide-react';
 import {parseSlipText,mergeSlipOcrReadings,needsSlipOcrRecovery,type SlipFields} from './lib/slip';
 import {prepareSlipRecoveryImage,prepareSlipOcrFile} from './lib/slipImage';
+import {isLowOcrConfidence,requiresLowConfidenceReview} from './lib/ocrConfidence';
 import {clipboardSlipFiles} from './lib/shortcutClipboard';
 import {receiptLayoutLines,receiptReconciliationError} from './lib/receiptIntelligence';
 import {baht,toSatang,EXPENSE_CATEGORIES,INCOME_CATEGORIES,type EntryType,type Method} from './lib/finance';
@@ -153,19 +154,29 @@ export default function SlipScanner({onApply,onComplete,onBusyChange,onUndoBatch
             await worker.setParameters({tessedit_pageseg_mode:PSM.AUTO});
             setStage('recognize');
             const initial=await worker.recognize(ocrFile,{}, {text:true,blocks:true});
-            let reading=parseSlipText(initial.data.text,receiptLayoutLines(initial.data.blocks));
-            if(needsSlipOcrRecovery(reading)&&mountedRef.current&&!stopRef.current){
+            const firstReading=parseSlipText(initial.data.text,receiptLayoutLines(initial.data.blocks));
+            let reading=firstReading;
+            let recoveredReading:SlipFields|null=null;
+            let recoveredConfidence:number|null=null;
+            const lowConfidence=isLowOcrConfidence(initial.data.confidence);
+            if((needsSlipOcrRecovery(reading)||lowConfidence)&&mountedRef.current&&!stopRef.current){
               setStage('retry');setProgress(0);
               try{
                 const enhanced=await prepareSlipRecoveryImage(ocrFile);
                 if(mountedRef.current&&!stopRef.current){
                   await worker.setParameters({tessedit_pageseg_mode:PSM.SPARSE_TEXT});
                   const retry=await worker.recognize(enhanced,{}, {text:true,blocks:true});
-                  reading=mergeSlipOcrReadings(reading,parseSlipText(retry.data.text,receiptLayoutLines(retry.data.blocks)));
+                  recoveredReading=parseSlipText(retry.data.text,receiptLayoutLines(retry.data.blocks));
+                  recoveredConfidence=retry.data.confidence;
+                  reading=mergeSlipOcrReadings(reading,recoveredReading);
                 }
               }catch{/* A failed image enhancement does not discard the first reading. */}
             }
             if(!mountedRef.current||stopRef.current)break;
+            if(requiresLowConfidenceReview(firstReading,recoveredReading,
+              initial.data.confidence,recoveredConfidence)){
+              reading.warnings.push('OCR ความมั่นใจต่ำและยังยืนยันข้อมูลได้ไม่ครบ กรุณาตรวจจากภาพก่อนบันทึก');
+            }
             reading.imageHash=hash;
             setStage('save');
             const outcome=await onApply(reading);
