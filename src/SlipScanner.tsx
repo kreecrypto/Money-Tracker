@@ -22,6 +22,7 @@ type Props={
   onQueuePending:(slip:SlipFields,name:string,reason:string)=>Promise<{id:string;duplicate:boolean}>;
   onResolvePending:(id:string)=>Promise<void>;
   onClose:()=>void;
+  ownerNames?:readonly string[];
 };
 type ProcessingStage='download'|'recognize'|'retry'|'save';
 type Correction={
@@ -52,7 +53,7 @@ async function originalImageHash(file:File):Promise<string|undefined>{
   }catch{return undefined;}
 }
 
-export default function SlipScanner({onApply,onComplete,onBusyChange,onUndoBatch,onQueuePending,onResolvePending,onClose}:Props){
+export default function SlipScanner({onApply,onComplete,onBusyChange,onUndoBatch,onQueuePending,onResolvePending,onClose,ownerNames=[]}:Props){
   const galleryRef=useRef<HTMLInputElement>(null);
   const cameraRef=useRef<HTMLInputElement>(null);
   const attentionRef=useRef<HTMLDivElement>(null);
@@ -174,7 +175,7 @@ export default function SlipScanner({onApply,onComplete,onBusyChange,onUndoBatch
             await worker.setParameters({tessedit_pageseg_mode:PSM.AUTO});
             setStage('recognize');
             const initial=await withOcrDeadline(worker.recognize(ocrFile,{}, {text:true,blocks:true}),OCR_PASS_TIMEOUT_MS,'อ่านสลิปรอบแรก ');
-            const firstReading=parseSlipText(initial.data.text,receiptLayoutLines(initial.data.blocks));
+            const firstReading=parseSlipText(initial.data.text,receiptLayoutLines(initial.data.blocks),ownerNames);
             let reading=firstReading;
             let recoveredReading:SlipFields|null=null;
             let recoveredConfidence:number|null=null;
@@ -186,7 +187,7 @@ export default function SlipScanner({onApply,onComplete,onBusyChange,onUndoBatch
                 if(mountedRef.current&&!stopRef.current){
                   await worker.setParameters({tessedit_pageseg_mode:PSM.SPARSE_TEXT});
                   const retry=await withOcrDeadline(worker.recognize(enhanced,{}, {text:true,blocks:true}),OCR_PASS_TIMEOUT_MS,'อ่านสลิปรอบสอง ');
-                  recoveredReading=parseSlipText(retry.data.text,receiptLayoutLines(retry.data.blocks));
+                  recoveredReading=parseSlipText(retry.data.text,receiptLayoutLines(retry.data.blocks),ownerNames);
                   recoveredConfidence=retry.data.confidence;
                   reading=mergeSlipOcrReadings(reading,recoveredReading);
                 }
