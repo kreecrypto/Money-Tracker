@@ -554,3 +554,6 @@ body,.app-shell{background:var(--mobile-canvas);color:var(--mobile-ink)}
 /* Locally stored account holder aliases for slip direction matching. */
 .owner-names-input{display:block;box-sizing:border-box;width:100%;min-height:100px;resize:vertical;margin:8px 0 10px;padding:12px;border:1px solid #cbd7d2;border-radius:12px;background:var(--surface,#fff);color:inherit;font:inherit;line-height:1.55}
 .owner-names-input:focus-visible{outline:3px solid #83ba9b;outline-offset:2px}
+
+.slip-identity-evidence{display:flex;flex-direction:column;gap:5px;padding:10px 12px;margin:10px 0;background:#f5f9f7;border-radius:10px;font-size:13px;overflow-wrap:anywhere}
+.slip-identity-evidence small{color:#53675f;line-height:1.5}
