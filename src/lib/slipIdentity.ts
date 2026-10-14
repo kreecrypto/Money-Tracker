@@ -10,7 +10,7 @@ export function normalizedAccountHolderName(value:string|null|undefined):string 
   return value.normalize('NFKC')
     .replace(/\u0e4d\s*\u0e32/gu,'ำ')
     .toLocaleLowerCase('en-US')
-    .replace(/^(?:(?:นางสาว|นาง|นาย|คุณ|น\.?ส\.?|mr\.?|mrs\.?|ms\.?)\s*)/iu,'')
+    .replace(/^(?:(?:นางสาว|นาง|นาย|คุณ|น\.?ส\.?|mrs\.?|mr\.?|ms\.?)\s*)/iu,'')
     .replace(/[^\p{L}\p{N}]/gu,'');
 }
 
