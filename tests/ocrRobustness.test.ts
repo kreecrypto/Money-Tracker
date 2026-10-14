@@ -1,5 +1,5 @@
 import {describe,expect,it} from 'vitest';
-import {parseSlipText} from '../src/lib/slip';
+import {parseSlipText,mergeSlipOcrReadings} from '../src/lib/slip';
 import {prepareAutoSlip} from '../src/lib/slipAutoSave';
 import {isLowOcrConfidence,requiresLowConfidenceReview} from '../src/lib/ocrConfidence';
 import {receiptRecoveryScale} from '../src/lib/slipImage';
@@ -29,6 +29,15 @@ describe('financially safe K PLUS OCR fallbacks',()=>{
     expect(slip.amountSatang).toBeNull();
     expect(slip.warnings.some(x=>x.includes('ขัดแย้ง'))).toBe(true);
     expect(prepareAutoSlip(slip,[],'conflict-amount',Date.now()).status).toBe('incomplete');
+  });
+
+  it('never erases a same-pass amount conflict when recovery sees only one value',()=>{
+    const conflicted=parseSlipText(kplus('ยอดชำระ 128.50 บาท'));
+    const cleaner=parseSlipText(kplus(''));
+    const merged=mergeSlipOcrReadings(conflicted,cleaner);
+    expect(merged.amountSatang).toBe(12550);
+    expect(merged.warnings.some(x=>x.includes('ขัดแย้ง'))).toBe(true);
+    expect(prepareAutoSlip(merged,[],'not-verified',Date.now()).status).toBe('incomplete');
   });
 
   it('does not steal a number after an unrelated text line to fill a blank amount',()=>{
