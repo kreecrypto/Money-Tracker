@@ -32,6 +32,8 @@ export type Transaction = {
   time?: string;
   /** Payee printed on the slip; never inferred from the sender. */
   recipient?: string;
+  /** Sender printed on a classified transfer slip, if recognized. */
+  sender?: string;
   method: Method;
   receipt?: ReceiptDetails;
   /** SHA-256 of original uploaded bytes; no photo is retained. */
@@ -102,6 +104,7 @@ export function isValidTransaction(x:unknown):x is Transaction {
     !Number.isNaN(new Date(`${t.date}T12:00:00`).getTime()) && todayLocal(new Date(`${t.date}T12:00:00`))===t.date &&
     (t.time===undefined || (typeof t.time==='string' && /^([01]\d|2[0-3]):[0-5]\d$/.test(t.time))) &&
     (t.recipient===undefined || (typeof t.recipient==='string' && t.recipient.length<=160)) &&
+    (t.sender===undefined || (typeof t.sender==='string' && t.sender.length<=160)) &&
     (t.receipt===undefined||isValidReceiptDetails(t.receipt,t.amountSatang!)) &&
     (t.slipHash===undefined||(typeof t.slipHash==='string'&&/^[a-f0-9]{64}$/.test(t.slipHash))) &&
     (t.method==='cash'||t.method==='bank'||t.method==='card'||t.method==='wallet') &&
