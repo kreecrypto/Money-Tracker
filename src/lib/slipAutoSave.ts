@@ -44,6 +44,7 @@ export function prepareAutoSlip(
     date:slip.date,
     time:slip.time,
     recipient,
+    ...(slip.sender?.trim()?{sender:slip.sender.trim().replace(/\s+/gu,' ')}:{}),
     method:slip.method||'bank',
     ...(slip.receipt?{receipt:slip.receipt}:{}),
     ...(slip.imageHash?{slipHash:slip.imageHash}:{}),
