@@ -22,7 +22,7 @@ export function prepareAutoSlip(
   if(!slip.direction&&slip.directionReason.includes('เติมเงินเข้า e-Wallet'))
     return {status:'incomplete',reason:'พบรายการเติมเงิน e-Wallet ซึ่งอาจเป็นการย้ายเงินระหว่างบัญชี จึงยังไม่บันทึกเป็นรายจ่ายอัตโนมัติเพื่อป้องกันยอดซ้ำ กรุณาตรวจสอบรายการนี้'};
   if(!slip.direction)
-    return {status:'incomplete',reason:'ไม่สามารถระบุว่าเป็นรายรับหรือรายจ่ายจากสลิปนี้ได้ จึงยังไม่บันทึก กรุณาใช้สลิปที่ชัดเจนหรือกรอกเอง'};
+    return {status:'incomplete',reason:slip.directionReason+' · ยังไม่บันทึกอัตโนมัติ กรุณาตรวจสลิปหรือเลือกประเภทเอง'};
   if(slip.amountSatang===null||!Number.isSafeInteger(slip.amountSatang)||slip.amountSatang<=0)
     return {status:'incomplete',reason:'อ่านจำนวนเงินไม่ได้แน่ชัด จึงยังไม่บันทึก กรุณาลองภาพใหม่หรือกรอกเอง'};
   if(!slip.date||!slip.time||!slip.recipient?.trim())
