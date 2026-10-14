@@ -26,6 +26,13 @@ export function enhanceReceiptPixels(data:Uint8ClampedArray):void {
   }
 }
 
+/** Higher scale helps narrow iPhone screenshots, but bounds device memory usage. */
+export function receiptRecoveryScale(width:number,height:number):number {
+  if(!Number.isFinite(width)||!Number.isFinite(height)||width<=0||height<=0)
+    throw new Error('ขนาดภาพสลิปไม่ถูกต้อง');
+  return Math.min(width<1000?2:1.35,1800/width,2100/height,Math.sqrt(2_700_000/(width*height)));
+}
+
 export async function prepareSlipRecoveryImage(file:File):Promise<HTMLCanvasElement> {
   // A bitmap decoded from a file is local. Image() fallback helps older Safari builds.
   let source:ImageBitmap|HTMLImageElement;
@@ -44,12 +51,16 @@ export async function prepareSlipRecoveryImage(file:File):Promise<HTMLCanvasElem
     const width='naturalWidth' in source?source.naturalWidth:source.width;
     const height='naturalHeight' in source?source.naturalHeight:source.height;
     if(!width||!height)throw new Error('ไม่สามารถอ่านขนาดภาพสลิปได้');
-    const scale=Math.min(1.35,1800/width,2100/height,Math.sqrt(2_700_000/(width*height)));
+    const scale=receiptRecoveryScale(width,height);
     const canvas=document.createElement('canvas');
     canvas.width=Math.max(1,Math.round(width*scale));
     canvas.height=Math.max(1,Math.round(height*scale));
     const ctx=canvas.getContext('2d',{willReadFrequently:true});
     if(!ctx)throw new Error('เบราว์เซอร์ไม่รองรับการปรับภาพ OCR');
+    // Flatten transparent PNG pixels onto white. Black transparent pixels can
+    // otherwise be interpreted as dark content during binarization.
+    ctx.fillStyle='#fff';
+    ctx.fillRect(0,0,canvas.width,canvas.height);
     ctx.drawImage(source,0,0,canvas.width,canvas.height);
     const pixels=ctx.getImageData(0,0,canvas.width,canvas.height);
     enhanceReceiptPixels(pixels.data);
@@ -79,6 +90,8 @@ export async function prepareSlipOcrFile(file:File):Promise<File> {
     canvas.height=Math.max(1,Math.round(height*scale));
     const ctx=canvas.getContext('2d');
     if(!ctx)throw new Error('ไม่สามารถแปลงภาพ HEIC บนอุปกรณ์นี้ได้');
+    ctx.fillStyle='#fff';
+    ctx.fillRect(0,0,canvas.width,canvas.height);
     ctx.drawImage(image,0,0,canvas.width,canvas.height);
     const blob=await new Promise<Blob|null>(resolve=>canvas.toBlob(resolve,'image/jpeg',0.92));
     if(!blob)throw new Error('แปลงภาพ HEIC ไม่สำเร็จ กรุณาเลือกภาพ JPG');
