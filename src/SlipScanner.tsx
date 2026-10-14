@@ -9,7 +9,7 @@ import {withOcrDeadline,OCR_MODEL_TIMEOUT_MS,OCR_PASS_TIMEOUT_MS,OcrDeadlineErro
 import {clipboardSlipFiles} from './lib/shortcutClipboard';
 import {receiptLayoutLines,receiptReconciliationError} from './lib/receiptIntelligence';
 import {baht,toSatang,EXPENSE_CATEGORIES,INCOME_CATEGORIES,type EntryType,type Method} from './lib/finance';
-import {correctionDirection,isWalletFundingSlip,slipBatchHeading} from './lib/slipReview';
+import {correctionDirection,isInternalTransferSlip,canExcludeTransferSlip,slipBatchHeading} from './lib/slipReview';
 import {
   MAX_SLIP_BATCH_FILES,summarizeSlipBatch,validateSlipImage,
   type SlipBatchOutcome,type SlipBatchRow,
@@ -339,7 +339,7 @@ export default function SlipScanner({onApply,onComplete,onBusyChange,onUndoBatch
   };
   const excludeWallet=async(index:number)=>{
     const draft=corrections[index];
-    if(!draft||!isWalletFundingSlip(draft.source)||busy||undoing)return;
+    if(!draft||!canExcludeTransferSlip(draft.source)||busy||undoing)return;
     if(rows[index]?.pendingId){
       try{await onResolvePending(rows[index].pendingId!);}
       catch(error){setCorrectionErrors(previous=>({...previous,[index]:
@@ -425,7 +425,12 @@ export default function SlipScanner({onApply,onComplete,onBusyChange,onUndoBatch
           <strong>{rows[index]?.name||'ใบเสร็จ'}</strong>
           {rows[index]?.pendingId&&<p className="slip-queued-inline">เก็บเฉพาะข้อมูลรายการไว้ในเครื่องแล้ว · กลับมาตรวจภายหลังได้</p>}
           {reviewImageUrlsRef.current[index]&&<details className="slip-evidence"><summary>เปิดภาพสลิปเพื่อเทียบยอดเงินจริง</summary><img src={reviewImageUrlsRef.current[index]} alt={'ภาพสลิป '+(rows[index]?.name||'ที่รอตรวจ')+' สำหรับตรวจยอดจากต้นฉบับ'} loading="lazy"/><small>แสดงเฉพาะระหว่างเปิดหน้านี้ · ไม่เก็บภาพถาวร</small></details>}
-          {isWalletFundingSlip(draft.source)&&<div className="slip-wallet-guidance" role="note"><AlertTriangle size={17}/><span>พบการเติมเงิน e-Wallet หากเป็นการย้ายเงินระหว่างบัญชีตัวเอง ให้เลือก “ไม่นับรายการนี้” เพื่อไม่ให้รายจ่ายซ้ำกับการใช้เงินจาก Wallet ภายหลัง</span></div>}
+          {canExcludeTransferSlip(draft.source)&&<div className="slip-wallet-guidance" role="note"><AlertTriangle size={17}/><span>{isInternalTransferSlip(draft.source)?'OCR ตรวจพบชื่อผู้ส่งและผู้รับเป็นเจ้าของบัญชีเดียวกัน หากยืนยันว่าเป็นการโอนภายใน ให้เลือกไม่นับรายการนี้':'พบการเติมเงิน e-Wallet หากเป็นการย้ายเงินระหว่างบัญชีตัวเอง ให้เลือก “ไม่นับรายการนี้” เพื่อไม่ให้รายจ่ายซ้ำกับการใช้เงินจาก Wallet ภายหลัง'}</span></div>}
+          {(draft.source.sender||draft.source.directionReason)&&<p className="slip-identity-evidence">
+            {draft.source.sender&&<span>ผู้ส่ง: <strong>{draft.source.sender}</strong></span>}
+            {draft.source.recipient&&<span>ผู้รับ: <strong>{draft.source.recipient}</strong></span>}
+            {draft.source.directionReason&&<small>{draft.source.directionReason}</small>}
+          </p>}
           <div className="slip-attention-fields">
             <label>จำนวนเงิน (บาท)<input inputMode="decimal" value={draft.amount} onChange={e=>changeCorrection(index,{amount:e.target.value})} placeholder="0.00"/></label>
             <label>ประเภท (ต้องเลือก)<select required value={draft.direction} onChange={e=>changeCorrection(index,{direction:e.target.value as EntryType,category:'อื่น ๆ'})}><option value="" disabled>เลือกประเภทรายการ</option><option value="expense">เงินออก / รายจ่าย</option><option value="income">เงินเข้า / รายรับ</option></select></label>
@@ -436,7 +441,7 @@ export default function SlipScanner({onApply,onComplete,onBusyChange,onUndoBatch
           </div>
           {correctionErrors[index]&&<p className="error-message" role="alert">{correctionErrors[index]}</p>}
           <button type="button" className="btn btn-primary slip-correct-save" disabled={fixingIndex!==null||busy} onClick={()=>void saveCorrection(index)}><Check size={16}/>{fixingIndex===index?'กำลังบันทึก…':'บันทึกข้อมูลที่ตรวจแล้ว'}</button>
-          {isWalletFundingSlip(draft.source)&&<button type="button" className="btn btn-ghost slip-wallet-exclude" disabled={fixingIndex!==null||busy} onClick={()=>void excludeWallet(index)}>ไม่นับรายการนี้ (โอนเงินระหว่างบัญชีตัวเอง)</button>}
+          {canExcludeTransferSlip(draft.source)&&<button type="button" className="btn btn-ghost slip-wallet-exclude" disabled={fixingIndex!==null||busy} onClick={()=>void excludeWallet(index)}>ไม่นับรายการนี้ (โอนเงินระหว่างบัญชีตัวเอง)</button>}
         </div>;
       })}
     </div>}
