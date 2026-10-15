@@ -84,7 +84,6 @@ function parseAmount(lines:string[]):{amountSatang:number|null;ambiguous:boolean
   const amounts=new Set<number>();
   let sawLabel=false;
   let ambiguous=false;
-  const currencyOnly=/^(?:฿|THB|บาท)$/iu;
   const standalone=/^(?:฿\s*|THB\s*)?[\d,]+(?:[.,]\s*\d{2})?\s*(?:บาท)?$/iu;
   const normalizeMoney=(text:string)=>text.replace(/(\d[\d,]*)\s*[.,]\s*(\d{2})(?!\d)/gu,'$1.$2');
   for(let i=0;i<lines.length;i++){
