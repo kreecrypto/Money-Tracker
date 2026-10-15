@@ -58,6 +58,10 @@ export async function iphoneReview(id:string,decision:'confirm'|'discard',input?
 }){
   return call('/api/iphone/drafts','POST',{id,decision,...(input||{})});
 }
+/** Retain Review Token; clear only the import cursor for a safe repair retry. */
+export function resetIphoneImportHistory():void{
+  localStorage.removeItem(SEEN_KEY);
+}
 function seen(){
   try{const v=JSON.parse(localStorage.getItem(SEEN_KEY)||'[]') as unknown;
     return new Set<string>(Array.isArray(v)?v.filter((x):x is string=>typeof x==='string'&&x.startsWith('iphone-')):[]);
@@ -71,7 +75,7 @@ export async function iphoneSync():Promise<{imported:number;received:number}>{
   const seenItems=seen();
   let imported=0;
   for(const row of rows){
-    if(!row.id.startsWith('iphone-')||seenItems.has(row.id)||local.has(row.id))continue;
+    // Local IndexedDB is authoritative: repair a missing row even if an old seen marker survives.\n    if(!row.id.startsWith('iphone-')||local.has(row.id))continue;
     await saveTransaction(row);
     seenItems.add(row.id);local.add(row.id);imported++;
     localStorage.setItem(SEEN_KEY,JSON.stringify([...seenItems].slice(-3000)));
