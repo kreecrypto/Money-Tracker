@@ -165,6 +165,28 @@ try {
     const unlocked=await page.getByRole('button',{name:'ยืนยันแทนที่ข้อมูล'}).isEnabled();
     await restoreDialog.getByRole('button',{name:'ยกเลิก'}).click();
     record('restore-smoke',name,{initiallyDisabled:locked,enabledAfterAcknowledgement:unlocked,closed:await restoreDialog.count()===0,pageErrors:errors});
+
+    // The destructive flow is exercised against a disposable audit browser only.
+    // Verify deliberate confirmation and that no local records/pairing survive.
+    await page.locator('.data-delete-btn').click();
+    const deleteDialog=page.locator('.local-reset-modal');
+    await deleteDialog.waitFor();
+    const deletionLocked=await deleteDialog.locator('.btn-danger').isDisabled();
+    await scan(page,'local-reset-dialog',name);
+    await deleteDialog.locator('#local-reset-confirm').fill('ลบข้อมูล');
+    const deletionUnlocked=await deleteDialog.locator('.btn-danger').isEnabled();
+    await deleteDialog.locator('.btn-danger').click();
+    await page.locator('.home-dashboard').waitFor({timeout:10000});
+    const wiped=await page.evaluate(async()=>{
+      const store=await import('/src/lib/storage.ts');
+      return {transactions:(await store.loadTransactions()).length,
+        pending:(await store.loadPendingSlips()).length,
+        paired:localStorage.getItem('money-tracker-iphone-review-token-v1')!==null};
+    });
+    record('local-reset-smoke',name,{
+      initiallyDisabled:deletionLocked,enabledAfterAcknowledgement:deletionUnlocked,
+      wiped,dialogClosed:await deleteDialog.count()===0,pageErrors:errors
+    });
     await context.close();
   }
   fs.writeFileSync(dir+'/audit.json',JSON.stringify({date:new Date().toISOString(),base,results:findings},null,2));
@@ -184,6 +206,7 @@ try {
     ||(x.view==='save-smoke'&&(!x.savedVisible||!x.groupedDateVisible||x.pageErrors?.length))
     ||(x.view==='pending-queue-smoke'&&(!x.homeBadge||x.pendingBefore!==1||x.pendingAfter!==0||!x.savedVisible||x.pageErrors?.length))
     ||(x.view==='restore-smoke'&&(!x.initiallyDisabled||!x.enabledAfterAcknowledgement||!x.closed||x.pageErrors?.length))
+    ||(x.view==='local-reset-smoke'&&(!x.initiallyDisabled||!x.enabledAfterAcknowledgement||!x.dialogClosed||x.wiped?.transactions!==0||x.wiped?.pending!==0||x.wiped?.paired||x.pageErrors?.length))
     ||(x.view==='mobile-home-actions'&&(!x.correctHierarchy||!x.quickActionsVisible||!x.bottomNavVisible||!x.openedOCR||x.pageErrors?.length))
     ||(x.view==='competitive-ledger-smoke'&&(!x.ledgerAvailable||!x.resetVisible||!x.searchReset||x.pageErrors?.length))
   ).map(x=>({viewport:x.viewport,view:x.view,overflowPx:x.overflowPx,axe:x.axe?.violations?.map(v=>v.id),savedVisible:x.savedVisible,restore:[x.initiallyDisabled,x.enabledAfterAcknowledgement,x.closed]}));
