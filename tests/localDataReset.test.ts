@@ -69,7 +69,7 @@ describe('local-only data reset',()=>{
   });
   it('does not duplicate a transaction that still exists locally',async()=>{
     local.setItem('money-tracker-iphone-review-token-v1','A'.repeat(64));
-    mocks.load.mockResolvedValueOnce([remote]);
+    mocks.load.mockResolvedValue([remote]);
     vi.stubGlobal('fetch',vi.fn().mockResolvedValue(new Response(JSON.stringify({transactions:[remote]}),{status:200})));
     expect(await iphoneSync()).toEqual({imported:0,received:1});
     expect(mocks.save).not.toHaveBeenCalled();
