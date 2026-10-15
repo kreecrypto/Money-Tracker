@@ -89,13 +89,17 @@ function parseAmount(lines:string[]):{amountSatang:number|null;ambiguous:boolean
   for(let i=0;i<lines.length;i++){
     const line=lines[i];
     const label=AMOUNT_LABEL.exec(line);
-    if(!label)continue;
+    // Real K PLUS OCR sometimes outputs the complete amount heading as an
+    // isolated 'จำนวน' row (without colon or 'เงิน'). Do not treat arbitrary
+    // product quantity text as an amount label.
+    const isolatedAmountLabel=!label&&/^จำนวน\s*$/iu.test(line);
+    if(!label&&!isolatedAmountLabel)continue;
     // A whole fee/balance line containing the word "จำนวน" is not a paid label.
-    const beforeLabel=line.slice(0,label.index);
+    const beforeLabel=label?line.slice(0,label.index):'';
     const feeBefore=EXCLUDED_AMOUNT.exec(beforeLabel);
     if(feeBefore && !/(?:บาท|THB|฿|\d{2}\s*[:.]\s*\d{2})/iu.test(beforeLabel.slice(feeBefore.index+feeBefore[0].length)))continue;
     sawLabel=true;
-    const after=line.slice(label.index+label[0].length);
+    const after=label?line.slice(label.index+label[0].length):'';
     const nextField=EXCLUDED_AMOUNT.exec(after);
     const paymentSpan=nextField?after.slice(0,nextField.index):after;
     const countOnly=/(?:ชิ้น|สินค้า|รายการสินค้า|items?|quantity|qty)/iu.test(paymentSpan)
@@ -323,6 +327,22 @@ export function parseSlipText(rawText:string,layoutLines:string[]=[],ownerNames:
   return {amountSatang,date,time,sender,recipient,direction,directionReason,source,method,category,receipt:receipt||undefined,rawText,warnings};
 }
 
+
+/** Provide a clear, privacy-preserving reason for a missing amount.
+ * Only the two OCR readings are inspected in memory; no raw text is logged. */
+export function describeMissingSlipAmount(first:SlipFields,recovery:SlipFields|null):string {
+  if(first.amountSatang!==null&&recovery?.amountSatang!==null&&
+    first.amountSatang!==recovery.amountSatang)
+    return 'OCR อ่านจำนวนเงินสองรอบไม่ตรงกัน จึงไม่เลือกยอดใดยอดหนึ่งอัตโนมัติ';
+  if(first.warnings.some(w=>w.includes('ขัดแย้ง'))||
+     recovery?.warnings.some(w=>w.includes('ขัดแย้ง')))
+    return 'OCR พบตัวเลขจำนวนเงินหลายค่าที่ขัดแย้งกัน กรุณาตรวจจากภาพ';
+  const text=[first.rawText,recovery?.rawText||''].join(' ').trim();
+  if(text.length<8)return 'OCR ยังอ่านตัวอักษรจากรูปได้ไม่เพียงพอ ลองใช้ภาพสลิปต้นฉบับที่คมชัด';
+  if(!/(?:จำนวน|ยอด|บาท|฿|THB|amount|total)/iu.test(text))
+    return 'OCR อ่านข้อความบางส่วนได้ แต่ไม่พบหัวข้อจำนวนเงินบนสลิป';
+  return 'OCR พบข้อความเกี่ยวกับยอดเงิน แต่ยังแยกตัวเลขที่จ่ายจริงไม่ได้ กรุณาตรวจจากภาพ';
+}
 
 /** Only run a recovery OCR pass when one of the four user-required fields is missing. */
 export function needsSlipOcrRecovery(result:SlipFields):boolean {
