@@ -44,6 +44,14 @@ describe('real-world K PLUS amount formatting recovery',()=>{
     expect(slip.amountSatang).toBe(baht*100);
   });
 
+  it.each([30,50,90])('recovers %i baht when OCR places baht marker before the value',baht=>{
+    const amount=baht.toFixed(2);
+    for(const prefix of ['บาท ', 'บาท']){
+      const slip=parseSlipText(payment('จำนวน:\n'+prefix+amount));
+      expect(slip.amountSatang).toBe(baht*100);
+    }
+  });
+
   it('recovers a right-aligned amount from layout when OCR text places unrelated text after the label',()=>{
     const text=payment('จำนวน:\nอ่านไม่ชัด');
     const slip=parseSlipText(text,['จำนวน:','30.00','บาท','ค่าธรรมเนียม: 0.00 บาท']);
