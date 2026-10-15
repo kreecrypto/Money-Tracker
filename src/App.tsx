@@ -7,9 +7,11 @@ import PendingSlipsInbox from './PendingSlipsInbox';
 import {createBackup,downloadText,parseBackup,toCsv} from './lib/backup';
 import SlipScanner from './SlipScanner';
 import RestoreDialog from './RestoreDialog';
+import ResetDataDialog from './ResetDataDialog';
+import {eraseLocalMoneyTrackerData} from './lib/localDataReset';
 import LineSyncSettings from './LineSyncSettings';
 import IPhoneShortcutSettings from './IPhoneShortcutSettings';
-import {iphoneConfigured,iphoneConnected,iphoneDrafts,iphoneSync} from './lib/iphoneSync';
+import {iphoneConfigured,iphoneConnected,iphoneDrafts,iphoneSync,resetIphoneImportHistory} from './lib/iphoneSync';
 import {lineLinked,syncLineInbox} from './lib/lineSync';
 import type {SlipFields} from './lib/slip';
 import {prepareAutoSlip} from './lib/slipAutoSave';
@@ -171,6 +173,10 @@ export default function App(){
   const [ownerNamesEdit,setOwnerNamesEdit]=useState('');const [ownerNamesSaving,setOwnerNamesSaving]=useState(false);
   const [lastBackupAt,setLastBackupAt]=useState(()=>{try{return Number(localStorage.getItem('ngoentoday-last-backup')||0);}catch{return 0;}});
   const [pendingRestore,setPendingRestore]=useState<ReturnType<typeof parseBackup>|null>(null);
+  const [resetDialogOpen,setResetDialogOpen]=useState(false);
+  const [resetBusy,setResetBusy]=useState(false);
+  const [resetError,setResetError]=useState('');
+  const [repairBusy,setRepairBusy]=useState(false);
   const [restoreBusy,setRestoreBusy]=useState(false);
   const importRef=useRef<HTMLInputElement>(null);
   const reloadPending=useCallback(async()=>{setPendingSlips(await loadPendingSlips());},[]);
@@ -280,6 +286,30 @@ export default function App(){
     }catch(e){setToast(e instanceof Error?e.message:'นำเข้าไม่สำเร็จ');}
     finally{setRestoreBusy(false);}
   };
+  const repairIphoneSync=async()=>{
+    if(!iphoneConnected()){setToast('เชื่อมต่อ iPhone ด้วย Review Token ก่อนซ่อมการซิงก์');return;}
+    setRepairBusy(true);
+    try{
+      resetIphoneImportHistory();
+      const result=await iphoneSync();
+      await reload();
+      setToast('ตรวจรายการจาก iPhone อีกครั้งแล้ว · นำเข้า '+result.imported+' รายการ');
+    }catch(e){
+      setToast(e instanceof Error?e.message:'ซ่อมการซิงก์ไม่สำเร็จ');
+    }finally{setRepairBusy(false);}
+  };
+  const eraseDeviceData=async()=>{
+    if(resetBusy)return;
+    setResetBusy(true);setResetError('');
+    try{
+      await eraseLocalMoneyTrackerData();
+      // A hard reload also stops current sync intervals and clears stale React state.
+      window.location.reload();
+    }catch(e){
+      setResetError(e instanceof Error?e.message:'ลบข้อมูลในเครื่องไม่สำเร็จ');
+      setResetBusy(false);
+    }
+  };
   if(!ready) return <div className="loading-screen"><div className="loading-icon">฿</div>กำลังเปิดสมุดบันทึกของคุณ...</div>;
   if(loadingError) return <div className="loading-screen"><span>⚠️</span><h2>ไม่สามารถเปิดข้อมูลได้</h2><p>{loadingError}</p><button className="btn btn-primary" onClick={()=>window.location.reload()}>ลองอีกครั้ง</button></div>;
   return <div className="app-shell"><aside className="sidebar"><Logo/><div className="workspace-label">WORKSPACE</div><nav aria-label="เมนูหลัก">{navItems.map(({key,label,icon:Icon})=><button key={key} className={`nav-item ${view===key?'active':''}`} aria-label={label} aria-current={view===key?'page':undefined} onClick={()=>setView(key)}><Icon size={19} strokeWidth={1.9}/><span>{label}</span>{view===key&&<span className="nav-active-indicator"/>}</button>)}</nav><div className="sidebar-spacer"/><div className="privacy-card"><div className="privacy-graphic"><ShieldCheck size={24}/></div><strong>ข้อมูลเป็นของคุณ</strong><p>รายการในเครื่องเป็นส่วนตัว; รายการจาก Shortcut เก็บใน Cloud เมื่อเปิดการเชื่อมต่อ</p><span><CloudOff size={13}/> LOCAL FIRST</span></div><p className="sidebar-version">เงินวันนี้ · เวอร์ชัน 0.5.0</p></aside>
@@ -368,7 +398,21 @@ export default function App(){
         </button>
       </form>
     </section>
-    <IPhoneShortcutSettings onImported={reload}/><LineSyncSettings onImported={reload}/><section className="surface settings-card"><div className="settings-icon green"><Wallet size={23}/></div><h3>งบประมาณรายเดือน</h3><p>ตั้งวงเงินรายจ่ายที่ต้องการใช้ในแต่ละเดือน เพื่อคุมการใช้เงินให้เป็นไปตามเป้าหมาย</p><form onSubmit={saveBudget}><label className="field-label" htmlFor="budget">งบประมาณ (บาท/เดือน)</label><div className="budget-field"><span>฿</span><input id="budget" type="text" inputMode="decimal" value={budgetEdit} onChange={e=>setBudgetEdit(e.target.value)} placeholder="เช่น 15000"/></div><small className="hint">เว้นว่างเพื่อลบวงเงินที่ตั้งไว้</small><button className="btn btn-primary" disabled={budgetSaving} type="submit"><Check size={17}/> {budgetSaving?'กำลังบันทึก':'บันทึกงบประมาณ'}</button></form></section><section className="surface settings-card"><div className="settings-icon peach"><Download size={23}/></div><h3>จัดการข้อมูล</h3><p>ดาวน์โหลดสำเนาเก็บไว้ เพื่อป้องกันการสูญหายเมื่อล้างข้อมูลเบราว์เซอร์หรือเปลี่ยนอุปกรณ์</p><div className="settings-actions"><button className="btn btn-secondary" onClick={exportJson}><Download size={17}/> สำรองข้อมูล JSON</button><button className="btn btn-secondary" onClick={exportCsv}><FileSpreadsheet size={17}/> ส่งออก CSV</button><button className="btn btn-ghost bordered" onClick={()=>importRef.current?.click()}><Upload size={17}/> นำเข้าไฟล์ JSON</button><input ref={importRef} className="visually-hidden" aria-label="เลือกไฟล์สำรองข้อมูล JSON" type="file" accept=".json,application/json" onChange={e=>{const f=e.target.files?.[0];if(f)void importBackup(f);}}/></div></section><section className="surface settings-card privacy-settings"><div className="settings-icon blue"><ShieldCheck size={24}/></div><h3>ข้อมูลและความเป็นส่วนตัว</h3><p>รายการที่กรอกเองและอัปโหลดรูปจะเก็บใน IndexedDB บนอุปกรณ์นี้ ส่วนข้อความ OCR ที่ส่งผ่าน iPhone Shortcut จะเก็บเฉพาะข้อมูลธุรกรรมที่แยกได้ใน Supabase และซิงก์เข้ามาเมื่อเชื่อม Review Token</p><div className="info-banner"><CloudOff size={18}/><span>รายการในเครื่องใช้งานออฟไลน์ได้; รายการจาก iPhone Shortcut จะซิงก์เมื่อเชื่อม API และมีอินเทอร์เน็ต</span></div></section><section className="surface settings-card privacy-settings"><div className="settings-icon lavender"><Menu size={24}/></div><h3>เกี่ยวกับแอป</h3><p>เงินวันนี้เป็นสมุดบันทึกส่วนตัวสำหรับการเงินในชีวิตประจำวัน ไม่ใช่ระบบเชื่อมต่อบัญชีธนาคาร</p><div className="app-meta"><span>เวอร์ชัน</span><strong>0.5.0 · Mobile-first Minimal</strong></div><div className="app-meta"><span>ค่าเริ่มต้น</span><strong>ภาษาไทย · บาท (THB)</strong></div></section></div></>}
+    <IPhoneShortcutSettings onImported={reload}/><LineSyncSettings onImported={reload}/><section className="surface settings-card"><div className="settings-icon green"><Wallet size={23}/></div><h3>งบประมาณรายเดือน</h3><p>ตั้งวงเงินรายจ่ายที่ต้องการใช้ในแต่ละเดือน เพื่อคุมการใช้เงินให้เป็นไปตามเป้าหมาย</p><form onSubmit={saveBudget}><label className="field-label" htmlFor="budget">งบประมาณ (บาท/เดือน)</label><div className="budget-field"><span>฿</span><input id="budget" type="text" inputMode="decimal" value={budgetEdit} onChange={e=>setBudgetEdit(e.target.value)} placeholder="เช่น 15000"/></div><small className="hint">เว้นว่างเพื่อลบวงเงินที่ตั้งไว้</small><button className="btn btn-primary" disabled={budgetSaving} type="submit"><Check size={17}/> {budgetSaving?'กำลังบันทึก':'บันทึกงบประมาณ'}</button></form></section><section className="surface settings-card"><div className="settings-icon peach"><Download size={23}/></div><h3>จัดการข้อมูล</h3><p>ดาวน์โหลดสำเนาเก็บไว้ เพื่อป้องกันการสูญหายเมื่อล้างข้อมูลเบราว์เซอร์หรือเปลี่ยนอุปกรณ์</p><div className="settings-actions"><button className="btn btn-secondary" onClick={exportJson}><Download size={17}/> สำรองข้อมูล JSON</button><button className="btn btn-secondary" onClick={exportCsv}><FileSpreadsheet size={17}/> ส่งออก CSV</button><button className="btn btn-ghost bordered" onClick={()=>importRef.current?.click()}><Upload size={17}/> นำเข้าไฟล์ JSON</button><input ref={importRef} className="visually-hidden" aria-label="เลือกไฟล์สำรองข้อมูล JSON" type="file" accept=".json,application/json" onChange={e=>{const f=e.target.files?.[0];if(f)void importBackup(f);}}/></div>
+  <div className="data-reset-options">
+    <div className="data-repair-option">
+      <div><strong>ซ่อมการซิงก์ iPhone</strong><p>ตรวจรายการที่เคยบันทึกใน Cloud อีกครั้ง โดยไม่ลบรายการหรือรหัสเชื่อมต่อในเครื่อง</p></div>
+      <button className="btn btn-secondary" type="button" disabled={repairBusy} onClick={()=>{void repairIphoneSync();}}>
+        {repairBusy?'กำลังตรวจรายการ...':'ตรวจและนำเข้ารายการอีกครั้ง'}
+      </button>
+    </div>
+    <div className="data-clear-option">
+      <div><strong>ลบข้อมูลในเครื่อง</strong><p>ลบรายการ สลิปรอตรวจ การตั้งค่า และการเชื่อมต่อบนอุปกรณ์นี้ ไม่ลบข้อมูล Supabase</p></div>
+      <button className="btn btn-ghost bordered data-delete-btn" type="button" onClick={()=>{setResetError('');setResetDialogOpen(true);}}>
+        <Trash2 size={17}/> ลบข้อมูลในเครื่อง
+      </button>
+    </div>
+  </div></section><section className="surface settings-card privacy-settings"><div className="settings-icon blue"><ShieldCheck size={24}/></div><h3>ข้อมูลและความเป็นส่วนตัว</h3><p>รายการที่กรอกเองและอัปโหลดรูปจะเก็บใน IndexedDB บนอุปกรณ์นี้ ส่วนข้อความ OCR ที่ส่งผ่าน iPhone Shortcut จะเก็บเฉพาะข้อมูลธุรกรรมที่แยกได้ใน Supabase และซิงก์เข้ามาเมื่อเชื่อม Review Token</p><div className="info-banner"><CloudOff size={18}/><span>รายการในเครื่องใช้งานออฟไลน์ได้; รายการจาก iPhone Shortcut จะซิงก์เมื่อเชื่อม API และมีอินเทอร์เน็ต</span></div></section><section className="surface settings-card privacy-settings"><div className="settings-icon lavender"><Menu size={24}/></div><h3>เกี่ยวกับแอป</h3><p>เงินวันนี้เป็นสมุดบันทึกส่วนตัวสำหรับการเงินในชีวิตประจำวัน ไม่ใช่ระบบเชื่อมต่อบัญชีธนาคาร</p><div className="app-meta"><span>เวอร์ชัน</span><strong>0.5.0 · Mobile-first Minimal</strong></div><div className="app-meta"><span>ค่าเริ่มต้น</span><strong>ภาษาไทย · บาท (THB)</strong></div></section></div></>}
     </main><footer className="app-footer">© {new Date().getFullYear()} เงินวันนี้ · เล็กน้อยทุกวัน เปลี่ยนการเงินได้</footer></div>
     <button aria-label="อัปโหลดสลิป" title="อัปโหลดสลิป" className={`mobile-fab ${view==='home'?'home-fab':''}`} onClick={openAdd}><ScanLine size={25}/></button><nav className="mobile-bottom-nav" aria-label="เมนูมือถือ">{navItems.map(({key,label,icon:Icon})=><button key={key} className={view===key?'active':''} aria-current={view===key?'page':undefined} onClick={()=>{if(key==='transactions'){setInboxTab(false);setSlipInboxTab(false);}setView(key);}}><Icon size={21}/><span>{label}</span></button>)}</nav>
     {toast&&<div className="toast" role="status"><Check size={17}/>{toast}</div>}
@@ -380,5 +424,8 @@ export default function App(){
       else if((summary.excluded||0)>0)setToast('ไม่นับการโอนเงินระหว่างบัญชี '+summary.excluded+' รายการ');
     }}/>}
     {pendingRestore&&<RestoreDialog existingCount={items.length} importedCount={pendingRestore.transactions.length} busy={restoreBusy} onBackup={exportJson} onConfirm={()=>{void confirmRestore();}} onClose={()=>setPendingRestore(null)}/>}
+    {resetDialogOpen&&<ResetDataDialog transactionCount={items.length} pendingCount={pendingSlips.length}
+      busy={resetBusy} error={resetError} onBackup={exportJson} onConfirm={()=>{void eraseDeviceData();}}
+      onClose={()=>{if(!resetBusy)setResetDialogOpen(false);}}/>}
   </div>;
 }
