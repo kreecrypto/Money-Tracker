@@ -1,6 +1,6 @@
 import {useEffect,useRef,useState,type ChangeEvent} from 'react';
 import {Camera,CheckCircle2,FileImage,ScanLine,ShieldCheck,Upload,Square,Undo2,AlertTriangle,Check,LoaderCircle,ClipboardPaste} from 'lucide-react';
-import {parseSlipText,mergeSlipOcrReadings,needsSlipOcrRecovery,type SlipFields} from './lib/slip';
+import {parseSlipText,mergeSlipOcrReadings,needsSlipOcrRecovery,describeMissingSlipAmount,type SlipFields} from './lib/slip';
 import {prepareSlipRecoveryImage,prepareSlipOcrFile} from './lib/slipImage';
 import {isLowOcrConfidence,requiresLowConfidenceReview} from './lib/ocrConfidence';
 import {withOcrDeadline,OCR_MODEL_TIMEOUT_MS,OCR_PASS_TIMEOUT_MS,OcrDeadlineError} from './lib/ocrDeadline';
@@ -205,6 +205,10 @@ export default function SlipScanner({onApply,onComplete,onBusyChange,onUndoBatch
             reading.imageHash=hash;
             setStage('save');
             const outcome=await onApply(reading);
+            if(outcome.status==='incomplete'&&reading.amountSatang===null){
+              const detail=describeMissingSlipAmount(firstReading,recoveredReading);
+              outcome.reason=detail+(outcome.reason?' · '+outcome.reason:'');
+            }
             // Persist unresolved OCR immediately, even if the user closes the scanner.
             // Store structured fields only: never the image or raw OCR text.
             if(outcome.status==='incomplete'){
