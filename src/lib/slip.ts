@@ -331,7 +331,7 @@ export function parseSlipText(rawText:string,layoutLines:string[]=[],ownerNames:
 /** Provide a clear, privacy-preserving reason for a missing amount.
  * Only the two OCR readings are inspected in memory; no raw text is logged. */
 export function describeMissingSlipAmount(first:SlipFields,recovery:SlipFields|null):string {
-  if(first.amountSatang!==null&&recovery?.amountSatang!==null&&
+  if(first.amountSatang!==null&&recovery!==null&&recovery.amountSatang!==null&&
     first.amountSatang!==recovery.amountSatang)
     return 'OCR อ่านจำนวนเงินสองรอบไม่ตรงกัน จึงไม่เลือกยอดใดยอดหนึ่งอัตโนมัติ';
   if(first.warnings.some(w=>w.includes('ขัดแย้ง'))||
