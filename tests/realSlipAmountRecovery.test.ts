@@ -17,6 +17,11 @@ const payment=(moneySection:string)=>[
 ].join('\n');
 
 describe('real-world K PLUS amount formatting recovery',()=>{
+  it.each([['NTT DATA bill',30],['FOOD PATIO lunch',90],['FOOD PATIO snack',30],['PromptPay transfer',50]] as const)('recovers %s amount when OCR joins fee caption to the next visual row',(_label,baht)=>{
+    const text=payment('จำนวน:\n'+baht.toFixed(2)+' บาท ค่าธรรมเนียม: 0.00 บาท');
+    expect(parseSlipText(text).amountSatang).toBe(baht*100);
+  });
+
   it.each([
     ['merged fee caption','จำนวน: 80.00 บาท ค่าธรรมเนียม 0.00 บาท',8000],
     ['fee before amount caption','ค่าธรรมเนียม 0.00 บาท จำนวน: 85.00 บาท',8500],
