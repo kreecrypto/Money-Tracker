@@ -38,6 +38,23 @@ describe('real-world K PLUS amount formatting recovery',()=>{
     expect(prepareAutoSlip(slip,[],String(expected),Date.now()).status).toBe('ready');
   });
 
+  it.each([30,90,50])('recovers %i baht when K PLUS OCR separates number and currency',baht=>{
+    const amount=baht.toFixed(2);
+    const slip=parseSlipText(payment('จำนวน:\\n'+amount+'\\nบาท'));
+    expect(slip.amountSatang).toBe(baht*100);
+  });
+
+  it('recovers a right-aligned amount from layout when OCR text places unrelated text after the label',()=>{
+    const text=payment('จำนวน:\\nอ่านไม่ชัด');
+    const slip=parseSlipText(text,['จำนวน:','30.00','บาท','ค่าธรรมเนียม: 0.00 บาท']);
+    expect(slip.amountSatang).toBe(3000);
+  });
+
+  it('never uses a fee or reference as a missing right-aligned amount',()=>{
+    const slip=parseSlipText(payment('จำนวน:\\nค่าธรรมเนียม: 50.00 บาท\\nเลขที่รายการ: 9000'));
+    expect(slip.amountSatang).toBeNull();
+  });
+
   it('recovers a labelled total from visual OCR boxes when text flow is broken',()=>{
     const text=payment('จำนวน:\nอ่านไม่ชัด');
     const first=parseSlipText(text);
