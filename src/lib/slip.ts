@@ -115,10 +115,10 @@ function parseAmount(lines:string[]):{amountSatang:number|null;ambiguous:boolean
         const span=row.split(/(?:ค่าธรรมเนียม|ค่าบริการ|เลขที่รายการ|รหัสอ้างอิง|reference)/iu,1)[0].trim();
         if(!span)break;
         region.push(span);
-        if(standalone.test(span)&&/(?:บาท|฿|THB|[.,]\\s*\\d{2})/iu.test(span))break;
+        if(standalone.test(span)&&/(?:บาท|฿|THB|[.,]\s*\d{2})/iu.test(span))break;
       }
-      const joined=region.join(' ').replace(/\\s+/gu,' ').trim();
-      const compact=joined.replace(/(?:บาท)\\s*(?=\\d)/gu,'');
+      const joined=region.join(' ').replace(/\s+/gu,' ').trim();
+      const compact=joined.replace(/(?:บาท)\s*(?=\d)/gu,'');
       const possible=[...region,joined,compact].filter(Boolean);
       for(const value of possible){
         const normalized=normalizeMoney(value);
