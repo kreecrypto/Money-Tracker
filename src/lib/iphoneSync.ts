@@ -75,7 +75,8 @@ export async function iphoneSync():Promise<{imported:number;received:number}>{
   const seenItems=seen();
   let imported=0;
   for(const row of rows){
-    // Local IndexedDB is authoritative: repair a missing row even if an old seen marker survives.\n    if(!row.id.startsWith('iphone-')||local.has(row.id))continue;
+    // Preserve deliberate local deletions; only an explicit repair resets this history.
+    if(!row.id.startsWith('iphone-')||seenItems.has(row.id)||local.has(row.id))continue;
     await saveTransaction(row);
     seenItems.add(row.id);local.add(row.id);imported++;
     localStorage.setItem(SEEN_KEY,JSON.stringify([...seenItems].slice(-3000)));
