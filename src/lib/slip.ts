@@ -105,14 +105,29 @@ function parseAmount(lines:string[]):{amountSatang:number|null;ambiguous:boolean
     if(!candidates.length&&!countOnly){
       // Handles "จำนวน:" followed by "฿" on one line and 85.00 on the next.
       // No scanning past arbitrary text, fee, account or reference rows.
-      const next=lines[i+1]||'';
-      // K PLUS bill slips often put the amount in a right-aligned OCR box:
-      // "จำนวน:" and "30.00 บาท" may be separate lines; the amount can also
-      // be followed by an unrelated fee caption on the same reconstructed row.
-      const nextPayment=next.split(/(?:ค่าธรรมเนียม|เลขที่รายการ|รหัสอ้างอิง|reference)/iu,1)[0].trim();
-      if(standalone.test(nextPayment))candidates=parseMoney(normalizeMoney(nextPayment));
-      else if(currencyOnly.test(next)&&(i+2)<lines.length&&standalone.test(lines[i+2]))
-        candidates=parseMoney(normalizeMoney(lines[i+2]));
+      // K PLUS right-aligns the paid amount below "จำนวน:"; Tesseract can
+      // emit the currency and number in separate boxes or reverse their order.
+      // Look ahead only two rows, stopping at any other labelled field.
+      const stop=/^(?:ค่าธรรมเนียม|ค่าบริการ|เลขที่|รหัสอ้างอิง|reference|บัญชี|account|ยอดคงเหลือ)/iu;
+      const region:string[]=[];
+      for(let offset=1;offset<=2&&i+offset<lines.length;offset++){
+        const row=lines[i+offset].trim();
+        if(stop.test(row)||AMOUNT_LABEL.test(row))break;
+        const span=row.split(/(?:ค่าธรรมเนียม|ค่าบริการ|เลขที่รายการ|รหัสอ้างอิง|reference)/iu,1)[0].trim();
+        if(!span)break;
+        region.push(span);
+        if(standalone.test(span)&&/(?:บาท|฿|THB|[.,]\\s*\\d{2})/iu.test(span))break;
+      }
+      const joined=region.join(' ').replace(/\\s+/gu,' ').trim();
+      const compact=joined.replace(/(?:บาท)\\s*(?=\\d)/gu,'');
+      const possible=[...region,joined,compact].filter(Boolean);
+      for(const value of possible){
+        const normalized=normalizeMoney(value);
+        if(standalone.test(normalized)){
+          candidates=parseMoney(normalized);
+          if(candidates.length)break;
+        }
+      }
     }
     if(candidates.length>1)ambiguous=true;
     if(candidates.length===1)amounts.add(candidates[0]);
