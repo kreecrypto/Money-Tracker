@@ -61,30 +61,25 @@ describe('additional K PLUS layouts from seven image examples',()=>{
     expect(prepareAutoSlip(result,[],'missing',Date.now()).status).toBe('incomplete');
   });
 
-  it('does not treat wallet top-up as a purchase or income',()=>{
+  it('auto-saves K PLUS G-Wallet funding as an outgoing bank expense',()=>{
     const text=[
       'เติมเงินสำเร็จ','11 ต.ค. 69 17:55 น.','นาย ตัวอย่าง ผู้จ่าย',
       'ธ.กสิกรไทย','xxx-x-x0000-x','พร้อมเพย์ อี-วอลเล็ต /','G-Wallet',
-      '006-xxxxxxxx-8913','จำนวน:','150.00 บาท',
-      'ค่าธรรมเนียม:','0.00 บาท','เลขที่รายการ: TESTTOPUP20261011000001',
-      'รายละเอียด: เติมเงินกระเป๋าตัวเอง'
+      '006-xxxxxxxx-8913','จำนวน:','150.00 บาท','ค่าธรรมเนียม:','0.00 บาท',
+      'เลขที่รายการ: TESTTOPUP20261011000001',
     ].join('\n');
     const slip=parseSlipText(text);
-    expect(slip.amountSatang).toBe(15000);
-    expect(slip.date).toBe('2026-10-11');
-    expect(slip.time).toBe('17:55');
-    expect(slip.method).toBe('wallet');
-    expect(slip.recipient).toBe('พร้อมเพย์ อี-วอลเล็ต / G-Wallet');
-    expect(slip.direction).toBeNull();
-    expect(slip.directionReason).toContain('ไม่บันทึกเป็นรายจ่ายอัตโนมัติ');
-    const noisySecondPass=parseSlipText(text.replace('เติมเงินสำเร็จ','ชำระเงินสำเร็จ'));
-    const merged=mergeSlipOcrReadings(slip,noisySecondPass);
-    expect(merged.direction).toBeNull();
-    expect(merged.directionReason).toContain('เติมเงินเข้า e-Wallet');
-    expect(prepareAutoSlip(merged,[],'recover',Date.now()).status).toBe('incomplete');
-    const decision=prepareAutoSlip(slip,[],'funding',Date.now());
-    expect(decision.status).toBe('incomplete');
-    if(decision.status==='incomplete')expect(decision.reason).toContain('ป้องกันยอดซ้ำ');
+    expect(slip).toMatchObject({
+      amountSatang:15000,date:'2026-10-11',time:'17:55',
+      method:'bank',recipient:'พร้อมเพย์ อี-วอลเล็ต / G-Wallet',direction:'expense',
+    });
+    expect(needsSlipOcrRecovery(slip)).toBe(false);
+    const noisy=mergeSlipOcrReadings(slip,parseSlipText(text.replace('เติมเงินสำเร็จ','ชำระเงินสำเร็จ')));
+    expect(noisy.direction).toBe('expense');
+    expect(prepareAutoSlip(noisy,[],'repeat',Date.now()).status).toBe('ready');
+    const saved=prepareAutoSlip(slip,[],'wallet',Date.now());
+    expect(saved.status).toBe('ready');
+    if(saved.status==='ready')expect(saved.transaction.note).toContain('เติมเงิน e-Wallet');
   });
 
   it('auto-saves a fully read K PLUS TrueMoney top-up as bank outflow',()=>{
@@ -105,78 +100,38 @@ describe('additional K PLUS layouts from seven image examples',()=>{
     expect(slip.receipt).toMatchObject({source:'kplus',paidSatang:100000});
     const saved=prepareAutoSlip(slip,[],'truemoney',Date.now());
     expect(saved.status).toBe('ready');
-    if(saved.status==='ready')expect(saved.transaction.note).toContain('เติมเงิน TrueMoney');
+    if(saved.status==='ready')expect(saved.transaction.note).toContain('เติมเงิน e-Wallet');
     const merged=mergeSlipOcrReadings(slip,parseSlipText(text));
     expect(merged.direction).toBe('expense');
     expect(prepareAutoSlip(merged,[],'merged',Date.now()).status).toBe('ready');
   });
 
-  it('does not classify a third-party TrueMoney funding slip as my expense when owner names differ',()=>{
-    const text=[
-      'เติมเงินสำเร็จ','15 ต.ค. 69 14:00 น.','นาย ตัวอย่าง ผู้ส่ง',
-      'ธ.กสิกรไทย','xxx-x-x0000-x','TrueMoney','0000000000',
-      'จำนวน:','1,000.00 บาท','ค่าธรรมเนียม: 0.00 บาท',
-    ].join('\n');
-    expect(parseSlipText(text,[],['นาย บุคคลอื่น']).direction).toBeNull();
-    expect(parseSlipText(text,[],['นาย ตัวอย่าง ผู้ส่ง']).direction).toBe('expense');
-    expect(prepareAutoSlip(parseSlipText(text,[],['นาย บุคคลอื่น']),[],'unowned',Date.now()).status).toBe('incomplete');
-  });
-
-  it('shows the true owner-name reason instead of a generic wallet funding error',()=>{
+  it('classifies verified TrueMoney top-ups as expense with or without owner aliases',()=>{
     const text=[
       'เติมเงินสำเร็จ','15 ต.ค. 69 08:52 น.','นาย ตัวอย่าง ผู้ส่ง',
       'ธ.กสิกรไทย','xxx-x-x0000-x','ทรูมันนี่','0000000000',
       'จำนวน:','100.00 บาท','ค่าธรรมเนียม:','0.00 บาท',
     ].join('\n');
-    const slip=parseSlipText(text,[],['นาย ผู้ใช้ อีกคน']);
-    expect(slip.amountSatang).toBe(10000);
-    expect(slip.direction).toBeNull();
-    const result=prepareAutoSlip(slip,[],'pending-truemoney',Date.now());
-    expect(result.status).toBe('incomplete');
-    if(result.status==='incomplete'){
-      expect(result.reason).toContain('ชื่อผู้ส่งและผู้รับไม่ตรง');
-      expect(result.reason).toContain('Settings');
-    }
-    const matched=parseSlipText(text,[],['นาย ตัวอย่าง ผู้ส่ง']);
-    expect(matched.direction).toBe('expense');
-    expect(prepareAutoSlip(matched,[],'saved-truemoney',Date.now()).status).toBe('ready');
+    const slip=parseSlipText(text,[],['นาย บุคคลอื่น']);
+    expect(slip).toMatchObject({amountSatang:10000,direction:'expense',method:'bank',recipient:'ทรูมันนี่'});
+    expect(prepareAutoSlip(slip,[],'topup-100',Date.now()).status).toBe('ready');
+    const noSender=text.replace('นาย ตัวอย่าง ผู้ส่ง\n','');
+    const recovered=parseSlipText(noSender);
+    expect(recovered.direction).toBe('expense');
+    expect(prepareAutoSlip(recovered,[],'topup-no-sender',Date.now()).status).toBe('ready');
   });
 
-  it('recovers a trusted K PLUS sender from spatial text rows without guessing ownership',()=>{
-    const text=[
-      'เติมเงินสำเร็จ','15 ต.ค. 69 08:52 น.',
-      'ธ.กสิกรไทย','xxx-x-x0000-x','ทรูมันนี่','0000000000',
-      'จำนวน:','100.00 บาท','ค่าธรรมเนียม 0.00 บาท',
-    ].join('\n');
-    const layout=[
-      'เติมเงินสำเร็จ','15 ต.ค. 69 08:52 น.','นาย ตัวอย่าง ผู้ส่ง',
-      'ธ.กสิกรไทย','xxx-x-x0000-x','ทรูมันนี่','จำนวน:','100.00 บาท',
-    ];
-    const withoutGeometry=parseSlipText(text,[],['นาย ตัวอย่าง ผู้ส่ง']);
-    expect(withoutGeometry.direction).toBeNull();
-    const recovered=parseSlipText(text,layout,['นาย ตัวอย่าง ผู้ส่ง']);
-    expect(recovered).toMatchObject({
-      amountSatang:10000,recipient:'ทรูมันนี่',direction:'expense',
-      sender:'นาย ตัวอย่าง ผู้ส่ง',
-    });
-    expect(prepareAutoSlip(recovered,[],'geometry-recovered',Date.now()).status).toBe('ready');
-  });
-
-  it('keeps uncertain TrueMoney sender ownership pending after mismatched OCR passes',()=>{
+  it('keeps conflicting top-up amounts Pending rather than guessing',()=>{
     const text=[
       'เติมเงินสำเร็จ','15 ต.ค. 69 08:52 น.','นาย ตัวอย่าง ผู้ส่ง',
       'ธ.กสิกรไทย','xxx-x-x0000-x','ทรูมันนี่',
       'จำนวน:','100.00 บาท',
     ].join('\n');
-    const verified=parseSlipText(text,[],['นาย ตัวอย่าง ผู้ส่ง']);
-    const unverified=parseSlipText(text,[],['นาย บุคคลอื่น']);
-    const merged=mergeSlipOcrReadings(verified,unverified);
-    expect(merged.amountSatang).toBe(10000);
-    expect(merged.direction).toBeNull();
-    expect(merged.directionReason).toContain('ชื่อผู้ส่งและผู้รับไม่ตรง');
-    const result=prepareAutoSlip(merged,[],'uncertain-identity',Date.now());
-    expect(result.status).toBe('incomplete');
-    if(result.status==='incomplete')expect(result.reason).toContain('Settings');
+    const first=parseSlipText(text),second=parseSlipText(text.replace('100.00','900.00'));
+    const merged=mergeSlipOcrReadings(first,second);
+    expect(merged.direction).toBe('expense');
+    expect(merged.amountSatang).toBeNull();
+    expect(prepareAutoSlip(merged,[],'ocr-conflict',Date.now()).status).toBe('incomplete');
   });
 
   it('does not turn unverified or unreadable TrueMoney top-ups into auto-saved expenses',()=>{
