@@ -217,3 +217,23 @@
   .mt-home-shortcut-grid .mt-home-shortcut {height:78px;}
 }
 @media(prefers-reduced-motion:reduce){.mt-home-screen *,.mt-home-topbar *{scroll-behavior:auto;transition:none!important;}}
+
+
+/* Accessibility correction after mobile Chromium: small labels need AA contrast. */
+.mt-home-subtitle {color:#435b4c;}
+.mt-home-section-heading>span {color:#475e50;}
+.mt-home-split>small {color:#355f48;}
+.mt-home-split:last-child>small {color:#984451;}
+.mt-home-transaction-text small {color:#50665a;}
+.mt-home-empty {color:#3b6650;}
+.mt-home-screen .mt-home-upload small {color:#effff3;}
+.mt-home-header-button,.mt-home-avatar {width:44px;height:44px;}
+.mt-home-avatar {background:radial-gradient(circle at center,#e8f5e9 0 17px,transparent 18px);}
+.mt-home-section-heading button {min-height:44px;color:#19643d;}
+.mt-home-empty button {min-height:44px;}
+.mobile-bottom-nav button.active,
+.mobile-bottom-nav button[aria-current="page"],
+.mobile-bottom-nav button[aria-current="page"] span {color:#076738!important;}
+@media(max-width:660px) {
+ .mobile-bottom-nav button.active {color:#076738!important;}
+}
