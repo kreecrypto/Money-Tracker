@@ -54,12 +54,13 @@ describe('persistent local slip review draft',()=>{
     if(result.status==='ready')expect(result.transaction.amountSatang).toBe(1);
   });
 
-  it('wallet funding stays pending until a person chooses a direction',()=>{
-    const slip=parseSlipText('เติมเงินสำเร็จ\n11 ต.ค. 69 17:55 น.\nธ.กสิกรไทย\nxxx-x-x0000-x\nพร้อมเพย์ อี-วอลเล็ต /\nG-Wallet\nจำนวน: 150.00 บาท');
-    const draft=makePendingSlip(slip,'topup.png','ต้องตรวจ','topup');
+  it('pending a wallet top-up for missing date does not lose its expense category',()=>{
+    const slip=parseSlipText('เติมเงินสำเร็จ\nธ.กสิกรไทย\nxxx-x-x0000-x\nพร้อมเพย์ อี-วอลเล็ต /\nG-Wallet\nจำนวน: 150.00 บาท');
+    const draft=makePendingSlip(slip,'topup.png','อ่านวันที่ไม่ได้','topup');
     expect(draft.kind).toBe('wallet_topup');
-    expect(draft.direction).toBeNull();
+    expect(draft.direction).toBe('expense');
     expect(prepareAutoSlip(pendingToSlipFields(draft),[],'new',Date.now()).status).toBe('incomplete');
+    expect(pendingToSlipFields(draft).directionReason).toContain('เติมเงินเข้า e-Wallet');
   });
 
   it('clears only exact-hash stale pending drafts after a successful re-upload',()=>{
