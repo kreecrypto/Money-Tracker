@@ -433,7 +433,7 @@ export default function SlipScanner({onApply,onComplete,onBusyChange,onUndoBatch
       {summary.saved>0&&<button type="button" className="btn btn-secondary slip-undo" disabled={undoing} onClick={()=>void undoSaved()}><Undo2 size={16}/>{undoing?'กำลังยกเลิกรายการ…':'ลบรายการที่เพิ่งบันทึก ('+summary.saved+')'}</button>}
       {correctionErrors[-1]&&<p role="alert" className="error-message">{correctionErrors[-1]}</p>}
       {summary.queued>0&&<p className="slip-queued-note" role="status">เก็บไว้ใน “รายการ → รอตรวจจากสลิป” แล้ว {summary.queued} รูป ปิดหน้านี้แล้วกลับมาแก้ภายหลังได้ แต่ระบบไม่เก็บภาพต้นฉบับ กรุณาเก็บรูปสลิปไว้ใน Photos เพื่อตรวจยอด</p>}
-      {summary.saved>0&&summary.incomplete===summary.queued&&<button type="button" className="btn btn-primary slip-batch-finish" onClick={()=>onViewSaved(rows.find(row=>row.status==='saved')?.date||'')}>ดูรายการที่บันทึก</button>}
+      {summary.saved>0&&summary.incomplete===summary.queued&&<button type="button" className={'btn '+(needsAttention.length>0?'btn-secondary':'btn-primary')+' slip-batch-finish'} onClick={()=>onViewSaved(rows.find(row=>row.status==='saved')?.date||'')}>ดูรายการที่บันทึก</button>}
       {needsAttention.length>0&&<button type="button" className="btn btn-primary slip-batch-finish" onClick={()=>attentionRef.current?.scrollIntoView({behavior:window.matchMedia('(prefers-reduced-motion: reduce)').matches?'auto':'smooth',block:'start'})}>ตรวจ {needsAttention.length} รายการที่ยังไม่บันทึก</button>}
       <button type="button" className={'btn '+(needsAttention.length>0?'btn-secondary':'btn-primary')+' slip-batch-finish'} disabled={undoing} onClick={onClose}>{needsAttention.length>0?'ปิดและตรวจภายหลัง':'เสร็จสิ้น'}</button>
     </div>}
@@ -472,6 +472,6 @@ export default function SlipScanner({onApply,onComplete,onBusyChange,onUndoBatch
         </div>;
       })}
     </div>}
-    <p className="slip-privacy"><ShieldCheck size={14}/> รูปอ่านบนเครื่อง ไม่เก็บไฟล์ภาพถาวร จัดเก็บเฉพาะข้อมูลรายการและลายนิ้วมือ SHA-256 เพื่อป้องกันสลิปซ้ำ</p>
+    <p className="slip-privacy"><ShieldCheck size={14}/> อ่านรูปบนเครื่อง ไม่เก็บภาพถาวร · บันทึกเฉพาะข้อมูลรายการและรหัสตรวจสอบเพื่อป้องกันสลิปซ้ำ</p>
   </section>;
 }
