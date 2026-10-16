@@ -239,3 +239,65 @@
 }
 
 .mt-home-advisory button {min-height:44px;}
+
+
+/* Prototype V2 parity — usable popover rather than clipped native month input. */
+.mt-home-month-control {position:relative;flex:none;}
+button.mt-home-month-picker {
+  border:0;min-width:100px;min-height:36px;
+  padding:0 10px;box-shadow:0 2px 8px #1359320c;
+}
+.mt-home-month-popover {
+  position:fixed;z-index:5000;
+  width:min(208px,calc(100vw - 24px));max-height:min(272px,calc(100dvh - 36px));
+  padding:6px;display:flex;flex-direction:column;gap:2px;overflow:auto;
+  background:#fff;border:1px solid #c9ddd0;border-radius:13px;
+  box-shadow:0 16px 44px #173b2936;overscroll-behavior:contain;
+  -webkit-overflow-scrolling:touch;
+}
+.mt-home-month-popover [role="option"] {
+  display:flex;align-items:center;min-height:41px;border:0;
+  border-radius:8px;padding:9px 12px;color:#254432;background:transparent;
+  font-size:13px;font-weight:620;text-align:left;
+}
+.mt-home-month-popover [role="option"]:hover,
+.mt-home-month-popover [role="option"].selected {
+  background:#e8f6ec;color:#075e34;font-weight:790;
+}
+.mt-home-month-popover [role="option"]:focus-visible{
+  outline:2px solid #147a4c;outline-offset:-2px;
+}
+.mt-home-detail {
+  position:fixed;inset:0;margin:auto;
+  width:min(400px,calc(100vw - 24px));max-height:min(90dvh,730px);
+  background:#fff;color:#19372a;border:0;border-radius:21px;
+  padding:0;box-shadow:0 24px 70px #061c0e33;overflow-y:auto;
+}
+.mt-home-detail::backdrop {background:rgba(6,22,13,.53);backdrop-filter:blur(3px);}
+.mt-home-detail-inner{padding:21px;}
+.mt-home-detail-heading{display:flex;align-items:center;justify-content:space-between;gap:12px;}
+.mt-home-detail-heading h2{margin:0;font-size:18px;font-weight:800;}
+.mt-home-detail-heading button {
+  display:grid;place-items:center;min-width:44px;min-height:44px;
+  border:0;border-radius:10px;background:#f3f8f4;color:#254d33;
+  font-size:24px;
+}
+.mt-home-detail-inner>strong{display:block;text-align:center;padding:20px 0;font-size:29px;font-variant-numeric:tabular-nums;}
+.mt-home-detail-inner>strong.is-income{color:#0b8e4c;}
+.mt-home-detail-inner>strong.is-expense{color:#c8334e;}
+.mt-home-detail dl {margin:0;border:1px solid #e3eae5;border-radius:13px;overflow:hidden;}
+.mt-home-detail dl>div {display:flex;align-items:start;justify-content:space-between;gap:9px;padding:11px 12px;border-bottom:1px solid #e3eae5;font-size:12px;}
+.mt-home-detail dl>div:last-child{border-bottom:0;}
+.mt-home-detail dt{color:#55675a;flex:none;}
+.mt-home-detail dd{margin:0;text-align:right;font-weight:700;overflow-wrap:anywhere;}
+.mt-home-detail-done {
+  width:100%;min-height:48px;margin-top:17px;border:0;border-radius:12px;
+  background:#087e47;color:#fff;font-size:15px;font-weight:750;
+}
+.mt-home-detail button:focus-visible {outline:3px solid #096e44;outline-offset:2px;}
+@media(max-width:360px) {
+  .mt-home-month-picker {min-width:93px!important;padding-inline:7px!important;}
+}
+@media(prefers-reduced-motion:reduce) {
+  .mt-home-month-popover,.mt-home-detail{scroll-behavior:auto;}
+}
