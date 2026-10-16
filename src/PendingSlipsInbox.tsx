@@ -16,8 +16,8 @@ function PendingCard({item,onSave,onKeep,onDiscard}:{
   item:PendingSlip;onSave:Props['onSave'];onKeep:Props['onKeep'];onDiscard:Props['onDiscard'];
 }){
   const [expanded,setExpanded]=useState(false);
-  const [draft,setDraft]=useState(()=>item.kind==='wallet_topup'&&item.direction===null
-    ?{...item,direction:'expense' as const,method:'bank' as const}:item);
+  // Pending wallet transfers remain unclassified until the user explicitly selects a direction.
+  const [draft,setDraft]=useState(()=>item);
   const [amount,setAmount]=useState(item.amountSatang===null?'':String(item.amountSatang/100));
   const [busy,setBusy]=useState(false);
   const [error,setError]=useState('');
@@ -32,7 +32,7 @@ function PendingCard({item,onSave,onKeep,onDiscard}:{
   });
   const keep=async()=>{
     setBusy(true);setError('');setNotice('');
-    try{const updated=assemble();await onKeep(updated);setDraft(updated);setNotice('เก็บข้อมูลที่แก้ไขไว้ในเครื่องแล้ว');}
+    try{const updated=assemble();await onKeep(updated);setDraft(updated);setNotice('บันทึกข้อมูลที่แก้ไขไว้ในเครื่องแล้ว (ยังไม่รวมยอด)');}
     catch(e){setError(e instanceof Error?e.message:'เก็บข้อมูลไม่สำเร็จ');}
     finally{setBusy(false);}
   };
@@ -109,7 +109,7 @@ function PendingCard({item,onSave,onKeep,onDiscard}:{
       </button>
       <div className="pending-slip-secondary">
         <button type="button" className="btn btn-secondary" onClick={()=>void keep()} disabled={busy}>
-          <Save size={16}/> เก็บไว้ตรวจภายหลัง
+          <Save size={16}/> บันทึกไว้แก้ภายหลัง
         </button>
         <button type="button" className="btn btn-ghost bordered" onClick={()=>void discard()} disabled={busy}>
           <ArchiveX size={16}/> {draft.kind==='wallet_topup'?'ไม่นับรายการ':'ลบจากรอตรวจ'}
@@ -124,17 +124,17 @@ export default function PendingSlipsInbox({items,onSave,onKeep,onDiscard,onAdd}:
     <div className="pending-inbox-head">
       <div><span className="pending-inbox-kicker"><Clock3 size={17}/> OCR จากสลิปในเครื่อง</span>
         <h3>รายการรอตรวจ {items.length>0?'('+items.length+')':''}</h3>
-        <p>ปิดแอปแล้วกลับมาตรวจภายหลังได้ · ยังไม่รวมในรายรับและรายจ่าย</p>
+        <p>ปิดแอปแล้วกลับมาแก้ไขภายหลังได้ · ยังไม่รวมในยอดรายรับรายจ่าย · ต้องใช้รูปต้นฉบับจาก Photos หากต้องเทียบยอด</p>
       </div>
     </div>
     {items.length===0?<div className="pending-inbox-empty">
       <CheckCircle2 size={32}/>
       <strong>ไม่มีสลิปค้างตรวจ</strong>
-      <p>สลิปที่ OCR อ่านไม่ครบจะปรากฏที่นี่โดยอัตโนมัติ</p>
+      <p>สลิปที่อ่านข้อมูลไม่ครบจะปรากฏที่นี่ โดยยังไม่รวมในยอดรายรับรายจ่าย</p>
       <button className="btn btn-primary" onClick={onAdd}><Wallet size={16}/> เพิ่มสลิป</button>
     </div>:<div className="pending-inbox-list">{items.map(item=>
       <PendingCard key={item.id} item={item} onSave={onSave} onKeep={onKeep} onDiscard={onDiscard}/>
     )}</div>}
-    <p className="pending-privacy"><AlertTriangle size={15}/> เก็บเฉพาะข้อมูลที่ OCR แยกได้ใน IndexedDB ของเบราว์เซอร์นี้ ไม่เก็บไฟล์ภาพหรือข้อความ OCR ทั้งฉบับ หากล้างข้อมูลเว็บไซต์หรือเปลี่ยนเครื่อง คิวรอตรวจอาจหายได้</p>
+    <p className="pending-privacy"><AlertTriangle size={15}/> เก็บเฉพาะข้อมูลรายการไว้ในเบราว์เซอร์เครื่องนี้ ไม่เก็บภาพสลิป กรุณาเก็บภาพต้นฉบับใน Photos หากเปลี่ยนเครื่องหรือล้างข้อมูลเว็บไซต์ รายการรอตรวจอาจหายได้</p>
   </section>;
 }
