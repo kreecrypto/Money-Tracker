@@ -250,3 +250,14 @@
     transition:none!important;animation:none!important;
   }
 }
+
+/* Resolve local overrides from the former Reports/Transactions stylesheet.
+   These local tokens must reference Home V2 rather than recreate its palette. */
+.mt-transactions-screen,.mt-reports-screen,.mt-ocr-workspace{
+  --mt-primary:var(--money-primary);
+  --mt-deep:var(--money-primary-deep);
+  --mt-text:var(--money-ink);
+  --mt-muted:var(--money-muted);
+  --mt-border:var(--money-stroke);
+  --mt-canvas:#fff;
+}
