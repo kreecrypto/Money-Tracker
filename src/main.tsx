@@ -7,6 +7,7 @@ import './mobile-first.css';
 import './daily-minimal.css';
 import './fintech-ui.css';
 import './frontend-polish.css';
+import './reference-parity.css';
 const stopViewportObserver = installMobileViewportObserver();
 if (import.meta.hot) import.meta.hot.dispose(stopViewportObserver);
 ReactDOM.createRoot(document.getElementById('root')!).render(<React.StrictMode><App/></React.StrictMode>);
