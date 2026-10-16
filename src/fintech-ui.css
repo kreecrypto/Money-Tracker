@@ -298,3 +298,15 @@ button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible{ou
  .home-budget-after{margin:16px 0}
  .home-budget-after .budget-card{padding:20px}
 }
+
+/* Accessible contrast refinements after Chromium and WebKit visual audit. */
+.topbar .greeting,.topbar:not(.topbar-home) .greeting,.topbar .mobile-today{color:#344c41!important}
+.topbar-home .greeting{color:#172b25!important}
+.topbar h1,.topbar-home h1{color:#425c50!important}
+.card-overline,.eyebrow,.modal-heading .eyebrow,.slip-panel-primary .slip-hint{color:#486355!important}
+.slip-panel-primary .slip-head>div,.slip-panel-primary .slip-head strong{color:#174f3c}
+@media(max-width:660px){
+ .topbar-home h1{color:#405a4e!important}
+ .topbar:not(.topbar-home) h1{color:#172b25!important}
+ .home-month-picker .month-picker button{width:44px;min-width:44px;height:44px}
+}
