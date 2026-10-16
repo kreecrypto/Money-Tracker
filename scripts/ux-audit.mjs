@@ -54,12 +54,15 @@ try {
       const mobileHome=await page.evaluate(()=>{
         const el=name=>document.querySelector(name)?.getBoundingClientRect();
         const hero=el('.hero-card'),quick=el('.mobile-quick-actions'),today=el('.daily-snapshot'),recent=el('.transactions-surface'),categories=el('.home-spending-card'),nav=el('.mobile-bottom-nav');
-        return {correctHierarchy:!!(hero&&quick&&today&&recent&&categories&&quick.top<today.top&&today.top<recent.top&&recent.top<categories.top&&categories.top<hero.top),quickActionsVisible:!!(quick&&quick.width>0),bottomNavVisible:!!(nav&&nav.width===innerWidth)};
+        return {correctHierarchy:!!(hero&&quick&&today&&recent&&categories&&hero.top<quick.top&&quick.top<categories.top&&categories.top<recent.top&&recent.top<today.top),quickActionsVisible:!!(quick&&quick.width>0),bottomNavVisible:!!(nav&&nav.width===innerWidth)};
       });
       await page.locator('.mobile-action-scan').click();
       const openedOCR=await page.locator('.modal .slip-panel').isVisible();
       await page.locator('.modal .modal-heading button').click();
-      record('mobile-home-actions',name,{...mobileHome,openedOCR,pageErrors:errors});
+      record('mobile-home-actions',name,{...mobileHome,openedOCR,
+         quickActionCount:await page.locator('.mobile-quick-actions button').count(),
+         categoryIcons:await page.locator('.money-category-icon').count(),
+         pageErrors:errors});
     }
     const menu=['รายการ','รายงาน','ตั้งค่า'];
     const views=['transactions','reports','settings'];
