@@ -16,7 +16,8 @@ function PendingCard({item,onSave,onKeep,onDiscard}:{
   item:PendingSlip;onSave:Props['onSave'];onKeep:Props['onKeep'];onDiscard:Props['onDiscard'];
 }){
   const [expanded,setExpanded]=useState(false);
-  const [draft,setDraft]=useState(item);
+  const [draft,setDraft]=useState(()=>item.kind==='wallet_topup'&&item.direction===null
+    ?{...item,direction:'expense' as const,method:'bank' as const}:item);
   const [amount,setAmount]=useState(item.amountSatang===null?'':String(item.amountSatang/100));
   const [busy,setBusy]=useState(false);
   const [error,setError]=useState('');
@@ -65,9 +66,9 @@ function PendingCard({item,onSave,onKeep,onDiscard}:{
       <span className={'pending-slip-chip'+(draft.kind==='wallet_topup'?' wallet':'')}>{draft.kind==='wallet_topup'?'เติม Wallet':'รอตรวจ'}</span>
     </div>
     <div className="pending-slip-detail">{isTrueMoneyBankTopUp(draft)
-      ?draft.reason||'เติมเงิน TrueMoney ถูกจัดเป็นรายจ่ายแล้ว ตรวจรายละเอียดที่ขาดก่อนบันทึก'
+      ?'เติมเงิน TrueMoney: ระบบกำหนดเป็นรายจ่ายจากธนาคารแล้ว ตรวจยอด วันที่ เวลา และผู้รับก่อนบันทึก'
       :draft.kind==='wallet_topup'
-        ?draft.reason||'การเติมเงินเข้า Wallet ถูกจัดเป็นรายจ่ายแล้ว ตรวจรายละเอียดที่ขาดก่อนบันทึก'
+        ?'เติมเงิน Wallet: ระบบกำหนดเป็นรายจ่ายจากธนาคารแล้ว ตรวจข้อมูลที่ยังไม่ครบก่อนบันทึก'
         :draft.reason||'ข้อมูลจาก OCR ยังไม่ครบ ต้องตรวจรายการก่อนบันทึก'}</div>
     <button type="button" className="pending-slip-toggle" aria-expanded={expanded} onClick={()=>setExpanded(v=>!v)}>
       {expanded?'ซ่อนรายละเอียด':'ตรวจและแก้ไข'} {expanded?<ChevronUp size={17}/>:<ChevronDown size={17}/>}
