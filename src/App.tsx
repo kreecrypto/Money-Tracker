@@ -285,7 +285,6 @@ export default function App(){
   const openReview=()=>{setInboxTab(true);setSlipInboxTab(false);setView('transactions');};
   const openPendingSlips=()=>{setInboxTab(false);setSlipInboxTab(true);setView('transactions');};
   const openAdd=()=>{setScanOnOpen(true);setEditing(null);setModalOpen(true)};
-  const openManual=()=>{setScanOnOpen(false);setEditing(null);setModalOpen(true)};
   const onSave=async(t:Transaction)=>{await saveTransaction(t);await reload();setToast(editing?'แก้ไขรายการเรียบร้อย':`บันทึก${t.type==='income'?'รายรับ':'รายจ่าย'} ฿${baht(t.amountSatang)} สำเร็จ`);};
   const onSaveImported=async(t:Transaction)=>{
     await saveTransaction(t);
