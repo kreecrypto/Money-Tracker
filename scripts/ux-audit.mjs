@@ -80,6 +80,27 @@ try {
         await buttons.evaluate(el=>el.click());
       }
       await scan(page,views[i],name);
+      if(i===1) {
+        const tabs=page.locator('.ref-report-tabs button');
+        const count=await tabs.count();
+        await tabs.nth(2).click();
+        const trendOnly=await page.locator('#report-trends').isVisible()
+          && await page.locator('#report-spending').count()===0
+          && await page.locator('#report-budget').count()===0;
+        await tabs.nth(3).click();
+        const budgetOnly=await page.locator('#report-budget').isVisible()
+          && await page.locator('#report-trends').count()===0;
+        await tabs.nth(1).click();
+        const categoryOnly=await page.locator('#report-spending').isVisible()
+          && await page.locator('#report-budget').count()===0
+          && await page.locator('#report-trends').count()===0;
+        await tabs.nth(0).click();
+        const overview=await page.locator('#report-spending').isVisible()
+          && await page.locator('#report-budget').isVisible()
+          && await page.locator('#report-trends').isVisible();
+        const noOverlay=width>660 || await page.locator('.mobile-fab').isHidden();
+        record('report-view-switch',name,{count,trendOnly,budgetOnly,categoryOnly,overview,noOverlay,pageErrors:errors});
+      }
     }
     if(name==='iphone390'){
       // Money Manager-style grouped ledger and accessible filter recovery.
@@ -211,6 +232,7 @@ try {
     ||(x.view==='restore-smoke'&&(!x.initiallyDisabled||!x.enabledAfterAcknowledgement||!x.closed||x.pageErrors?.length))
     ||(x.view==='local-reset-smoke'&&(!x.initiallyDisabled||!x.enabledAfterAcknowledgement||!x.dialogClosed||x.wiped?.transactions!==0||x.wiped?.pending!==0||x.wiped?.paired||x.pageErrors?.length))
     ||(x.view==='mobile-home-actions'&&(!x.correctHierarchy||x.quickActionCount!==4||!x.quickActionsVisible||!x.bottomNavVisible||!x.openedOCR||x.pageErrors?.length))
+    ||(x.view==='report-view-switch'&&(x.count!==4||!x.trendOnly||!x.budgetOnly||!x.categoryOnly||!x.overview||!x.noOverlay||x.pageErrors?.length))
     ||(x.view==='competitive-ledger-smoke'&&(!x.ledgerAvailable||!x.resetVisible||!x.searchReset||x.pageErrors?.length))
   ).map(x=>({viewport:x.viewport,view:x.view,overflowPx:x.overflowPx,axe:x.axe?.violations?.map(v=>v.id),savedVisible:x.savedVisible,restore:[x.initiallyDisabled,x.enabledAfterAcknowledgement,x.closed]}));
   if(critical.length){console.error('UX_ACCEPTANCE_FAIL',JSON.stringify(critical));process.exitCode=1;}
