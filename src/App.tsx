@@ -233,7 +233,9 @@ export default function App(){
       try{
         const [result,drafts]=await Promise.all([iphoneSync(),iphoneDrafts()]);
         setIphonePending(drafts.length);
-        setIphoneSyncError('');
+        setIphoneSyncError(result.invalid>0
+          ?'รายการจาก iPhone '+result.invalid+' รายการมีข้อมูลไม่ถูกต้องและยังไม่ถูกนำเข้า'
+          :'');
         if(result.imported>0)await reload();
       }catch(e){
         const reason=e instanceof Error?e.message:'ไม่สามารถเชื่อมต่อได้';
