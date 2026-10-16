@@ -71,7 +71,9 @@ export function pendingToSlipFields(p:PendingSlip):SlipFields{
     ?p.category:'อื่น ๆ';
   return {
     amountSatang:p.amountSatang,date:p.date,time:p.time,recipient:p.recipient,
-    direction:p.direction,directionReason:'ผู้ใช้ตรวจและยืนยันข้อมูลจากคิวรอตรวจ',
+    direction:p.direction,directionReason:p.kind==='wallet_topup'
+      ?'เติมเงินเข้า e-Wallet จากบัญชีธนาคาร (รายจ่าย) · ผู้ใช้ตรวจข้อมูลแล้ว'
+      :'ผู้ใช้ตรวจและยืนยันข้อมูลจากคิวรอตรวจ',
     method:p.method,category,
     // Keep reference dedupe only if the amount hasn't been changed; a corrected
     // amount must never silently reuse an unverified receipt totals object.
