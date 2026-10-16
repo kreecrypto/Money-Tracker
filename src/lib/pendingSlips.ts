@@ -83,3 +83,11 @@ export function pendingToSlipFields(p:PendingSlip):SlipFields{
     rawText:'',warnings:[],
   };
 }
+
+/** Re-upload may complete a previously pending scan of the same exact bytes.
+ * Never match on amount or payee alone: two legitimate payments may share them.
+ */
+export function matchingPendingBySlipHash(items:readonly PendingSlip[],slipHash:string|undefined):string[]{
+  if(!slipHash||!/^[a-f0-9]{64}$/.test(slipHash))return [];
+  return items.filter(p=>p.imageHash===slipHash).map(p=>p.id);
+}

@@ -1,5 +1,5 @@
 import {describe,expect,it} from 'vitest';
-import {makePendingSlip,isValidPendingSlip,pendingFingerprintMatch,pendingToSlipFields} from '../src/lib/pendingSlips';
+import {makePendingSlip,isValidPendingSlip,pendingFingerprintMatch,pendingToSlipFields,matchingPendingBySlipHash} from '../src/lib/pendingSlips';
 import {parseSlipText} from '../src/lib/slip';
 import {prepareAutoSlip} from '../src/lib/slipAutoSave';
 
@@ -60,6 +60,16 @@ describe('persistent local slip review draft',()=>{
     expect(draft.kind).toBe('wallet_topup');
     expect(draft.direction).toBeNull();
     expect(prepareAutoSlip(pendingToSlipFields(draft),[],'new',Date.now()).status).toBe('incomplete');
+  });
+
+  it('clears only exact-hash stale pending drafts after a successful re-upload',()=>{
+    const old=makePendingSlip(sample(),'same.png','needs review','old');
+    const another=makePendingSlip(sample(),'another.png','needs review','another');
+    old.imageHash='a'.repeat(64);
+    another.imageHash='b'.repeat(64);
+    expect(matchingPendingBySlipHash([old,another],'a'.repeat(64))).toEqual(['old']);
+    expect(matchingPendingBySlipHash([old,another],'c'.repeat(64))).toEqual([]);
+    expect(matchingPendingBySlipHash([old,another],undefined)).toEqual([]);
   });
 
   it('rejects malformed snapshots and arbitrary private payloads',()=>{
