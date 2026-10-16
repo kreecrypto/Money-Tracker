@@ -1,9 +1,11 @@
+import {useEffect,useMemo,useRef,useState} from 'react';
+import {createPortal} from 'react-dom';
 import {
   ArrowDownLeft, ArrowRight, ArrowUpRight, BarChart3, Bell, Camera,
   ChevronDown, CircleUserRound, List, Settings2, Sprout, Target,
   UtensilsCrossed, ShoppingBag, TrainFront, HandCoins, Ellipsis, Wallet,
 } from 'lucide-react';
-import {baht, type Transaction} from './lib/finance';
+import {baht, METHODS, type Transaction} from './lib/finance';
 
 type Props={
   month:string;
@@ -56,10 +58,87 @@ function shortDate(date:string,time?:string){
   return time?`${label} ${time}`:`${label}`;
 }
 
+
+function chooseMonthKeys(value:string):{key:string;label:string}[]{
+  const [year,number]=value.split('-').map(Number);
+  if(!Number.isInteger(year)||!Number.isInteger(number)||number<1||number>12)return [];
+  // 13 months, centered on currently selected month; works for historic records.
+  return Array.from({length:13},(_,index)=>{
+    const d=new Date(year,number-1+index-6,1);
+    return {key:`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`,label:new Intl.DateTimeFormat('th-TH',{month:'short',year:'numeric'}).format(d)};
+  });
+}
+function MonthChooser({month,label,onChange}:{
+ month:string;label:string;onChange:(value:string)=>void
+}){
+  const [isOpen,setOpen]=useState(false);
+  const triggerRef=useRef<HTMLButtonElement>(null);
+  const menuRef=useRef<HTMLDivElement>(null);
+  const [position,setPosition]=useState({top:0,right:16});
+  const options=useMemo(()=>chooseMonthKeys(month),[month]);
+  useEffect(()=>{
+    if(!isOpen)return;
+    const place=()=>{
+      const r=triggerRef.current?.getBoundingClientRect();
+      if(!r)return;
+      setPosition({top:Math.min(r.bottom+6,window.innerHeight-265),right:Math.max(12,window.innerWidth-r.right)});
+    };
+    const outside=(event:PointerEvent)=>{
+      if(event.target instanceof Node&&!menuRef.current?.contains(event.target)&&!triggerRef.current?.contains(event.target))setOpen(false);
+    };
+    const escape=(event:KeyboardEvent)=>{if(event.key==='Escape'){setOpen(false);triggerRef.current?.focus();}};
+    place();
+    window.addEventListener('resize',place);
+    window.addEventListener('scroll',place,true);
+    document.addEventListener('pointerdown',outside);
+    document.addEventListener('keydown',escape);
+    return()=>{
+      window.removeEventListener('resize',place);
+      window.removeEventListener('scroll',place,true);
+      document.removeEventListener('pointerdown',outside);
+      document.removeEventListener('keydown',escape);
+    };
+  },[isOpen]);
+  return <div className="mt-home-month-control">
+    <button ref={triggerRef} type="button" className="mt-home-month-picker" aria-haspopup="listbox" aria-expanded={isOpen} aria-controls="mt-home-month-menu" aria-label={'เลือกเดือน '+label} onClick={()=>setOpen(x=>!x)}>
+      <span>{label} <ChevronDown size={14}/></span>
+    </button>
+    {isOpen&&createPortal(<div ref={menuRef} id="mt-home-month-menu" className="mt-home-month-popover" role="listbox" aria-label="เลือกเดือนของภาพรวม" style={{top:position.top,right:position.right}}>
+      {options.map(item=><button type="button" key={item.key} role="option" aria-selected={item.key===month} className={item.key===month?'selected':''} onClick={()=>{onChange(item.key);setOpen(false);triggerRef.current?.focus();}}>{item.label}</button>)}
+    </div>,document.body)}
+  </div>;
+}
+function TransactionDetail({value,onClose}:{
+ value:Transaction;onClose:()=>void
+}){
+ const ref=useRef<HTMLDialogElement>(null);
+ useEffect(()=>{
+   const d=ref.current;
+   if(!d)return;
+   if(!d.open)d.showModal();
+   return()=>{if(d.open)d.close();};
+ },[]);
+ return <dialog className="mt-home-detail" ref={ref} aria-labelledby="mt-home-detail-title" onClose={onClose} onClick={e=>{if(e.target===ref.current)onClose();}}>
+   <div className="mt-home-detail-inner">
+     <div className="mt-home-detail-heading"><h2 id="mt-home-detail-title">รายละเอียดรายการ</h2><button type="button" onClick={onClose} aria-label="ปิดรายละเอียด">×</button></div>
+     <strong className={value.type==='income'?'is-income':'is-expense'}>{value.type==='income'?'+':'−'} ฿ {baht(value.amountSatang)}</strong>
+     <dl>
+       <div><dt>รายการ</dt><dd>{value.recipient||value.note||value.category}</dd></div>
+       <div><dt>วันที่และเวลา</dt><dd>{shortDate(value.date,value.time)}</dd></div>
+       <div><dt>ประเภท</dt><dd>{value.type==='income'?'รายรับ':'รายจ่าย'}</dd></div>
+       <div><dt>หมวดหมู่</dt><dd>{value.category}</dd></div>
+       <div><dt>ช่องทาง</dt><dd>{METHODS[value.method]}</dd></div>
+     </dl>
+     <button type="button" className="mt-home-detail-done" onClick={onClose}>ปิดรายละเอียด</button>
+   </div>
+ </dialog>;
+}
+
 export default function HomeScreen({
   month,monthLabel,net,income,expense,recent,
   onMonthChange,onUpload,onTransactions,onReports,onBudget,onSettings
 }:Props){
+  const [detail,setDetail]=useState<Transaction|null>(null);
   const shortcuts=[
     {key:'transactions',name:'รายการ',Icon:List,onClick:onTransactions},
     {key:'reports',name:'รายงาน',Icon:BarChart3,onClick:onReports},
@@ -76,14 +155,13 @@ export default function HomeScreen({
             <path d="M76 49C56 43 58 24 69 14C84 27 88 38 76 49Z" fill="#78BD60"/>
             <path d="M81 43C89 27 93 21 98 19V46C93 49 87 49 81 43Z" fill="#4DAD5B"/>
             <path d="M48 93C24 102 13 83 17 70C37 71 46 79 48 93Z" fill="#BDE49C"/>
+            <path d="M35 88h54l-5 18H42z" fill="#f2fdf1" opacity=".92"/>
+            <ellipse cx="62" cy="87" rx="27" ry="5" fill="#fff" opacity=".9"/>
           </svg>
         </div>
         <div className="mt-home-balance-header">
           <span>ภาพรวมเดือนนี้</span>
-          <label className="mt-home-month-picker">
-            <span>{monthLabel} <ChevronDown size={14}/></span>
-            <input type="month" aria-label="เลือกเดือนของภาพรวม" value={month} onChange={e=>{if(e.target.value)onMonthChange(e.target.value);}}/>
-          </label>
+          <MonthChooser month={month} label={monthLabel} onChange={onMonthChange}/>
         </div>
         <div className="mt-home-total-label">ยอดสุทธิจากรายการ</div>
         <strong className="mt-home-total">฿ {baht(net)}</strong>
@@ -118,7 +196,7 @@ export default function HomeScreen({
       <div className="mt-home-section-heading"><h2>รายการล่าสุด</h2><button type="button" onClick={onTransactions}>ดูทั้งหมด <ArrowRight size={15}/></button></div>
       {recent.length?
         <div className="mt-home-transaction-list">
-          {recent.slice(0,3).map(tx=><button type="button" className="mt-home-transaction" key={tx.id} onClick={onTransactions} aria-label={`ดูรายการ ${tx.recipient||tx.note||tx.category}`}>
+          {recent.slice(0,3).map(tx=><button type="button" className="mt-home-transaction" key={tx.id} onClick={()=>setDetail(tx)} aria-label={`ดูรายละเอียด ${tx.recipient||tx.note||tx.category}`}>
             <RecentIcon transaction={tx}/>
             <span className="mt-home-transaction-text"><strong>{tx.recipient||tx.note||tx.category}</strong><small>{shortDate(tx.date,tx.time)}</small></span>
             <b className={tx.type==='income'?'is-income':'is-expense'}>{tx.type==='income'?'+':'−'} ฿ {baht(tx.amountSatang)}</b>
@@ -126,5 +204,6 @@ export default function HomeScreen({
         </div>
        :<div className="mt-home-empty"><Wallet size={22}/><p>ยังไม่มีรายการในเดือนนี้</p><button type="button" onClick={onUpload}>เริ่มต้นด้วยสลิปใบแรก</button></div>}
     </section>
+    {detail&&<TransactionDetail value={detail} onClose={()=>setDetail(null)}/>}
   </div>;
 }
