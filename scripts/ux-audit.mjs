@@ -210,7 +210,7 @@ try {
     ||(x.view==='pending-queue-smoke'&&(!x.homeBadge||x.pendingBefore!==1||x.pendingAfter!==0||!x.savedVisible||x.pageErrors?.length))
     ||(x.view==='restore-smoke'&&(!x.initiallyDisabled||!x.enabledAfterAcknowledgement||!x.closed||x.pageErrors?.length))
     ||(x.view==='local-reset-smoke'&&(!x.initiallyDisabled||!x.enabledAfterAcknowledgement||!x.dialogClosed||x.wiped?.transactions!==0||x.wiped?.pending!==0||x.wiped?.paired||x.pageErrors?.length))
-    ||(x.view==='mobile-home-actions'&&(!x.correctHierarchy||!x.quickActionsVisible||!x.bottomNavVisible||!x.openedOCR||x.pageErrors?.length))
+    ||(x.view==='mobile-home-actions'&&(!x.correctHierarchy||x.quickActionCount!==4||!x.quickActionsVisible||!x.bottomNavVisible||!x.openedOCR||x.pageErrors?.length))
     ||(x.view==='competitive-ledger-smoke'&&(!x.ledgerAvailable||!x.resetVisible||!x.searchReset||x.pageErrors?.length))
   ).map(x=>({viewport:x.viewport,view:x.view,overflowPx:x.overflowPx,axe:x.axe?.violations?.map(v=>v.id),savedVisible:x.savedVisible,restore:[x.initiallyDisabled,x.enabledAfterAcknowledgement,x.closed]}));
   if(critical.length){console.error('UX_ACCEPTANCE_FAIL',JSON.stringify(critical));process.exitCode=1;}
