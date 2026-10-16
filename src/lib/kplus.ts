@@ -15,6 +15,12 @@ const AMOUNT_LABEL = /^(?:จำนวน(?:\s*เงิน)?|ยอด(?:เง
 const STOP_LABEL = /^(?:ค่าธรรมเนียม|เลขที่\s*รายการ|รหัส\s*อ้างอิง|สแกน|ตรวจสอบ\s*สลิป|หมายเหตุ|บันทึก\s*ช่วยจำ)/iu;
 const DETAIL_LABEL = /^(?:รหัส\s*พร้อมเพย์|พร้อมเพย์|prompt\s*pay|ธ\.|ธนาคาร|เลข(?:\s*ที่)?\s*บัญชี|บัญชี|account|reference|ref\s*[:：]|เลข(?:\s*ที่)?\s*อ้างอิง)/iu;
 const NUMERIC_ID = /^(?:[\d\s-]{5,}|[A-Z\d-]{6,})$/u;
+/** Limit focused OCR retries to explicit K PLUS payment confirmations.
+ * Top-ups count as bank outflows, not deposits into the user's budget. */
+export function isKPlusPaymentForOcrRecovery(text:string):boolean {
+  return (SENDER_BANK.test(text)||/(?:K\s*PLUS|kasikorn)/iu.test(text))
+    && CONFIRMATION.test(text);
+}
 function textLine(raw: string): string {
   return raw.normalize('NFC').replace(/\u0e4d\s*\u0e32/gu, 'ำ')
     .replace(/^[\s◯○●•▫▸→✓]*0\s+(?=[A-Za-zก-๙])/u, '')
