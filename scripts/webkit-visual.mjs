@@ -60,7 +60,9 @@ try{
     const transactions=await page.locator('.transaction-financial-summary>div').count();
     const list=await page.locator('.transaction-page').isVisible();
     const searchFieldHeight=await page.locator('.mt-search-field').evaluate(el=>Math.round(el.getBoundingClientRect().height));
-    const transactionSingleHeader=await page.locator('.topbar').isHidden();
+    const transactionSingleHeader=await page.locator('.topbar.mt-shared-topbar').isVisible()
+      && await page.locator('.topbar .mt-home-brand-name').isVisible()
+      && await page.locator('.mt-transactions-screen .mt-page-heading h2').count()===1;
     await page.screenshot({path:`${directory}/${label}-transactions.png`,fullPage:true});
     await page.locator('.mt-search-field input').fill('nonexistent-transaction-987654');
     const searchEmpty=await page.getByText('ไม่พบรายการตามเงื่อนไข').isVisible();
@@ -85,7 +87,9 @@ try{
     await page.screenshot({path:`${directory}/${label}-slip-upload.png`,fullPage:true});
     await page.locator('.modal-heading button').click();
     await page.locator('.mobile-bottom-nav button').nth(2).click();
-    const reportSingleHeader=await page.locator('.topbar').isHidden();
+    const reportSingleHeader=await page.locator('.topbar.mt-shared-topbar').isVisible()
+      && await page.locator('.topbar .mt-home-brand-name').isVisible()
+      && await page.locator('.mt-reports-screen .mt-page-heading h2').count()===1;
     const reportsOverview=await page.locator('#report-spending .spending-donut').isVisible()
        &&await page.locator('#report-budget').isVisible()
        &&await page.locator('#report-trends').isVisible();
