@@ -322,3 +322,8 @@ button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible{ou
 
 /* Inactive ledger filter pills must meet AA against pale mint, not use muted placeholder ink. */
 .transaction-page .filter-tabs button:not(.selected){color:#344f43!important;min-height:44px}
+
+/* Pending/confirmed tabs share the same background across Chromium and Safari.
+   Inactive label tint must exceed AA even at 11px. */
+.inbox-view-tabs button:not(.active){color:#355246!important}
+.inbox-view-tabs button.active{color:#17523d!important}
