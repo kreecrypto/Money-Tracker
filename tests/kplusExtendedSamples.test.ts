@@ -142,6 +142,43 @@ describe('additional K PLUS layouts from seven image examples',()=>{
     expect(prepareAutoSlip(matched,[],'saved-truemoney',Date.now()).status).toBe('ready');
   });
 
+  it('recovers a trusted K PLUS sender from spatial text rows without guessing ownership',()=>{
+    const text=[
+      'เติมเงินสำเร็จ','15 ต.ค. 69 08:52 น.',
+      'ธ.กสิกรไทย','xxx-x-x0000-x','ทรูมันนี่','0000000000',
+      'จำนวน:','100.00 บาท','ค่าธรรมเนียม 0.00 บาท',
+    ].join('\n');
+    const layout=[
+      'เติมเงินสำเร็จ','15 ต.ค. 69 08:52 น.','นาย ตัวอย่าง ผู้ส่ง',
+      'ธ.กสิกรไทย','xxx-x-x0000-x','ทรูมันนี่','จำนวน:','100.00 บาท',
+    ];
+    const withoutGeometry=parseSlipText(text,[],['นาย ตัวอย่าง ผู้ส่ง']);
+    expect(withoutGeometry.direction).toBeNull();
+    const recovered=parseSlipText(text,layout,['นาย ตัวอย่าง ผู้ส่ง']);
+    expect(recovered).toMatchObject({
+      amountSatang:10000,recipient:'ทรูมันนี่',direction:'expense',
+      sender:'นาย ตัวอย่าง ผู้ส่ง',
+    });
+    expect(prepareAutoSlip(recovered,[],'geometry-recovered',Date.now()).status).toBe('ready');
+  });
+
+  it('keeps uncertain TrueMoney sender ownership pending after mismatched OCR passes',()=>{
+    const text=[
+      'เติมเงินสำเร็จ','15 ต.ค. 69 08:52 น.','นาย ตัวอย่าง ผู้ส่ง',
+      'ธ.กสิกรไทย','xxx-x-x0000-x','ทรูมันนี่',
+      'จำนวน:','100.00 บาท',
+    ].join('\n');
+    const verified=parseSlipText(text,[],['นาย ตัวอย่าง ผู้ส่ง']);
+    const unverified=parseSlipText(text,[],['นาย บุคคลอื่น']);
+    const merged=mergeSlipOcrReadings(verified,unverified);
+    expect(merged.amountSatang).toBe(10000);
+    expect(merged.direction).toBeNull();
+    expect(merged.directionReason).toContain('ชื่อผู้ส่งและผู้รับไม่ตรง');
+    const result=prepareAutoSlip(merged,[],'uncertain-identity',Date.now());
+    expect(result.status).toBe('incomplete');
+    if(result.status==='incomplete')expect(result.reason).toContain('Settings');
+  });
+
   it('does not turn unverified or unreadable TrueMoney top-ups into auto-saved expenses',()=>{
     const noMasked=['เติมเงินสำเร็จ','15 ต.ค. 69 14:00 น.','TrueMoney','จำนวน: 1,000.00 บาท'].join('\n');
     expect(prepareAutoSlip(parseSlipText(noMasked),[],'missing-bank',Date.now()).status).toBe('incomplete');
