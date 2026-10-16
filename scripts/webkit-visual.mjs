@@ -59,6 +59,8 @@ try{
     await page.locator('.mobile-bottom-nav button').nth(1).click();
     const transactions=await page.locator('.transaction-financial-summary>div').count();
     const list=await page.locator('.transaction-page').isVisible();
+    const searchFieldHeight=await page.locator('.mt-search-field').evaluate(el=>Math.round(el.getBoundingClientRect().height));
+    const transactionSingleHeader=await page.locator('.topbar').isHidden();
     await page.screenshot({path:`${directory}/${label}-transactions.png`,fullPage:true});
     await page.locator('.mt-search-field input').fill('nonexistent-transaction-987654');
     const searchEmpty=await page.getByText('ไม่พบรายการตามเงื่อนไข').isVisible();
@@ -83,6 +85,7 @@ try{
     await page.screenshot({path:`${directory}/${label}-slip-upload.png`,fullPage:true});
     await page.locator('.modal-heading button').click();
     await page.locator('.mobile-bottom-nav button').nth(2).click();
+    const reportSingleHeader=await page.locator('.topbar').isHidden();
     const reportsOverview=await page.locator('#report-spending .spending-donut').isVisible()
        &&await page.locator('#report-budget').isVisible()
        &&await page.locator('#report-trends').isVisible();
@@ -98,13 +101,13 @@ try{
     await page.locator('.mobile-bottom-nav button').nth(3).click();
     const settings=await page.getByText('เกี่ยวกับแอป').isVisible();
     await page.screenshot({path:`${directory}/${label}-settings.png`,fullPage:true});
-    findings.push({label,home,monthOptions,menuUnclipped,monthCloses,detailsOpen,detailsClose,transactions,list,searchEmpty,incomeFiltered,allTransactions,reportsOverview,categoryView,scanner,scannerColors,readableScanner,trendsOnly,noReportsFab,settings,errors});
+    findings.push({label,home,monthOptions,menuUnclipped,monthCloses,detailsOpen,detailsClose,transactions,list,searchFieldHeight,transactionSingleHeader,reportSingleHeader,searchEmpty,incomeFiltered,allTransactions,reportsOverview,categoryView,scanner,scannerColors,readableScanner,trendsOnly,noReportsFab,settings,errors});
     await context.close();
   }
   fs.writeFileSync(`${directory}/webkit-report.json`,JSON.stringify(findings,null,2));
   console.log('WEBKIT_SAFARI_VISUAL_RESULTS',JSON.stringify(findings));
   const failed=findings.filter(f=>f.home.overflow>1||!f.home.order||f.home.actionCount!==4||f.home.navCount!==4||
-    !f.home.navVisible||f.home.icons.some(icon=>icon.width<20||icon.height<20)||f.monthOptions!==13||!f.menuUnclipped||!f.monthCloses||!f.detailsOpen||!f.detailsClose||!f.searchEmpty||!f.incomeFiltered||!f.allTransactions||!f.reportsOverview||!f.categoryView||f.transactions!==2||!f.list||!f.scanner||!f.readableScanner||!f.trendsOnly||!f.noReportsFab||!f.settings||f.errors.length);
+    !f.home.navVisible||f.home.icons.some(icon=>icon.width<20||icon.height<20)||f.monthOptions!==13||!f.menuUnclipped||!f.monthCloses||!f.detailsOpen||!f.detailsClose||f.searchFieldHeight>54||!f.transactionSingleHeader||!f.reportSingleHeader||!f.searchEmpty||!f.incomeFiltered||!f.allTransactions||!f.reportsOverview||!f.categoryView||f.transactions!==2||!f.list||!f.scanner||!f.readableScanner||!f.trendsOnly||!f.noReportsFab||!f.settings||f.errors.length);
   if(failed.length){console.error('WEBKIT_SAFARI_VISUAL_FAIL',JSON.stringify(failed));process.exitCode=1;}
   else console.log('WEBKIT_SAFARI_VISUAL_PASS: 3 phone sizes, balance, donut, icons, tabbar, scan, transactions, settings');
 }catch(error){
