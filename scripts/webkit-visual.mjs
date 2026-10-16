@@ -57,7 +57,7 @@ try{
     const readableScanner=['title','glyph'].every(k=>{
       const value=scannerColors[k];
       if(!value)return false;
-      const rgb=value.match(/\\d+/g)?.slice(0,3).map(Number)||[];
+      const rgb=value.match(/\d+/g)?.slice(0,3).map(Number)||[];
       return rgb.length===3&&rgb[0]<110&&rgb[1]<140&&rgb[2]<110;
     });
     await page.screenshot({path:`${directory}/${label}-slip-upload.png`,fullPage:true});
