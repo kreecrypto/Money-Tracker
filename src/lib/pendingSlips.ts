@@ -71,7 +71,7 @@ export function pendingToSlipFields(p:PendingSlip):SlipFields{
     ?p.category:'อื่น ๆ';
   return {
     amountSatang:p.amountSatang,date:p.date,time:p.time,recipient:p.recipient,
-    direction:p.direction,directionReason:p.kind==='wallet_topup'
+    direction:p.direction??(p.kind==='wallet_topup'?'expense':null),directionReason:p.kind==='wallet_topup'
       ?'เติมเงินเข้า e-Wallet จากบัญชีธนาคาร (รายจ่าย) · ผู้ใช้ตรวจข้อมูลแล้ว'
       :'ผู้ใช้ตรวจและยืนยันข้อมูลจากคิวรอตรวจ',
     method:p.method,category,
