@@ -63,6 +63,16 @@ describe('persistent local slip review draft',()=>{
     expect(pendingToSlipFields(draft).directionReason).toContain('เติมเงินเข้า e-Wallet');
   });
 
+  it('upgrades previously pending wallet top-ups to the outgoing-bank expense policy',()=>{
+    const slip=parseSlipText('เติมเงินสำเร็จ\n11 ต.ค. 69 17:55 น.\nธ.กสิกรไทย\nxxx-x-x0000-x\nทรูมันนี่\nจำนวน: 150.00 บาท');
+    const old={...makePendingSlip(slip,'legacy.png','รอตรวจ','legacy'),
+      direction:null,method:'wallet' as const};
+    const current=pendingToSlipFields(old);
+    expect(current.direction).toBe('expense');
+    expect(current.directionReason).toContain('เติมเงินเข้า e-Wallet');
+    expect(prepareAutoSlip(current,[],'saved',Date.now()).status).toBe('ready');
+  });
+
   it('clears only exact-hash stale pending drafts after a successful re-upload',()=>{
     const old=makePendingSlip(sample(),'same.png','needs review','old');
     const another=makePendingSlip(sample(),'another.png','needs review','another');
