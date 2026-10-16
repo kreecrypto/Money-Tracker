@@ -67,10 +67,13 @@ function seen(){
     return new Set<string>(Array.isArray(v)?v.filter((x):x is string=>typeof x==='string'&&x.startsWith('iphone-')):[]);
   }catch{return new Set<string>();}
 }
-export async function iphoneSync():Promise<{imported:number;received:number}>{
+export async function iphoneSync():Promise<{imported:number;received:number;invalid:number}>{
   const r=await call('/api/iphone/ledger','GET');
   if(!Array.isArray(r.transactions))throw new Error('ข้อมูลจาก iPhone ไม่ถูกต้อง');
   const rows=r.transactions.filter(isValidTransaction) as Transaction[];
+  // Never silently treat rejected cloud rows as a successful import.
+  // Keep valid records flowing while surfacing malformed rows to the UI.
+  const invalid=r.transactions.length-rows.length;
   const local=new Set((await loadTransactions()).map(x=>x.id));
   const seenItems=seen();
   let imported=0;
@@ -81,5 +84,5 @@ export async function iphoneSync():Promise<{imported:number;received:number}>{
     seenItems.add(row.id);local.add(row.id);imported++;
     localStorage.setItem(SEEN_KEY,JSON.stringify([...seenItems].slice(-3000)));
   }
-  return {imported,received:rows.length};
+  return {imported,received:r.transactions.length,invalid};
 }
