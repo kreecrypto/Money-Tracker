@@ -283,7 +283,9 @@ export default function SlipScanner({onApply,onComplete,onBusyChange,onUndoBatch
         try{await worker.terminate();}catch{/* The component may already have unmounted. */}
         workerRef.current=null;
       }
-      clearPreview();runningRef.current=false;
+      // Retain the latest in-memory object URL for the result screen; revoke when
+      // the next batch begins or the scanner unmounts. Never persist the image.
+      runningRef.current=false;
       if(mountedRef.current){
         setBusy(false);onBusyChange(false);setComplete(true);
         onComplete(summarizeSlipBatch(processed));
@@ -418,8 +420,8 @@ export default function SlipScanner({onApply,onComplete,onBusyChange,onUndoBatch
         if(workerRef.current)void workerRef.current.terminate().catch(()=>{});
       }}><Square size={16}/> {stopRequested?'กำลังหยุด…':'หยุดรูปที่เหลือ'}</button>
     </div>}
-    {busy&&preview&&<figure className="slip-preview"><img src={preview} alt="รูปสลิปที่กำลังประมวลผล"/><figcaption>{filename}</figcaption></figure>}
-    {complete&&<div className={'slip-batch-summary'+(summary.incomplete+summary.errors>0?' requires-review':'')} role="status" aria-live="polite">
+    {preview&&(busy||complete)&&<figure className="slip-preview ref-ocr-evidence"><img src={preview} alt={busy?'รูปสลิปที่กำลังประมวลผล':'รูปสลิปใบล่าสุดของชุดที่เลือก'}/><figcaption>{filename} · แสดงเฉพาะระหว่างเปิดหน้านี้ ไม่เก็บรูปถาวร</figcaption></figure>}
+    {complete&&<div className={'slip-batch-summary ref-ocr-results'+(summary.incomplete+summary.errors>0?' requires-review':'')} role="status" aria-live="polite">
       <div className="slip-batch-summary-title">{summary.incomplete+summary.errors>0?<AlertTriangle size={18}/>:<CheckCircle2 size={18}/>}<strong>{slipBatchHeading(summary)}</strong></div>
       <div className="slip-batch-counts"><span>บันทึกแล้ว<b>{summary.saved}</b></span><span>ซ้ำ<b>{summary.duplicate}</b></span><span>รอตรวจ<b>{summary.incomplete}</b></span><span>อ่านไม่สำเร็จ<b>{summary.errors}</b></span>{(summary.excluded||0)>0&&<span>ไม่นับรายการ<b>{summary.excluded}</b></span>}</div>
       {summary.saved>0&&<div className="slip-batch-totals" aria-label="ยอดที่บันทึกแยกประเภทรายการ">
