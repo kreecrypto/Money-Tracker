@@ -22,20 +22,25 @@ type Props={
   onSettings:()=>void;
 };
 
+export function AppBrandBar({pendingCount,onNotifications,onSettings}:{
+  pendingCount:number;onNotifications:()=>void;onSettings:()=>void;
+}){
+  return <div className="mt-home-brand-row">
+    <span className="mt-home-brand-icon" aria-hidden="true"><Sprout size={23} strokeWidth={2.8}/></span>
+    <strong className="mt-home-brand-name">เงินวันนี้</strong>
+    <div className="mt-home-header-actions">
+      <button type="button" className="mt-home-header-button" aria-label={pendingCount>0?`การแจ้งเตือน: มีสลิปรอตรวจ ${pendingCount} รายการ`:'การแจ้งเตือน'} onClick={onNotifications}>
+        <Bell size={21} strokeWidth={2.1}/>{pendingCount>0&&<span className="mt-home-alert-dot"/>}
+      </button>
+      <button type="button" className="mt-home-avatar" aria-label="ตั้งค่าของฉัน" onClick={onSettings}><CircleUserRound size={23}/></button>
+    </div>
+  </div>;
+}
 export function HomeTopbar({pendingCount,onNotifications,onSettings}:{
   pendingCount:number;onNotifications:()=>void;onSettings:()=>void;
 }){
   return <div className="mt-home-topbar">
-    <div className="mt-home-brand-row">
-      <span className="mt-home-brand-icon" aria-hidden="true"><Sprout size={23} strokeWidth={2.8}/></span>
-      <strong className="mt-home-brand-name">เงินวันนี้</strong>
-      <div className="mt-home-header-actions">
-        <button type="button" className="mt-home-header-button" aria-label={pendingCount>0?`การแจ้งเตือน: มีสลิปรอตรวจ ${pendingCount} รายการ`:'การแจ้งเตือน'} onClick={onNotifications}>
-          <Bell size={21} strokeWidth={2.1}/>{pendingCount>0&&<span className="mt-home-alert-dot"/>}
-        </button>
-        <button type="button" className="mt-home-avatar" aria-label="ตั้งค่าของฉัน" onClick={onSettings}><CircleUserRound size={23}/></button>
-      </div>
-    </div>
+    <AppBrandBar pendingCount={pendingCount} onNotifications={onNotifications} onSettings={onSettings}/>
     <p className="mt-home-hello">สวัสดี ☀️</p>
     <p className="mt-home-subtitle">มาดูสุขภาพการเงินของคุณกันเลย</p>
   </div>;
