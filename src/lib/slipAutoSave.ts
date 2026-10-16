@@ -19,11 +19,6 @@ export function prepareAutoSlip(
     return {status:'incomplete',reason:'OCR พบข้อมูลการเงินที่ขัดแย้งกัน จึงยังไม่บันทึก กรุณาตรวจจากภาพหรือกรอกเอง'};
   if(slip.warnings.some(w=>w.includes('ความมั่นใจต่ำ')))
     return {status:'incomplete',reason:'OCR อ่านภาพด้วยความมั่นใจต่ำและยังยืนยันยอดเงินหรือข้อมูลธุรกรรมไม่ได้ กรุณาตรวจสลิปก่อนบันทึก'};
-  if(!slip.direction&&slip.directionReason.includes('เติมเงินเข้า e-Wallet TrueMoney'))
-    return {status:'incomplete',reason:slip.directionReason+
-      ' · กรุณาตรวจชื่อผู้ส่งกับชื่อบัญชีใน Settings หรือเลือกเงินออก / รายจ่ายด้วยตนเอง'};
-  if(!slip.direction&&slip.directionReason.includes('เติมเงินเข้า e-Wallet'))
-    return {status:'incomplete',reason:'พบรายการเติมเงิน e-Wallet ซึ่งอาจเป็นการย้ายเงินระหว่างบัญชี จึงยังไม่บันทึกเป็นรายจ่ายอัตโนมัติเพื่อป้องกันยอดซ้ำ กรุณาตรวจสอบรายการนี้'};
   if(!slip.direction)
     return {status:'incomplete',reason:slip.directionReason+' · ยังไม่บันทึกอัตโนมัติ กรุณาตรวจสลิปหรือเลือกประเภทเอง'};
   if(slip.amountSatang===null||!Number.isSafeInteger(slip.amountSatang)||slip.amountSatang<=0)
@@ -45,8 +40,8 @@ export function prepareAutoSlip(
     category:slip.category||'อื่น ๆ',
     // Funding is counted on the source bank account, not a purchase in the
     // wallet. Make its accounting meaning visible in the transaction record.
-    note:slip.direction==='expense'&&slip.directionReason.includes('เติมเงินเข้า e-Wallet TrueMoney')
-      ?'เติมเงิน TrueMoney จากบัญชีธนาคาร (อย่าบันทึกยอดใช้จ่าย Wallet ซ้ำ)':'',
+    note:slip.direction==='expense'&&slip.directionReason.includes('เติมเงินเข้า e-Wallet')
+      ?'เติมเงิน e-Wallet จากธนาคาร (หลีกเลี่ยงการนับรายจ่ายจาก Wallet ซ้ำ)':'',
     date:slip.date,
     time:slip.time,
     recipient,
