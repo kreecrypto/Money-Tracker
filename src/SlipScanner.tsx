@@ -1,13 +1,13 @@
 import {useEffect,useRef,useState,type ChangeEvent} from 'react';
 import {Camera,CheckCircle2,FileImage,ScanLine,ShieldCheck,Upload,Square,Undo2,AlertTriangle,Check,LoaderCircle,ClipboardPaste} from 'lucide-react';
-import {parseSlipText,mergeSlipOcrReadings,needsSlipOcrRecovery,type SlipFields} from './lib/slip';
-import {prepareSlipRecoveryImage,prepareSlipOcrFile} from './lib/slipImage';
+import {parseSlipText,mergeSlipOcrReadings,needsSlipOcrRecovery,describeMissingSlipAmount,type SlipFields} from './lib/slip';
+import {prepareSlipRecoveryImage,prepareSlipOcrFile,findKPlusAmountCrop,prepareKPlusAmountCrop} from './lib/slipImage';
 import {isLowOcrConfidence,requiresLowConfidenceReview} from './lib/ocrConfidence';
 import {withOcrDeadline,OCR_MODEL_TIMEOUT_MS,OCR_PASS_TIMEOUT_MS,OcrDeadlineError} from './lib/ocrDeadline';
 import {clipboardSlipFiles} from './lib/shortcutClipboard';
 import {receiptLayoutLines,receiptReconciliationError} from './lib/receiptIntelligence';
 import {baht,toSatang,EXPENSE_CATEGORIES,INCOME_CATEGORIES,type EntryType,type Method} from './lib/finance';
-import {correctionDirection,isWalletFundingSlip,slipBatchHeading} from './lib/slipReview';
+import {correctionDirection,isWalletFundingSlip,isTrueMoneyBankTopUp,slipBatchHeading} from './lib/slipReview';
 import {
   MAX_SLIP_BATCH_FILES,summarizeSlipBatch,validateSlipImage,
   type SlipBatchOutcome,type SlipBatchRow,
@@ -180,6 +180,8 @@ export default function SlipScanner({onApply,onComplete,onBusyChange,onUndoBatch
             let recoveredReading:SlipFields|null=null;
             let recoveredConfidence:number|null=null;
             const lowConfidence=isLowOcrConfidence(initial.data.confidence);
+            // A failed OCR pass is not proof that the number is absent in the image.
+            // Keep the enhanced image only long enough for a bounded amount crop retry.
             if((needsSlipOcrRecovery(reading)||lowConfidence)&&mountedRef.current&&!stopRef.current){
               setStage('retry');setProgress(0);
               try{
@@ -190,6 +192,34 @@ export default function SlipScanner({onApply,onComplete,onBusyChange,onUndoBatch
                   recoveredReading=parseSlipText(retry.data.text,receiptLayoutLines(retry.data.blocks),ownerNames);
                   recoveredConfidence=retry.data.confidence;
                   reading=mergeSlipOcrReadings(reading,recoveredReading);
+                  // Third recognition is strictly amount-only, and only when
+                  // both full-page OCR passes missed a K PLUS payment value.
+                  // Contradictory numbers are NEVER overridden by cropping.
+                  const kplusText=firstReading.rawText+' '+recoveredReading.rawText;
+                  const isKplus=/(?:ธ\.?\s*กสิกรไทย|ธนาคาร\s*กสิกรไทย|K\s*PLUS|kasikorn|kbank)/iu.test(kplusText)
+                    &&/(?:โอน\s*เงิน|จ่าย\s*บิล|ชำระ\s*เงิน)\s*สำเร็จ/iu.test(kplusText);
+                  if(isKplus&&firstReading.amountSatang===null&&recoveredReading.amountSatang===null&&
+                    !reading.warnings.some(w=>w.includes('ขัดแย้ง')||w.includes('ต่างกัน'))){
+                    const region=findKPlusAmountCrop(retry.data.blocks,enhanced.width,enhanced.height);
+                    if(region){
+                      const crop=prepareKPlusAmountCrop(enhanced,region);
+                      await worker.setParameters({tessedit_pageseg_mode:PSM.SINGLE_BLOCK});
+                      const focused=await withOcrDeadline(
+                        worker.recognize(crop,{}, {text:true,blocks:true}),
+                        OCR_PASS_TIMEOUT_MS,'อ่านจำนวนเงินเฉพาะจุด '
+                      );
+                      const parsed=parseSlipText(focused.data.text,receiptLayoutLines(focused.data.blocks));
+                      // Require a confidently legible, explicitly labelled
+                      // amount inside the bounded crop. No fee/reference guesses.
+                      const hasPaidLabel=/(?:จำนวน(?:\s*เงิน)?|ยอด(?:เงิน|โอน|ชำระ|จ่าย))\s*[:：]?/iu.test(focused.data.text);
+                      const hasConflict=parsed.warnings.some(w=>w.includes('ขัดแย้ง'));
+                      if(parsed.amountSatang!==null&&hasPaidLabel&&!hasConflict&&
+                        !isLowOcrConfidence(focused.data.confidence)){
+                        reading={...reading,amountSatang:parsed.amountSatang,
+                          warnings:reading.warnings.filter(w=>!w.includes('อ่านจำนวนเงินไม่ได้'))};
+                      }
+                    }
+                  }
                 }
               }catch(error){
                 // A decode/enhancement failure can keep the first reading, but a
@@ -205,6 +235,10 @@ export default function SlipScanner({onApply,onComplete,onBusyChange,onUndoBatch
             reading.imageHash=hash;
             setStage('save');
             const outcome=await onApply(reading);
+            if(outcome.status==='incomplete'&&reading.amountSatang===null){
+              const detail=describeMissingSlipAmount(firstReading,recoveredReading);
+              outcome.reason=detail+(outcome.reason?' · '+outcome.reason:'');
+            }
             // Persist unresolved OCR immediately, even if the user closes the scanner.
             // Store structured fields only: never the image or raw OCR text.
             if(outcome.status==='incomplete'){
@@ -414,7 +448,8 @@ export default function SlipScanner({onApply,onComplete,onBusyChange,onUndoBatch
           <strong>{rows[index]?.name||'ใบเสร็จ'}</strong>
           {rows[index]?.pendingId&&<p className="slip-queued-inline">เก็บเฉพาะข้อมูลรายการไว้ในเครื่องแล้ว · กลับมาตรวจภายหลังได้</p>}
           {reviewImageUrlsRef.current[index]&&<details className="slip-evidence"><summary>เปิดภาพสลิปเพื่อเทียบยอดเงินจริง</summary><img src={reviewImageUrlsRef.current[index]} alt={'ภาพสลิป '+(rows[index]?.name||'ที่รอตรวจ')+' สำหรับตรวจยอดจากต้นฉบับ'} loading="lazy"/><small>แสดงเฉพาะระหว่างเปิดหน้านี้ · ไม่เก็บภาพถาวร</small></details>}
-          {isWalletFundingSlip(draft.source)&&<div className="slip-wallet-guidance" role="note"><AlertTriangle size={17}/><span>พบการเติมเงิน e-Wallet หากเป็นการย้ายเงินระหว่างบัญชีตัวเอง ให้เลือก “ไม่นับรายการนี้” เพื่อไม่ให้รายจ่ายซ้ำกับการใช้เงินจาก Wallet ภายหลัง</span></div>}
+          {isTrueMoneyBankTopUp(draft.source)&&<div className="slip-wallet-guidance" role="note"><AlertTriangle size={17}/><span>ระบบจัดการเติมเงิน TrueMoney เป็นรายจ่ายจาก K PLUS ให้อัตโนมัติแล้ว รายการนี้ยังรอตรวจเพราะข้อมูล OCR บางส่วนขาดหรือขัดแย้งกัน โปรดตรวจข้อมูลให้ครบก่อนบันทึกและอย่านับการใช้เงินจาก Wallet ซ้ำ</span></div>}
+          {isWalletFundingSlip(draft.source)&&<div className="slip-wallet-guidance" role="note"><AlertTriangle size={17}/><span>สลิปนี้อาจเป็นการย้ายเงินระหว่างกระเป๋าของตัวเอง หากไม่ต้องการนับเป็นรายจ่าย ให้เลือก “ไม่นับรายการนี้”</span></div>}
           <div className="slip-attention-fields">
             <label>จำนวนเงิน (บาท)<input inputMode="decimal" value={draft.amount} onChange={e=>changeCorrection(index,{amount:e.target.value})} placeholder="0.00"/></label>
             <label>ประเภท (ต้องเลือก)<select required value={draft.direction} onChange={e=>changeCorrection(index,{direction:e.target.value as EntryType,category:'อื่น ๆ'})}><option value="" disabled>เลือกประเภทรายการ</option><option value="expense">เงินออก / รายจ่าย</option><option value="income">เงินเข้า / รายรับ</option></select></label>

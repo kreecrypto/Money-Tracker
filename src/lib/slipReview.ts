@@ -7,8 +7,14 @@ export function correctionDirection(source:Pick<SlipFields,'direction'>):EntryTy
   return source.direction??'';
 }
 
+/** Legacy Pending entries made before the funding-as-expense policy. */
 export function isWalletFundingSlip(source:Pick<SlipFields,'directionReason'>):boolean {
-  return source.directionReason.includes('เติมเงินเข้า e-Wallet');
+  return source.directionReason.includes('เติมเงินเข้า e-Wallet')&&
+    source.directionReason.includes('ไม่บันทึกเป็นรายจ่ายอัตโนมัติ');
+}
+
+export function isTrueMoneyBankTopUp(source:Pick<SlipFields,'directionReason'>):boolean {
+  return source.directionReason.includes('เติมเงินเข้า e-Wallet TrueMoney');
 }
 
 export function pendingReviewCount(summary:Pick<SlipBatchSummary,'incomplete'>):number{

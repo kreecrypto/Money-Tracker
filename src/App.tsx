@@ -2,7 +2,7 @@ import {useCallback,useEffect,useMemo,useRef,useState,type FormEvent} from 'reac
 import {ArrowDownLeft,ArrowRight,ArrowUpRight,BarChart3,CalendarDays,Check,ScanLine,ChevronLeft,ChevronRight,CloudOff,Download,FileSpreadsheet,LayoutDashboard,Menu,MoreHorizontal,Pencil,Plus,Search,Settings as SettingsIcon,ShieldCheck,SlidersHorizontal,Trash2,TrendingDown,Upload,Wallet,WalletCards,X} from 'lucide-react';
 import {baht,DEFAULT_SETTINGS,EXPENSE_CATEGORIES,expenseByCategory,INCOME_CATEGORIES,lastMonths,METHODS,monthLocal,monthly,summarize,todayLocal,toSatang,type EntryType,type Method,type Settings,type Transaction} from './lib/finance';
 import {deleteTransaction,loadSettings,loadTransactions,replaceAll,saveSettings,saveTransaction,loadPendingSlips,savePendingSlip,deletePendingSlip} from './lib/storage';
-import {makePendingSlip,pendingToSlipFields,type PendingSlip} from './lib/pendingSlips';
+import {makePendingSlip,pendingToSlipFields,matchingPendingBySlipHash,type PendingSlip} from './lib/pendingSlips';
 import PendingSlipsInbox from './PendingSlipsInbox';
 import {createBackup,downloadText,parseBackup,toCsv} from './lib/backup';
 import SlipScanner from './SlipScanner';
@@ -220,7 +220,20 @@ export default function App(){
   const openAdd=()=>{setScanOnOpen(true);setEditing(null);setModalOpen(true)};
   const openManual=()=>{setScanOnOpen(false);setEditing(null);setModalOpen(true)};
   const onSave=async(t:Transaction)=>{await saveTransaction(t);await reload();setToast(editing?'แก้ไขรายการเรียบร้อย':`บันทึก${t.type==='income'?'รายรับ':'รายจ่าย'} ฿${baht(t.amountSatang)} สำเร็จ`);};
-  const onSaveImported=async(t:Transaction)=>{await saveTransaction(t);await reload();};
+  const onSaveImported=async(t:Transaction)=>{
+    await saveTransaction(t);
+    // A corrected re-upload of the exact same photo can now be saved. Clear
+    // its stale local review entry only after the transaction is persisted.
+    // A failed cleanup must never turn a successful save into a retry that
+    // could create a duplicate financial transaction.
+    if(t.slipHash){
+      try{
+        const matches=matchingPendingBySlipHash(await loadPendingSlips(),t.slipHash);
+        await Promise.allSettled(matches.map(id=>deletePendingSlip(id)));
+      }catch{/* Saved transaction remains authoritative; pending can be removed manually. */}
+    }
+    await reload();
+  };
   const undoImported=async(ids:string[])=>{for(const id of ids)await deleteTransaction(id);await reload();setToast('ยกเลิกการบันทึกจากสลิปแล้ว');};
   const queuePending=async(slip:SlipFields,name:string,reason:string)=>{
     const result=await savePendingSlip(makePendingSlip(slip,name,reason,uuid()));
