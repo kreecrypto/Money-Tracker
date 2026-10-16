@@ -1,0 +1,252 @@
+/* Money Tracker unified visual system — inspected from production Home V2.
+ * This file is intentionally loaded last; component selectors are scoped to
+ * avoid changing financial processing, scanning, persistence or backup logic.
+ *
+ * Home is the canonical source for green, mint, roundness and typography.
+ * Other screens consume these tokens rather than inventing another palette.
+ */
+:root {
+  --money-primary:var(--home-green,#168851);
+  --money-primary-deep:var(--home-green-deep,#0c7040);
+  --money-ink:var(--home-text,#101f1b);
+  --money-muted:#475f51;
+  --money-mint:var(--home-mint,#ebf8f0);
+  --money-canvas:#fff;
+  --money-stroke:#e7eee9;
+  --money-card-radius:16px;
+  --money-button-radius:11px;
+  --money-card-shadow:0 5px 15px rgba(12,78,44,.05);
+  --money-font:Inter,"Noto Sans Thai",-apple-system,BlinkMacSystemFont,"Segoe UI",Tahoma,sans-serif;
+  /* Bridge remaining screen tokens to Home rather than duplicating hex values */
+  --mt-primary:var(--money-primary);
+  --mt-deep:var(--money-primary-deep);
+  --mt-text:var(--money-ink);
+  --mt-muted:var(--money-muted);
+  --mt-border:var(--money-stroke);
+}
+/* Shared brand: Home and secondary screens now render the same actual
+   AppBrandBar component. This maintains the header while changing pages. */
+.topbar.mt-shared-topbar {
+  width:100%;
+  background:var(--money-canvas)!important;
+  border-bottom:0!important;
+  color:var(--money-ink);
+  box-shadow:none!important;
+}
+.mt-shared-topbar .mt-app-topbar {width:100%;min-width:0;}
+.mt-shared-topbar .mt-home-brand-name,
+.topbar.home-v2-topbar .mt-home-brand-name{color:var(--money-ink);}
+.mt-shared-topbar .mt-home-brand-icon,
+.mt-app-brand-logo{background:linear-gradient(145deg,#25a864,#087542);color:#fff;}
+.mt-app-brand-logo .lucide{display:block;}
+.sidebar .brand .brand-logo.mt-app-brand-logo {
+  display:grid;place-items:center;
+  border-radius:12px;width:42px;height:42px;flex:none;
+  box-shadow:0 4px 9px rgba(12,90,49,.12);
+}
+.sidebar .brand .brand-logo.mt-app-brand-logo::before,
+.sidebar .brand .brand-logo.mt-app-brand-logo::after{display:none;}
+.sidebar .brand .brand-dot{display:none;}
+.mt-shared-topbar .topbar-actions{flex:none;}
+.mt-shared-topbar .top-add {
+  border-radius:var(--money-button-radius);
+  background:linear-gradient(180deg,var(--money-primary),#08783f);
+  border:0;min-height:44px;
+}
+.mt-shared-topbar .today-chip{border-radius:11px;background:#f2f8f4;color:#2c6346;}
+/* Screen titles and data cards match Home's typography and spacing. */
+.mt-transactions-screen,
+.mt-reports-screen,
+.settings-grid,
+.mt-ocr-workspace {
+  font-family:var(--money-font);
+  color:var(--money-ink);
+}
+.mt-transactions-screen .mt-page-heading,
+.mt-reports-screen .mt-page-heading {margin-bottom:13px;}
+.mt-transactions-screen .mt-page-heading h2,
+.mt-reports-screen .mt-page-heading h2,
+.settings-intro h2 {
+  color:var(--money-ink);font-size:21px;letter-spacing:-.45px;font-weight:820;
+}
+.mt-transactions-screen .mt-page-heading>div:first-child>span,
+.mt-reports-screen .mt-page-heading>div:first-child>span,
+.settings-intro>.eyebrow {color:var(--money-muted);font-size:11px;}
+.mt-transactions-screen .mt-month-controls,
+.mt-reports-screen .mt-month-controls {
+  background:var(--money-mint);border-radius:11px;
+}
+.mt-transactions-screen .mt-month-controls strong,
+.mt-reports-screen .mt-month-controls strong {color:var(--money-primary-deep);}
+.mt-transactions-screen .mt-month-controls button,
+.mt-reports-screen .mt-month-controls button {color:var(--money-primary-deep);min-width:40px;min-height:44px;}
+.mt-transactions-screen .mt-search-field {background:#f7faf8;border:1px solid var(--money-stroke);border-radius:12px;}
+.mt-transactions-screen .mt-segmented-filters button,
+.mt-reports-screen .mt-report-tabs button {border-radius:11px;}
+.mt-transactions-screen .mt-segmented-filters button.selected,
+.mt-reports-screen .mt-report-tabs button.active {
+  background:linear-gradient(135deg,var(--money-primary),var(--money-primary-deep));
+  box-shadow:0 3px 8px rgba(10,110,56,.12);color:#fff;
+}
+.mt-transactions-screen .mt-transaction-results,
+.mt-transactions-screen .mt-transactions-month-summary,
+.mt-reports-screen .mt-report-card,
+.settings-grid .settings-card,
+.mt-ocr-workspace .mt-ocr-readout {
+  background:#fff;border:1px solid var(--money-stroke);
+  border-radius:var(--money-card-radius);box-shadow:var(--money-card-shadow);
+}
+.mt-transactions-screen .transaction-day-heading{
+  border-radius:0;background:#f0f9f3;color:#294e37;
+}
+.mt-transactions-screen .transaction-row .transaction-copy>strong,
+.mt-ocr-workspace .mt-ocr-readout-head>strong{color:var(--money-ink);}
+.mt-transactions-screen .money-category-icon {border-radius:11px;}
+.mt-transactions-screen .mt-transactions-month-summary>summary,
+.mt-transactions-screen .mt-search-feedback button {
+  color:var(--money-primary-deep);
+}
+.mt-reports-screen .mt-report-section-head h3,
+.mt-reports-screen .mt-report-mini-head {color:var(--money-ink);font-weight:800;}
+.mt-reports-screen .mt-report-donut-hole strong {color:var(--money-ink);}
+.mt-reports-screen .mt-report-donut-hole {background:white;}
+.mt-reports-screen .mt-budget-total,
+.mt-reports-screen .mt-report-budget-empty{background:#f1f9f3;border-radius:12px;}
+.mt-reports-screen .mt-budget-track>span,
+.mt-reports-screen .mt-report-category-detail .mt-budget-track>span {
+  border-radius:99px;
+}
+.mt-reports-screen .mt-report-budget-empty button{
+  background:linear-gradient(180deg,var(--money-primary),#08783f);border-radius:11px;
+}
+.mt-reports-screen .mt-report-net-summary>div{background:#f1f9f3;border-radius:13px;}
+/* Settings used its original tech-dashboard cards. Match Home's clean
+   white canvas, mint icon squares and 16px cards without hiding settings. */
+.settings-intro{
+  max-width:850px;margin:0 auto 15px;padding:0;background:transparent;
+}
+.settings-intro h2{margin:4px 0 4px;}
+.settings-intro p {color:var(--money-muted);font-size:12px;line-height:1.55;}
+.settings-grid{
+  max-width:850px;margin-left:auto;margin-right:auto;
+  gap:13px;
+}
+.settings-grid .settings-card{
+  padding:18px 16px!important;
+  min-width:0;
+}
+.settings-grid .settings-card .settings-icon{
+  width:38px;height:38px;display:grid;place-items:center;
+  border-radius:12px;background:#e9f8ef;color:#117443;
+}
+.settings-grid .settings-card h3 {color:var(--money-ink);font-size:15px;font-weight:800;letter-spacing:-.2px;}
+.settings-grid .settings-card p,
+.settings-grid .settings-card .hint {color:var(--money-muted);line-height:1.55;}
+.settings-grid .settings-card .field-label {color:#365640;font-weight:700;}
+.settings-grid .settings-card input,
+.settings-grid .settings-card select,
+.settings-grid .settings-card textarea {
+  border-radius:11px;border-color:#d7e5dc;background:#fbfdfb;
+}
+.settings-grid .settings-card .btn-primary,
+.settings-grid .settings-card button.btn-primary {
+  color:white;background:linear-gradient(180deg,var(--money-primary),#08783f);
+  border:0;border-radius:var(--money-button-radius);min-height:44px;
+}
+.settings-grid .settings-card button.btn-secondary,
+.settings-grid .settings-card button.btn-ghost.bordered {
+  color:var(--money-primary-deep);background:#fff;
+  border:1px solid #badac8;border-radius:var(--money-button-radius);min-height:44px;
+}
+.settings-grid .info-banner,
+.settings-grid .app-meta {border-radius:12px;}
+.settings-grid .data-delete-btn {color:#9d3445!important;border-color:#f2c4cc!important;}
+.settings-grid button:focus-visible {outline-color:var(--money-primary-deep);}
+/* The full-screen scanner is part of the same app: use Home green CTA and
+   home-style rounded sections. Existing OCR state and auto-save remain intact. */
+.modal.ref-ocr-modal .modal-heading h2 {color:var(--money-ink);font-weight:800;}
+.modal.ref-ocr-modal .slip-upload-box {
+  border:1px dashed #a4d6b6;background:linear-gradient(145deg,#f8fcf9,#edf9f0);
+  border-radius:var(--money-card-radius);box-shadow:none;
+}
+.modal.ref-ocr-modal .slip-upload-box .slip-upload-icon {
+  background:#dff4e7;color:var(--money-primary-deep);border-radius:14px;
+}
+.modal.ref-ocr-modal .slip-upload-box>strong{color:var(--money-primary-deep);}
+.modal.ref-ocr-modal .slip-upload-box .btn-primary,
+.modal.ref-ocr-modal .slip-pick,
+.modal.ref-ocr-modal .slip-batch-finish.btn-primary {
+  background:linear-gradient(180deg,var(--money-primary),#08783f);
+  color:white;border:0;border-radius:var(--money-button-radius);
+  min-height:48px;
+}
+.modal.ref-ocr-modal .slip-upload-box .btn-secondary,
+.modal.ref-ocr-modal .slip-batch-finish.btn-secondary {
+  background:#fff;color:var(--money-primary-deep);
+  border:1px solid #c8e1d0;border-radius:var(--money-button-radius);
+  min-height:44px;
+}
+.modal.ref-ocr-modal .slip-batch-summary,
+.modal.ref-ocr-modal .slip-batch-results,
+.modal.ref-ocr-modal .slip-preview {border-radius:var(--money-card-radius);}
+.modal.ref-ocr-modal .mt-ocr-readout {padding:16px 14px;}
+.modal.ref-ocr-modal .mt-ocr-readout dl>div{padding:12px 0;}
+.modal.ref-ocr-modal .mt-ocr-readout-status.saved {
+  color:#0a6539;background:#e5f7e9;
+}
+.modal.ref-ocr-modal .slip-progress-track>div {background:var(--money-primary);}
+.modal.ref-ocr-modal .slip-flow .current{color:var(--money-primary-deep);}
+.modal.ref-ocr-modal button:focus-visible {outline-color:var(--money-primary-deep);}
+/* Shared bottom navigation, including Settings, behaves the same as Home. */
+.mobile-bottom-nav {
+  background:#fff!important;border-top:1px solid #e8ede9!important;
+  box-shadow:0 -2px 8px rgba(22,58,35,.06)!important;
+}
+.mobile-bottom-nav button{
+  color:#52685a!important;min-height:52px;
+}
+.mobile-bottom-nav button.active,
+.mobile-bottom-nav button[aria-current="page"]{color:#087344!important;font-weight:760;}
+.mobile-bottom-nav button svg {flex:none;width:21px;height:21px;}
+.mobile-fab:not(.ref-fab-hidden){
+  border-radius:16px!important;
+  background:linear-gradient(150deg,var(--money-primary),var(--money-primary-deep))!important;
+  box-shadow:0 9px 18px rgba(12,99,59,.2);
+}
+@media(max-width:660px){
+  .topbar.mt-shared-topbar {
+    display:flex!important;align-items:center;justify-content:center;
+    min-height:0!important;padding:12px 20px 5px!important;
+  }
+  .mt-shared-topbar .mt-app-topbar {max-width:740px;margin:0 auto;}
+  .mt-shared-topbar .mt-home-brand-row{width:100%;}
+  .mt-shared-topbar .topbar-actions{display:none!important;}
+  .main-content:has(.mt-transactions-screen),
+  .main-content:has(.mt-reports-screen),
+  .main-content:has(.settings-grid){
+    background:#fff!important;
+    padding-top:8px!important;
+    padding-left:max(20px,env(safe-area-inset-left,0px))!important;
+    padding-right:max(20px,env(safe-area-inset-right,0px))!important;
+  }
+  .settings-intro {margin:0 0 13px;}
+  .settings-intro h2{font-size:20px;}
+  .mt-transactions-screen .mt-page-heading h2,
+  .mt-reports-screen .mt-page-heading h2 {font-size:19px;}
+  .mt-transactions-screen .mt-month-controls button,
+  .mt-reports-screen .mt-month-controls button{min-width:32px;min-height:44px;}
+  .modal.ref-ocr-modal {
+    background:#fff;max-width:100%;margin:0;border-radius:0;
+  }
+}
+@media(max-width:360px){
+  .topbar.mt-shared-topbar{padding-left:16px!important;padding-right:16px!important;}
+  .main-content:has(.mt-transactions-screen),.main-content:has(.mt-reports-screen),.main-content:has(.settings-grid){
+    padding-left:16px!important;padding-right:16px!important;
+  }
+}
+@media(prefers-reduced-motion:reduce){
+  .mt-transactions-screen *, .mt-reports-screen *, .settings-grid * {
+    transition:none!important;animation:none!important;
+  }
+}
