@@ -40,7 +40,10 @@ export function prepareAutoSlip(
     type:slip.direction,
     amountSatang:slip.amountSatang,
     category:slip.category||'อื่น ๆ',
-    note:'',
+    // Funding is counted on the source bank account, not a purchase in the
+    // wallet. Make its accounting meaning visible in the transaction record.
+    note:slip.direction==='expense'&&slip.directionReason.includes('เติมเงินเข้า e-Wallet TrueMoney')
+      ?'เติมเงิน TrueMoney จากบัญชีธนาคาร (อย่าบันทึกยอดใช้จ่าย Wallet ซ้ำ)':'',
     date:slip.date,
     time:slip.time,
     recipient,

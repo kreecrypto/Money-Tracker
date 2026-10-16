@@ -291,7 +291,7 @@ export function parseSlipText(rawText:string,layoutLines:string[]=[],ownerNames:
   const amountSatang=special?special.amountSatang:amountResult!.amountSatang;
   const date=parseDate(lines);
   const time=parseTime(lines);
-  const labelledParties=extractSlipParties(lines,kplus?.recipient||null);
+  const labelledParties=extractSlipParties(lines,kplus?.recipient||walletTopUp?.recipient||null);
   const sender=labelledParties.sender;
   const recipient=special?special.recipient:(walletTopUp?.recipient||kplus?.recipient||labelledParties.recipient||parseRecipient(lines));
   const inferred=inferSlipDirection(rawText);
@@ -300,15 +300,28 @@ export function parseSlipText(rawText:string,layoutLines:string[]=[],ownerNames:
   const configuredNames=sanitizeOwnerNames([...ownerNames]);
   const identityDirection=configuredNames.length>0
     ?classifyByAccountNames({sender,recipient},configuredNames):null;
-  // Owner's sender/receiver identity is authoritative even when a forwarded
-  // K PLUS slip says "โอนเงินสำเร็จ" from the *other person's* perspective.
-  // Keep shop receipts and wallet-funding protections independent.
-  const classified=walletTopUp?{direction:null,directionReason:walletTopUp.directionReason}:
+  // TrueMoney funding is an outgoing bank transfer in the bank-only ledger.
+  // If account holder names are configured, the sender must match. Never
+  // auto-classify an unrelated person's forwarded confirmation.
+  const trueMoneyFunding=walletTopUp?.kind==='truemoney';
+  const ambiguousWalletTransfer=walletTopUp?.kind==='wallet_transfer';
+  const trueMoneyDirection=trueMoneyFunding
+    ?(configuredNames.length>0?identityDirection:
+      (kplus?.direction==='expense'?kplus:{direction:null,directionReason:'หลักฐานผู้โอน K PLUS ไม่ครบ กรุณาตรวจสอบ'}))
+    :null;
+  const classified=ambiguousWalletTransfer?{direction:null,directionReason:walletTopUp!.directionReason}:
+    trueMoneyFunding?{
+      direction:trueMoneyDirection?.direction??null,
+      directionReason:walletTopUp!.directionReason+
+        (trueMoneyDirection?.direction==='expense'
+          ?' · บันทึกเป็นรายจ่ายของผู้โอน'
+          :' · '+(trueMoneyDirection?.directionReason||'ยังระบุผู้โอนไม่ครบ')),
+    }:
     special??identityDirection??(kplus?.direction&&inferred.direction===null&&
       !inferred.directionReason.includes('ทั้งเงินเข้าและเงินออก')?kplus:inferred);
   const {direction,directionReason}=classified;
   const source=special?.source;
-  const method:Method|undefined=walletTopUp?'wallet':special?.method;
+  const method:Method|undefined=trueMoneyFunding?'bank':walletTopUp?'wallet':special?.method;
   const category=special?.category;
   const receipt=special?readReceiptDetails(special.source,lines,amountSatang,layoutLines,recipient):
     kplus&&amountSatang!==null?{
@@ -318,7 +331,7 @@ export function parseSlipText(rawText:string,layoutLines:string[]=[],ownerNames:
     }:undefined;
   const warnings:string[]=[];
   if(amountResult?.ambiguous)warnings.push('พบยอดเงินที่ขัดแย้งกันในสลิปเดียวกัน กรุณาตรวจยอดก่อนบันทึก');
-  if(walletTopUp)warnings.push('เป็นรายการเติมเงิน e-Wallet ซึ่งอาจทำให้รายจ่ายซ้ำหากบันทึกการใช้จ่ายจากกระเป๋าเงินด้วย กรุณาตรวจสอบ');
+  if(walletTopUp)warnings.push(trueMoneyFunding?'เติมเงิน TrueMoney นับเป็นเงินออกจากธนาคาร หากบันทึกการใช้ Wallet ภายหลังอาจเกิดยอดซ้ำ':'เป็นรายการเติมเงิน e-Wallet ซึ่งอาจทำให้รายจ่ายซ้ำหากบันทึกการใช้จ่ายจากกระเป๋าเงินด้วย กรุณาตรวจสอบ');
   if(!lines.length)warnings.push('ไม่พบตัวอักษรในรูปภาพ ลองถ่ายใหม่ให้ชัดขึ้น');
   if(amountSatang===null)warnings.push('ไม่สามารถระบุยอดโอนได้อย่างมั่นใจ กรุณากรอกยอดเอง');
   if(date===null)warnings.push('อ่านวันที่ไม่ชัดเจน กรุณาตรวจและกรอกวันที่ก่อนบันทึก');
@@ -368,7 +381,7 @@ export function mergeSlipOcrReadings(first:SlipFields,second:SlipFields):SlipFie
   const sender=select('ชื่อผู้ส่ง',first.sender??null,second.sender??null);
   // Wallet funding is a transfer, not proof of consumption. Preserve this even
   // if a noisy recovery pass misclassifies its success header as a payment.
-  const walletFunding=[first,second].some(reading=>reading.directionReason.includes('เติมเงินเข้า e-Wallet'));
+  const walletFunding=[first,second].some(reading=>reading.directionReason.includes('เติมเงินเข้า e-Wallet')&&reading.direction===null);
   const candidateDirection=select('ประเภทรายรับรายจ่าย',first.direction,second.direction);
   const identityConflict=conflicts.some(x=>x.includes('ชื่อผู้ส่ง')||x.includes('ชื่อผู้รับ'));
   const direction=walletFunding||identityConflict?null:candidateDirection;
