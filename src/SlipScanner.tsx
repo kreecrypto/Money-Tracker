@@ -9,7 +9,7 @@ import {receiptLayoutLines,receiptReconciliationError} from './lib/receiptIntell
 import {baht,toSatang,EXPENSE_CATEGORIES,INCOME_CATEGORIES,type EntryType,type Method} from './lib/finance';
 import {correctionDirection,isWalletFundingSlip,isTrueMoneyBankTopUp,slipBatchHeading} from './lib/slipReview';
 import {
-  MAX_SLIP_BATCH_FILES,summarizeSlipBatch,validateSlipImage,
+  MAX_SLIP_BATCH_FILES,summarizeSlipBatch,savedSlipTotals,validateSlipImage,
   type SlipBatchOutcome,type SlipBatchRow,
 } from './lib/slipBatch';
 
@@ -22,6 +22,7 @@ type Props={
   onQueuePending:(slip:SlipFields,name:string,reason:string)=>Promise<{id:string;duplicate:boolean}>;
   onResolvePending:(id:string)=>Promise<void>;
   onClose:()=>void;
+  onViewSaved:(date:string)=>void;
   ownerNames?:readonly string[];
 };
 type ProcessingStage='download'|'recognize'|'retry'|'save';
@@ -37,7 +38,7 @@ type Correction={
 };
 const statusLabels:Record<SlipBatchRow['status'],string>={
   saved:'บันทึกแล้ว',duplicate:'รายการซ้ำ',incomplete:'รอตรวจข้อมูล',
-  error:'ไม่สำเร็จ',cancelled:'ยกเลิกแล้ว',undone:'ยกเลิกการบันทึกแล้ว',excluded:'ไม่นับรายการ',
+  error:'อ่านหรือบันทึกไม่สำเร็จ',cancelled:'ยกเลิกแล้ว',undone:'ยกเลิกการบันทึกแล้ว',excluded:'ไม่นับรายการ',
 };
 const toCorrection=(source:SlipFields):Correction=>({
   source,date:source.date||'',time:source.time||'',
@@ -53,7 +54,7 @@ async function originalImageHash(file:File):Promise<string|undefined>{
   }catch{return undefined;}
 }
 
-export default function SlipScanner({onApply,onComplete,onBusyChange,onUndoBatch,onQueuePending,onResolvePending,onClose,ownerNames=[]}:Props){
+export default function SlipScanner({onApply,onComplete,onBusyChange,onUndoBatch,onQueuePending,onResolvePending,onClose,onViewSaved,ownerNames=[]}:Props){
   const galleryRef=useRef<HTMLInputElement>(null);
   const cameraRef=useRef<HTMLInputElement>(null);
   const attentionRef=useRef<HTMLDivElement>(null);
@@ -250,7 +251,7 @@ export default function SlipScanner({onApply,onComplete,onBusyChange,onUndoBatch
                   (error instanceof Error?error.message:'โปรดลองใหม่');
               }
             }
-            publish({name:file.name,...outcome,recipient:outcome.recipient||reading.recipient||undefined,amountSatang:outcome.amountSatang||reading.amountSatang||undefined,date:outcome.date||reading.date||undefined});
+            publish({name:file.name,...outcome,recipient:outcome.recipient||reading.recipient||undefined,amountSatang:outcome.amountSatang||reading.amountSatang||undefined,date:outcome.date||reading.date||undefined,direction:outcome.direction||reading.direction||undefined});
             if(outcome.status==='incomplete'){
               // Keep the photo only in volatile browser memory for same-session
               // review. Do not persist or send it through the API.
@@ -345,7 +346,7 @@ export default function SlipScanner({onApply,onComplete,onBusyChange,onUndoBatch
       }
       const next=rows.map((row,i)=>i===index?{
         ...row,...outcome,pendingId:undefined,recipient:corrected.recipient||undefined,
-        amountSatang:corrected.amountSatang||undefined,date:corrected.date||undefined,
+        amountSatang:corrected.amountSatang||undefined,date:corrected.date||undefined,direction:corrected.direction||undefined,
       }:row);
       if(rows[index]?.pendingId){
         try{await onResolvePending(rows[index].pendingId!);}
@@ -379,6 +380,7 @@ export default function SlipScanner({onApply,onComplete,onBusyChange,onUndoBatch
   const undoSaved=async()=>{
     const ids=rows.filter(row=>row.status==='saved'&&row.transactionId).map(row=>row.transactionId!);
     if(!ids.length||undoing)return;
+    if(!window.confirm(`ลบรายการที่เพิ่งบันทึก ${ids.length} รายการออกจากสมุดบัญชีหรือไม่?`))return;
     setUndoing(true);onBusyChange(true);
     try{
       await onUndoBatch(ids);
@@ -389,16 +391,17 @@ export default function SlipScanner({onApply,onComplete,onBusyChange,onUndoBatch
     }finally{setUndoing(false);onBusyChange(false);}
   };
   const summary=summarizeSlipBatch(rows);
+  const savedTotals=savedSlipTotals(rows);
   const needsAttention=Object.entries(corrections).filter(([index])=>rows[Number(index)]?.status==='incomplete');
   return <section className="slip-panel slip-panel-primary slip-workspace" aria-label="อัปโหลดสลิปหรือใบเสร็จหลายรูป">
     <div className="slip-head"><div><ScanLine size={18}/><strong>เพิ่มสลิปหรือใบเสร็จ</strong></div></div>
     {!busy&&!complete&&<p className="slip-hint">เพิ่มสลิปได้ครั้งละ 20 รูป ระบบจะอ่านและบันทึกเมื่อข้อมูลครบ โดยไม่เพิ่มรายการที่ตรวจพบว่าซ้ำ</p>}
     {!busy&&(!complete||needsAttention.length===0)&&<div className="slip-upload-box">
       <div className="slip-upload-icon" aria-hidden="true"><FileImage size={28}/></div>
-      <strong>{complete?'เพิ่มรูปอีกชุด':'เพิ่มหลายสลิปพร้อมกัน'}</strong>
+      <strong>{complete?'เพิ่มรูปอีกชุด':'เลือกรูปสลิป'}</strong>
       <span>สูงสุด 20 รูป/ครั้ง · JPG, PNG, WebP, HEIC · ไม่เกิน 10 MB/รูป</span>
-      <div className="slip-actions"><button type="button" className="btn btn-primary slip-pick" disabled={undoing||needsAttention.length>0} onClick={()=>galleryRef.current?.click()}><Upload size={18}/> เลือกรูปจาก iPhone</button><button type="button" className="btn btn-secondary" disabled={undoing||needsAttention.length>0} onClick={()=>cameraRef.current?.click()}><Camera size={18}/> ถ่ายรูป</button><button type="button" className="btn btn-secondary" disabled={undoing||needsAttention.length>0} onClick={()=>void pasteFromShortcuts()}><ClipboardPaste size={18}/> นำเข้ารูปจาก Shortcut</button></div>
-      {needsAttention.length>0?<p className="slip-awaiting-review" role="status">มี {needsAttention.length} รูปที่ยังไม่รวมในยอดรายรับ–รายจ่าย กรุณาตรวจข้อมูลด้านล่างหรือกลับมาตรวจจากหน้า “รายการ”</p>:<span>จาก Shortcut: Copy to Clipboard → เปิดแอป → แตะนำเข้า 1 ครั้ง · อ่านข้อความบนอุปกรณ์ โดยไม่ส่งรูปเข้า API</span>}
+      <div className="slip-actions"><button type="button" className="btn btn-primary slip-pick" disabled={undoing||needsAttention.length>0} onClick={()=>galleryRef.current?.click()}><Upload size={18}/> เลือกรูปจาก iPhone</button><button type="button" className="btn btn-secondary" disabled={undoing||needsAttention.length>0} onClick={()=>cameraRef.current?.click()}><Camera size={18}/> ถ่ายรูป</button><button type="button" className="btn btn-secondary" disabled={undoing||needsAttention.length>0} onClick={()=>void pasteFromShortcuts()}><ClipboardPaste size={18}/> วางรูปที่คัดลอก</button></div>
+      {needsAttention.length>0?<p className="slip-awaiting-review" role="status">มี {needsAttention.length} รูปที่ยังไม่รวมในยอดรายรับ–รายจ่าย กรุณาตรวจข้อมูลด้านล่างหรือกลับมาตรวจจากหน้า “รายการ”</p>:<span>หากคัดลอกรูปไว้แล้ว ให้แตะ “วางรูปที่คัดลอก” · ต้องแตะนำเข้าเอง ไม่ใช่การนำเข้าอัตโนมัติ</span>}
       {clipboardError&&<p className="slip-warning" role="alert">{clipboardError}</p>}
     </div>}
     <input ref={galleryRef} aria-label="เลือกรูปสลิปหลายรูป" multiple type="file" className="visually-hidden" accept="image/png,image/jpeg,image/webp,image/heic,image/heif,.heic,.heif" onChange={e=>void scan(e)}/>
@@ -408,7 +411,7 @@ export default function SlipScanner({onApply,onComplete,onBusyChange,onUndoBatch
       <strong>กำลังอ่านสลิป {activeIndex||1} / {totalFiles}</strong>
       <p>{stopRequested?'กำลังหยุดหลังขั้นตอนปัจจุบัน…':stage==='save'?'กำลังตรวจรายการซ้ำและบันทึก…':stage==='retry'?'กำลังปรับภาพและอ่านซ้ำ…':stage==='recognize'?'กำลังอ่านข้อมูลจากสลิป '+progress+'%':'กำลังเตรียมภาพและระบบ OCR…'}</p>
       <div className="slip-progress-track" role="progressbar" aria-label="ความคืบหน้า OCR" aria-valuemin={0} aria-valuemax={100} aria-valuenow={Math.round((Math.max(0,activeIndex-1)+progress/100)/Math.max(1,totalFiles)*100)}><div style={{width:String(Math.round((Math.max(0,activeIndex-1)+(progress/100))/Math.max(1,totalFiles)*100))+'%'}}/></div>
-      <span>{summary.saved} บันทึกแล้ว · {summary.duplicate} ซ้ำ · {summary.incomplete+summary.errors} ต้องตรวจ</span>
+      <span>{summary.saved} บันทึกแล้ว · {summary.duplicate} ซ้ำ · {summary.incomplete} รอตรวจ · {summary.errors} อ่านไม่สำเร็จ</span>
       <button type="button" className="btn btn-secondary slip-stop" disabled={stopRequested} onClick={()=>{stopRef.current=true;setStopRequested(true);
         // Tesseract calls may be CPU-bound; terminating the worker interrupts
         // an in-flight recognition rather than waiting for the next image.
@@ -419,15 +422,20 @@ export default function SlipScanner({onApply,onComplete,onBusyChange,onUndoBatch
     {complete&&<div className={'slip-batch-summary'+(summary.incomplete+summary.errors>0?' requires-review':'')} role="status" aria-live="polite">
       <div className="slip-batch-summary-title">{summary.incomplete+summary.errors>0?<AlertTriangle size={18}/>:<CheckCircle2 size={18}/>}<strong>{slipBatchHeading(summary)}</strong></div>
       <div className="slip-batch-counts"><span>บันทึกแล้ว<b>{summary.saved}</b></span><span>ซ้ำ<b>{summary.duplicate}</b></span><span>รอตรวจ<b>{summary.incomplete}</b></span><span>อ่านไม่สำเร็จ<b>{summary.errors}</b></span>{(summary.excluded||0)>0&&<span>ไม่นับรายการ<b>{summary.excluded}</b></span>}</div>
-      {summary.saved>0&&<div className="slip-batch-total"><span>รวมยอดที่บันทึกในชุดนี้</span><strong>฿{baht(rows.filter(row=>row.status==='saved').reduce((total,row)=>total+(row.amountSatang||0),0))}</strong></div>}
+      {summary.saved>0&&<div className="slip-batch-totals" aria-label="ยอดที่บันทึกแยกประเภทรายการ">
+        <div className="slip-batch-total"><span>รายรับที่บันทึก</span><strong>฿{baht(savedTotals.incomeSatang)}</strong></div>
+        <div className="slip-batch-total"><span>รายจ่ายที่บันทึก</span><strong>฿{baht(savedTotals.expenseSatang)}</strong></div>
+        {savedTotals.unknownSatang>0&&<div className="slip-batch-total"><span>ยอดที่ยังไม่แยกประเภท</span><strong>฿{baht(savedTotals.unknownSatang)}</strong></div>}
+      </div>}
       {summary.errors>0&&<p className="slip-batch-note" role="note">มี {summary.errors} รูปที่ยังอ่านหรือบันทึกไม่สำเร็จ กรุณาลองเพิ่มรูปนั้นอีกครั้ง โดยเริ่มครั้งละ 1 รูป</p>}
       {(summary.cancelled||0)>0&&<p className="slip-batch-note">ยกเลิกไป {summary.cancelled} รูป รายการที่บันทึกสำเร็จก่อนหยุดยังอยู่ในแอป</p>}
       {(summary.undone||0)>0&&<p className="slip-batch-note">ยกเลิกการบันทึกแล้ว {summary.undone} รายการ</p>}
-      {summary.saved>0&&<button type="button" className="btn btn-secondary slip-undo" disabled={undoing} onClick={()=>void undoSaved()}><Undo2 size={16}/>{undoing?'กำลังยกเลิกรายการ…':'ยกเลิกการบันทึกชุดนี้ ('+summary.saved+')'}</button>}
+      {summary.saved>0&&<button type="button" className="btn btn-secondary slip-undo" disabled={undoing} onClick={()=>void undoSaved()}><Undo2 size={16}/>{undoing?'กำลังยกเลิกรายการ…':'ลบรายการที่เพิ่งบันทึก ('+summary.saved+')'}</button>}
       {correctionErrors[-1]&&<p role="alert" className="error-message">{correctionErrors[-1]}</p>}
-      {summary.queued>0&&<p className="slip-queued-note" role="status">เก็บไว้ใน “รายการ → รอตรวจจากสลิป” แล้ว {summary.queued} รูป ปิดหน้านี้แล้วกลับมาแก้ภายหลังได้</p>}
+      {summary.queued>0&&<p className="slip-queued-note" role="status">เก็บไว้ใน “รายการ → รอตรวจจากสลิป” แล้ว {summary.queued} รูป ปิดหน้านี้แล้วกลับมาแก้ภายหลังได้ แต่ระบบไม่เก็บภาพต้นฉบับ กรุณาเก็บรูปสลิปไว้ใน Photos เพื่อตรวจยอด</p>}
+      {summary.saved>0&&summary.incomplete===summary.queued&&<button type="button" className={'btn '+(needsAttention.length>0?'btn-secondary':'btn-primary')+' slip-batch-finish'} onClick={()=>onViewSaved(rows.find(row=>row.status==='saved')?.date||'')}>ดูรายการที่บันทึก</button>}
       {needsAttention.length>0&&<button type="button" className="btn btn-primary slip-batch-finish" onClick={()=>attentionRef.current?.scrollIntoView({behavior:window.matchMedia('(prefers-reduced-motion: reduce)').matches?'auto':'smooth',block:'start'})}>ตรวจ {needsAttention.length} รายการที่ยังไม่บันทึก</button>}
-      <button type="button" className={'btn '+(needsAttention.length>0?'btn-secondary':'btn-primary')+' slip-batch-finish'} disabled={undoing} onClick={onClose}>{needsAttention.length>0?'เสร็จสิ้นและปิด':'เสร็จสิ้น'}</button>
+      <button type="button" className={'btn '+(needsAttention.length>0?'btn-secondary':'btn-primary')+' slip-batch-finish'} disabled={undoing} onClick={onClose}>{needsAttention.length>0?'ปิดและตรวจภายหลัง':'เสร็จสิ้น'}</button>
     </div>}
     {rows.length>0&&<div className="slip-batch-results" aria-label="ผลการประมวลผลแต่ละรูป">
       <strong>ผลของแต่ละสลิป</strong>
@@ -436,12 +444,12 @@ export default function SlipScanner({onApply,onComplete,onBusyChange,onUndoBatch
         {row.amountSatang!==undefined&&<b className="slip-result-amount">฿{baht(row.amountSatang)}</b>}
         <span className={'slip-batch-status '+row.status}>{statusLabels[row.status]}</span>
         {row.reason&&row.status!=='saved'&&<small className="slip-result-reason">{row.reason}</small>}
-        {row.status==='incomplete'&&corrections[i]&&<button type="button" className="slip-result-fix" onClick={()=>focusReview(i)}>ดูภาพและกรอกยอด <Check size={16}/></button>}
+        {row.status==='incomplete'&&corrections[i]&&<button type="button" className="slip-result-fix" onClick={()=>focusReview(i)}>ตรวจยอดเงินจากสลิป <Check size={16}/></button>}
       </li>)}</ul>
     </div>}
     {needsAttention.length>0&&<div ref={attentionRef} className="slip-attention" aria-label="แก้ไขสลิปที่อ่านไม่ครบ">
       <div className="slip-attention-title"><AlertTriangle size={17}/><strong>ตรวจและเติมข้อมูลที่ขาด</strong></div>
-      <p>ตรวจวันที่ ยอดเงิน และประเภทรายการก่อนบันทึก หรือกลับมาแก้ภายหลังได้จากเมนู “รายการ → รอตรวจจากสลิป”</p>
+      <p>ตรวจวันที่ ยอดเงิน และประเภทรายการก่อนบันทึก หรือกลับมาที่ “รายการ → รอตรวจจากสลิป” (กรุณาเก็บรูปต้นฉบับไว้ เพราะระบบไม่เก็บรูปสำหรับดูภายหลัง)</p>
       {needsAttention.map(([rawIndex,draft])=>{
         const index=Number(rawIndex);
         return <div id={'slip-review-'+index} key={rawIndex} className="slip-attention-card">
@@ -464,6 +472,6 @@ export default function SlipScanner({onApply,onComplete,onBusyChange,onUndoBatch
         </div>;
       })}
     </div>}
-    <p className="slip-privacy"><ShieldCheck size={14}/> รูปอ่านบนเครื่อง ไม่เก็บไฟล์ภาพถาวร จัดเก็บเฉพาะข้อมูลรายการและลายนิ้วมือ SHA-256 เพื่อป้องกันสลิปซ้ำ</p>
+    <p className="slip-privacy"><ShieldCheck size={14}/> อ่านรูปบนเครื่อง ไม่เก็บภาพถาวร · บันทึกเฉพาะข้อมูลรายการและรหัสตรวจสอบเพื่อป้องกันสลิปซ้ำ</p>
   </section>;
 }

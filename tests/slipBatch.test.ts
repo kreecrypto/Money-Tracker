@@ -1,5 +1,5 @@
 import {describe,expect,it} from 'vitest';
-import {MAX_SLIP_BATCH_FILES,MAX_SLIP_FILE_BYTES,summarizeSlipBatch,validateSlipImage} from '../src/lib/slipBatch';
+import {MAX_SLIP_BATCH_FILES,MAX_SLIP_FILE_BYTES,summarizeSlipBatch,savedSlipTotals,validateSlipImage} from '../src/lib/slipBatch';
 
 describe('multi-image slip upload safety',()=>{
   it('accepts iPhone JPEG, PNG and WebP image input',()=>{
@@ -32,6 +32,17 @@ describe('multi-image slip upload safety',()=>{
   });
   it('identifies pending drafts safely stored for later',()=>{
     expect(summarizeSlipBatch([{name:'a',status:'incomplete',pendingId:'pending-a'}]).queued).toBe(1);
+  });
+  it('shows separate saved income and expense rather than a misleading grand total',()=>{
+    const rows=[
+      {name:'incoming.jpg',status:'saved' as const,direction:'income' as const,amountSatang:10000},
+      {name:'outgoing.jpg',status:'saved' as const,direction:'expense' as const,amountSatang:5000},
+      {name:'review.jpg',status:'incomplete' as const,direction:'expense' as const,amountSatang:6000},
+      {name:'duplicate.jpg',status:'duplicate' as const,direction:'income' as const,amountSatang:8000},
+      {name:'legacy.jpg',status:'saved' as const,amountSatang:1200},
+    ];
+    expect(savedSlipTotals(rows)).toEqual({incomeSatang:10000,expenseSatang:5000,unknownSatang:1200});
+    expect(savedSlipTotals([{name:'undone',status:'undone',direction:'expense',amountSatang:5000}])).toEqual({incomeSatang:0,expenseSatang:0,unknownSatang:0});
   });
   it('reports an empty batch without claiming any save',()=>{
     expect(summarizeSlipBatch([])).toEqual({
