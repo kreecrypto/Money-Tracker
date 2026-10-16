@@ -88,19 +88,19 @@ export default function IPhoneShortcutSettings({onImported,variant='settings',on
     try{
       iphoneConnect(token.trim());setLinked(true);setToken('');
       const result=await refresh();
-      setNote('เชื่อมสำเร็จ · ซิงก์รายการที่บันทึกแล้ว '+result.imported+' รายการ');
+      setNote('เชื่อมสำเร็จ · ซิงก์รายการใหม่ '+result.imported+' รายการ'+(result.invalid?' · มี '+result.invalid+' รายการข้อมูลไม่ถูกต้อง ยังไม่ได้นำเข้า':''));
     }catch(e){setLinked(iphoneConnected());setNote(e instanceof Error?e.message:'เชื่อมไม่สำเร็จ');}
     finally{setBusy(false);}
   };
   const sync=async()=>{
     setBusy(true);setNote('');
-    try{const result=await refresh();setNote('รายการใหม่ '+result.imported+' · รอตรวจสอบ '+result.pending+' รายการ');}
+    try{const result=await refresh();setNote('นำเข้าใหม่ '+result.imported+' จาก Cloud '+result.received+' รายการ · รอตรวจ '+result.pending+' รายการ'+(result.invalid?' · ข้อมูลไม่ถูกต้อง '+result.invalid+' รายการ':'')+(result.imported===0&&result.received>0?' · หากไม่พบในหน้า “รายการ” ให้เลือกเดือนตามวันที่สลิป':''));}
     catch(e){setLinked(iphoneConnected());setNote(e instanceof Error?e.message:'ซิงก์ไม่สำเร็จ');}
     finally{setBusy(false);}
   };
   const afterReview=async()=>{
     const result=await refresh();
-    setNote('จัดการรายการเรียบร้อย นำเข้า '+result.imported+' รายการ');
+    setNote('จัดการรายการเรียบร้อย นำเข้า '+result.imported+' รายการ'+(result.invalid?' · ตรวจข้อมูลผิดรูปแบบ '+result.invalid+' รายการ':''));
   };
   useEffect(()=>{
     if(variant!=='review'||!linked||!iphoneConfigured())return;
