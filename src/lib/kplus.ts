@@ -70,11 +70,8 @@ export function parseKPlusSlip(ocrLines: string[]): KPlusSlip | null {
   };
 }
 
-/**
- * Wallet funding is an asset transfer (bank -> wallet), not necessarily a
- * purchase. Recording it as an expense and then recording wallet purchases
- * again would double count spending. Require a deliberate user decision.
- */
+/** A verified K PLUS "เติมเงินสำเร็จ" is an expense in Money Tracker's
+ * bank-outflow ledger. Later wallet purchases should not be counted twice. */
 export function parseKPlusTopUp(ocrLines:string[]):{recipient:string;directionReason:string;kind:'truemoney'|'wallet_transfer'}|null{
   const lines=ocrLines.map(textLine).filter(Boolean);
   const header=lines.slice(0,5).join(' ');
@@ -87,14 +84,13 @@ export function parseKPlusTopUp(ocrLines:string[]):{recipient:string;directionRe
   // K PLUS may put "พร้อมเพย์ อี-วอลเล็ต /" and "G-Wallet" on separate lines.
   const next=lines[walletIndex+1]||'';
   const walletName=wallet.endsWith('/')&&/^g[\s-]*wallet$/iu.test(next)?wallet+' '+next:wallet;
-  // For bank-only expense tracking, TrueMoney funding is money leaving KBank.
-  // Keep government/self-wallet transfers pending to avoid double-counting.
+  // Money Tracker counts bank-to-wallet funding as an outgoing expense.
   const trueMoney=/(?:ทรู\s*มัน\s*นี่|true\s*money)/iu.test(walletName);
   return {
     recipient: walletName.slice(0,160),
     kind:trueMoney?'truemoney':'wallet_transfer',
     directionReason:trueMoney
-      ?'เติมเงินเข้า e-Wallet TrueMoney จากบัญชีธนาคาร (นับเป็นเงินออกของบัญชีธนาคาร)'
-      :'เติมเงินเข้า e-Wallet อาจเป็นการโอนเงินระหว่างบัญชีของตนเอง จึงยังไม่บันทึกเป็นรายจ่ายอัตโนมัติ',
+      ?'เติมเงินเข้า e-Wallet TrueMoney จากบัญชีธนาคาร (รายจ่าย)'
+      :'เติมเงินเข้า e-Wallet จากบัญชีธนาคาร (รายจ่าย)',
   };
 }
