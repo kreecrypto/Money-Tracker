@@ -283,7 +283,9 @@ export default function SlipScanner({onApply,onComplete,onBusyChange,onUndoBatch
         try{await worker.terminate();}catch{/* The component may already have unmounted. */}
         workerRef.current=null;
       }
-      clearPreview();runningRef.current=false;
+      // Retain the latest in-memory object URL for the result screen; revoke when
+      // the next batch begins or the scanner unmounts. Never persist the image.
+      runningRef.current=false;
       if(mountedRef.current){
         setBusy(false);onBusyChange(false);setComplete(true);
         onComplete(summarizeSlipBatch(processed));
