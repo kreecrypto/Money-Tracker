@@ -176,7 +176,7 @@ function EntryModal({initial,existing,startWithScanner,close,submit,submitImport
     // Keep the result screen visible until the user explicitly finishes,
     // so the user can inspect corrections or undo this batch.
   };
-  return <div className="modal-backdrop" onMouseDown={e=>{if(e.target===e.currentTarget&&!pending&&!batchBusy)safeClose();}}><section ref={dialogRef} tabIndex={-1} className="modal" role="dialog" aria-modal="true" aria-labelledby="modal-title"><div className="modal-heading"><div><span className="eyebrow">เพิ่มรายการ</span><h2 id="modal-title">{initial?'แก้ไขรายการ':scannerOpen?'อัปโหลดสลิป':'กรอกรายการเอง'}</h2></div><button className="icon-btn" title="ปิด" aria-label="ปิด" disabled={pending||batchBusy} onClick={safeClose}><X size={21}/></button></div>
+  return <div className="modal-backdrop" onMouseDown={e=>{if(e.target===e.currentTarget&&!pending&&!batchBusy)safeClose();}}><section ref={dialogRef} tabIndex={-1} className={`modal ${scannerOpen?'ref-ocr-modal':''}`} role="dialog" aria-modal="true" aria-labelledby="modal-title"><div className="modal-heading"><div><span className="eyebrow">เพิ่มรายการ</span><h2 id="modal-title">{initial?'แก้ไขรายการ':scannerOpen?'อัปโหลดสลิป':'กรอกรายการเอง'}</h2></div><button className="icon-btn" title={scannerOpen?'ย้อนกลับ':'ปิด'} aria-label={scannerOpen?'ย้อนกลับ':'ปิด'} disabled={pending||batchBusy} onClick={safeClose}>{scannerOpen?<ChevronLeft size={23}/>:<X size={21}/>}</button></div>
   <form onSubmit={save}>
   {!initial&&<div className="slip-entry slip-entry-first">
     {scannerOpen&&<div className="slip-flow" aria-label="ขั้นตอนบันทึกสลิป"><span className="current">1 เลือกรูป</span><span>2 อ่านข้อมูลจากสลิป</span><span>3 บันทึกหรือรอตรวจ</span></div>}
