@@ -42,7 +42,7 @@ export default function TransactionsScreen({
         </div>
         <span className="mt-filter-count">{visibleCount} รายการ</span>
       </div>
-      {(search||filter!=='all')&&<div className="mt-search-feedback"><SlidersHorizontal size={14}/> แสดง {visibleCount} จาก {selectedCount} รายการ <button type="button" onClick={()=>{onSearch('');onFilter('all');}}>ล้างตัวกรอง</button></div>}
+      {(search||filter!=='all')&&<div className="mt-search-feedback"><SlidersHorizontal size={14}/> แสดง {visibleCount} จาก {selectedCount} รายการ <button className="filter-reset" type="button" onClick={()=>{onSearch('');onFilter('all');}}>ล้างตัวกรอง</button></div>}
       <div className="mt-transaction-results">{children}</div>
     </section>
     <details className="transaction-month-summary mt-transactions-month-summary">
