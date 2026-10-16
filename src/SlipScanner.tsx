@@ -196,8 +196,8 @@ export default function SlipScanner({onApply,onComplete,onBusyChange,onUndoBatch
                   // both full-page OCR passes missed a K PLUS payment value.
                   // Contradictory numbers are NEVER overridden by cropping.
                   const kplusText=firstReading.rawText+' '+recoveredReading.rawText;
-                  const isKplus=/(?:ธ\\.?\\s*กสิกรไทย|ธนาคาร\\s*กสิกรไทย|K\\s*PLUS|kasikorn|kbank)/iu.test(kplusText)
-                    &&/(?:โอน\\s*เงิน|จ่าย\\s*บิล|ชำระ\\s*เงิน)\\s*สำเร็จ/iu.test(kplusText);
+                  const isKplus=/(?:ธ\.?\s*กสิกรไทย|ธนาคาร\s*กสิกรไทย|K\s*PLUS|kasikorn|kbank)/iu.test(kplusText)
+                    &&/(?:โอน\s*เงิน|จ่าย\s*บิล|ชำระ\s*เงิน)\s*สำเร็จ/iu.test(kplusText);
                   if(isKplus&&firstReading.amountSatang===null&&recoveredReading.amountSatang===null&&
                     !reading.warnings.some(w=>w.includes('ขัดแย้ง')||w.includes('ต่างกัน'))){
                     const region=findKPlusAmountCrop(retry.data.blocks,enhanced.width,enhanced.height);
@@ -211,7 +211,7 @@ export default function SlipScanner({onApply,onComplete,onBusyChange,onUndoBatch
                       const parsed=parseSlipText(focused.data.text,receiptLayoutLines(focused.data.blocks));
                       // Require a confidently legible, explicitly labelled
                       // amount inside the bounded crop. No fee/reference guesses.
-                      const hasPaidLabel=/(?:จำนวน(?:\\s*เงิน)?|ยอด(?:เงิน|โอน|ชำระ|จ่าย))\\s*[:：]?/iu.test(focused.data.text);
+                      const hasPaidLabel=/(?:จำนวน(?:\s*เงิน)?|ยอด(?:เงิน|โอน|ชำระ|จ่าย))\s*[:：]?/iu.test(focused.data.text);
                       const hasConflict=parsed.warnings.some(w=>w.includes('ขัดแย้ง'));
                       if(parsed.amountSatang!==null&&hasPaidLabel&&!hasConflict&&
                         !isLowOcrConfidence(focused.data.confidence)){
