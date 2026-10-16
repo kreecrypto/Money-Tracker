@@ -1,6 +1,6 @@
 import {
   ArrowDownLeft, ArrowRight, ArrowUpRight, BarChart3, Bell, Camera,
-  ChevronDown, CircleUserRound, House, List, Settings2, Sprout, Target,
+  ChevronDown, CircleUserRound, List, Settings2, Sprout, Target,
   UtensilsCrossed, ShoppingBag, TrainFront, HandCoins, Ellipsis, Wallet,
 } from 'lucide-react';
 import {baht, type Transaction} from './lib/finance';
