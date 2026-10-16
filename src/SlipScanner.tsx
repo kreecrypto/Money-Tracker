@@ -1,5 +1,5 @@
 import {useEffect,useRef,useState,type ChangeEvent} from 'react';
-import {Camera,CheckCircle2,FileImage,ScanLine,ShieldCheck,Upload,Square,Undo2,AlertTriangle,Check,LoaderCircle,ClipboardPaste} from 'lucide-react';
+import {Camera,CheckCircle2,FileImage,ScanLine,ShieldCheck,Upload,Square,Undo2,AlertTriangle,Check,LoaderCircle,ClipboardPaste,CalendarDays,Clock3,Wallet,UserRound,Tag} from 'lucide-react';
 import {parseSlipText,mergeSlipOcrReadings,needsSlipOcrRecovery,describeMissingSlipAmount,type SlipFields} from './lib/slip';
 import {prepareSlipRecoveryImage,prepareSlipOcrFile,findKPlusAmountCrop,prepareKPlusAmountCrop} from './lib/slipImage';
 import {isLowOcrConfidence,requiresLowConfidenceReview} from './lib/ocrConfidence';
@@ -448,23 +448,23 @@ export default function SlipScanner({onApply,onComplete,onBusyChange,onUndoBatch
       </li>)}</ul>
     </div>}
     {needsAttention.length>0&&<div ref={attentionRef} className="slip-attention" aria-label="แก้ไขสลิปที่อ่านไม่ครบ">
-      <div className="slip-attention-title"><AlertTriangle size={17}/><strong>ตรวจและเติมข้อมูลที่ขาด</strong></div>
+      <div className="slip-attention-title"><ScanLine size={19}/><strong>ข้อมูลที่อ่านได้จากสลิป · โปรดตรวจสอบ</strong></div>
       <p>ตรวจวันที่ ยอดเงิน และประเภทรายการก่อนบันทึก หรือกลับมาที่ “รายการ → รอตรวจจากสลิป” (กรุณาเก็บรูปต้นฉบับไว้ เพราะระบบไม่เก็บรูปสำหรับดูภายหลัง)</p>
       {needsAttention.map(([rawIndex,draft])=>{
         const index=Number(rawIndex);
         return <div id={'slip-review-'+index} key={rawIndex} className="slip-attention-card">
           <strong>{rows[index]?.name||'ใบเสร็จ'}</strong>
           {rows[index]?.pendingId&&<p className="slip-queued-inline">เก็บเฉพาะข้อมูลรายการไว้ในเครื่องแล้ว · กลับมาตรวจภายหลังได้</p>}
-          {reviewImageUrlsRef.current[index]&&<details className="slip-evidence"><summary>เปิดภาพสลิปเพื่อเทียบยอดเงินจริง</summary><img src={reviewImageUrlsRef.current[index]} alt={'ภาพสลิป '+(rows[index]?.name||'ที่รอตรวจ')+' สำหรับตรวจยอดจากต้นฉบับ'} loading="lazy"/><small>แสดงเฉพาะระหว่างเปิดหน้านี้ · ไม่เก็บภาพถาวร</small></details>}
+          {reviewImageUrlsRef.current[index]&&<details className="slip-evidence" open><summary>ภาพสลิปต้นฉบับ · แตะเพื่อย่อ/ขยาย</summary><img src={reviewImageUrlsRef.current[index]} alt={'ภาพสลิป '+(rows[index]?.name||'ที่รอตรวจ')+' สำหรับตรวจยอดจากต้นฉบับ'} loading="lazy"/><small>แสดงเฉพาะระหว่างเปิดหน้านี้ · ไม่เก็บภาพถาวร</small></details>}
           {isTrueMoneyBankTopUp(draft.source)&&<div className="slip-wallet-guidance" role="note"><AlertTriangle size={17}/><span>ระบบจัดการเติมเงิน TrueMoney เป็นรายจ่ายจาก K PLUS ให้อัตโนมัติแล้ว รายการนี้ยังรอตรวจเพราะข้อมูล OCR บางส่วนขาดหรือขัดแย้งกัน โปรดตรวจข้อมูลให้ครบก่อนบันทึกและอย่านับการใช้เงินจาก Wallet ซ้ำ</span></div>}
           {isWalletFundingSlip(draft.source)&&<div className="slip-wallet-guidance" role="note"><AlertTriangle size={17}/><span>สลิปนี้อาจเป็นการย้ายเงินระหว่างกระเป๋าของตัวเอง หากไม่ต้องการนับเป็นรายจ่าย ให้เลือก “ไม่นับรายการนี้”</span></div>}
           <div className="slip-attention-fields">
-            <label>จำนวนเงิน (บาท)<input inputMode="decimal" value={draft.amount} onChange={e=>changeCorrection(index,{amount:e.target.value})} placeholder="0.00"/></label>
-            <label>ประเภท (ต้องเลือก)<select required value={draft.direction} onChange={e=>changeCorrection(index,{direction:e.target.value as EntryType,category:'อื่น ๆ'})}><option value="" disabled>เลือกประเภทรายการ</option><option value="expense">เงินออก / รายจ่าย</option><option value="income">เงินเข้า / รายรับ</option></select></label>
-            <label>วันที่<input type="date" value={draft.date} onChange={e=>changeCorrection(index,{date:e.target.value})}/></label>
-            <label>เวลา<input type="time" value={draft.time} onChange={e=>changeCorrection(index,{time:e.target.value})}/></label>
-            <label className="slip-attention-wide">ผู้รับเงิน / ร้านค้า<input value={draft.recipient} maxLength={160} onChange={e=>changeCorrection(index,{recipient:e.target.value})}/></label>
-            {draft.direction&&<label className="slip-attention-wide">หมวดหมู่<select value={draft.category} onChange={e=>changeCorrection(index,{category:e.target.value})}>{(draft.direction==='income'?INCOME_CATEGORIES:EXPENSE_CATEGORIES).map(category=><option key={category} value={category}>{category}</option>)}</select></label>}
+            <label><span className="slip-field-title"><Wallet size={16}/> จำนวนเงิน (บาท)</span><input inputMode="decimal" value={draft.amount} onChange={e=>changeCorrection(index,{amount:e.target.value})} placeholder="0.00"/></label>
+            <label><span className="slip-field-title"><Tag size={16}/> ประเภท (ต้องเลือก)</span><select required value={draft.direction} onChange={e=>changeCorrection(index,{direction:e.target.value as EntryType,category:'อื่น ๆ'})}><option value="" disabled>เลือกประเภทรายการ</option><option value="expense">เงินออก / รายจ่าย</option><option value="income">เงินเข้า / รายรับ</option></select></label>
+            <label><span className="slip-field-title"><CalendarDays size={16}/> วันที่</span><input type="date" value={draft.date} onChange={e=>changeCorrection(index,{date:e.target.value})}/></label>
+            <label><span className="slip-field-title"><Clock3 size={16}/> เวลา</span><input type="time" value={draft.time} onChange={e=>changeCorrection(index,{time:e.target.value})}/></label>
+            <label className="slip-attention-wide"><span className="slip-field-title"><UserRound size={16}/> ผู้รับเงิน / ร้านค้า</span><input value={draft.recipient} maxLength={160} onChange={e=>changeCorrection(index,{recipient:e.target.value})}/></label>
+            {draft.direction&&<label className="slip-attention-wide"><span className="slip-field-title"><Tag size={16}/> หมวดหมู่</span><select value={draft.category} onChange={e=>changeCorrection(index,{category:e.target.value})}>{(draft.direction==='income'?INCOME_CATEGORIES:EXPENSE_CATEGORIES).map(category=><option key={category} value={category}>{category}</option>)}</select></label>}
           </div>
           {correctionErrors[index]&&<p className="error-message" role="alert">{correctionErrors[index]}</p>}
           <button type="button" className="btn btn-primary slip-correct-save" disabled={fixingIndex!==null||busy} onClick={()=>void saveCorrection(index)}><Check size={16}/>{fixingIndex===index?'กำลังบันทึก…':'บันทึกข้อมูลที่ตรวจแล้ว'}</button>

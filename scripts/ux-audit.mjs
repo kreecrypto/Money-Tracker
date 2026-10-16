@@ -54,12 +54,15 @@ try {
       const mobileHome=await page.evaluate(()=>{
         const el=name=>document.querySelector(name)?.getBoundingClientRect();
         const hero=el('.hero-card'),quick=el('.mobile-quick-actions'),today=el('.daily-snapshot'),recent=el('.transactions-surface'),categories=el('.home-spending-card'),nav=el('.mobile-bottom-nav');
-        return {correctHierarchy:!!(hero&&quick&&today&&recent&&categories&&quick.top<today.top&&today.top<recent.top&&recent.top<categories.top&&categories.top<hero.top),quickActionsVisible:!!(quick&&quick.width>0),bottomNavVisible:!!(nav&&nav.width===innerWidth)};
+        return {correctHierarchy:!!(hero&&quick&&today&&recent&&categories&&hero.top<quick.top&&quick.top<categories.top&&categories.top<recent.top&&recent.top<today.top),quickActionsVisible:!!(quick&&quick.width>0),bottomNavVisible:!!(nav&&nav.width===innerWidth)};
       });
       await page.locator('.mobile-action-scan').click();
       const openedOCR=await page.locator('.modal .slip-panel').isVisible();
       await page.locator('.modal .modal-heading button').click();
-      record('mobile-home-actions',name,{...mobileHome,openedOCR,pageErrors:errors});
+      record('mobile-home-actions',name,{...mobileHome,openedOCR,
+         quickActionCount:await page.locator('.mobile-quick-actions button').count(),
+         categoryIcons:await page.locator('.money-category-icon').count(),
+         pageErrors:errors});
     }
     const menu=['รายการ','รายงาน','ตั้งค่า'];
     const views=['transactions','reports','settings'];
@@ -194,7 +197,7 @@ try {
   console.log('AUDIT_SUMMARY_START');
   console.log(JSON.stringify(short,null,2));
   console.log('AUDIT_SUMMARY_END');
-  const focus=findings.filter(x=>['mobile320','tablet768'].includes(x.viewport)&&['home','reports','settings','slip-first-entry','manual-entry'].includes(x.view));
+  const focus=findings.filter(x=>['mobile320','iphone390','tablet768'].includes(x.viewport)&&['home','reports','settings','transactions','pending-slip-review-form','slip-first-entry','manual-entry'].includes(x.view));
   console.log('AXE_DETAILS_START');
   console.log(JSON.stringify(focus.map(x=>({viewport:x.viewport,view:x.view,violations:x.axe?.violations,smallTouchTargets:x.smallTouchTargets})),null,2));
   console.log('AXE_DETAILS_END');
@@ -207,7 +210,7 @@ try {
     ||(x.view==='pending-queue-smoke'&&(!x.homeBadge||x.pendingBefore!==1||x.pendingAfter!==0||!x.savedVisible||x.pageErrors?.length))
     ||(x.view==='restore-smoke'&&(!x.initiallyDisabled||!x.enabledAfterAcknowledgement||!x.closed||x.pageErrors?.length))
     ||(x.view==='local-reset-smoke'&&(!x.initiallyDisabled||!x.enabledAfterAcknowledgement||!x.dialogClosed||x.wiped?.transactions!==0||x.wiped?.pending!==0||x.wiped?.paired||x.pageErrors?.length))
-    ||(x.view==='mobile-home-actions'&&(!x.correctHierarchy||!x.quickActionsVisible||!x.bottomNavVisible||!x.openedOCR||x.pageErrors?.length))
+    ||(x.view==='mobile-home-actions'&&(!x.correctHierarchy||x.quickActionCount!==4||!x.quickActionsVisible||!x.bottomNavVisible||!x.openedOCR||x.pageErrors?.length))
     ||(x.view==='competitive-ledger-smoke'&&(!x.ledgerAvailable||!x.resetVisible||!x.searchReset||x.pageErrors?.length))
   ).map(x=>({viewport:x.viewport,view:x.view,overflowPx:x.overflowPx,axe:x.axe?.violations?.map(v=>v.id),savedVisible:x.savedVisible,restore:[x.initiallyDisabled,x.enabledAfterAcknowledgement,x.closed]}));
   if(critical.length){console.error('UX_ACCEPTANCE_FAIL',JSON.stringify(critical));process.exitCode=1;}
