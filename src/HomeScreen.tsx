@@ -118,7 +118,7 @@ function TransactionDetail({value,onClose}:{
    if(!d.open)d.showModal();
    return()=>{if(d.open)d.close();};
  },[]);
- return <dialog className="mt-home-detail" ref={ref} aria-labelledby="mt-home-detail-title" onClose={onClose} onClick={e=>{if(e.target===ref.current)onClose();}}>
+ return <dialog className="mt-home-detail" ref={ref} aria-labelledby="mt-home-detail-title" onCancel={e=>{e.preventDefault();onClose();}} onClick={e=>{if(e.target===ref.current)onClose();}}>
    <div className="mt-home-detail-inner">
      <div className="mt-home-detail-heading"><h2 id="mt-home-detail-title">รายละเอียดรายการ</h2><button type="button" onClick={onClose} aria-label="ปิดรายละเอียด">×</button></div>
      <strong className={value.type==='income'?'is-income':'is-expense'}>{value.type==='income'?'+':'−'} ฿ {baht(value.amountSatang)}</strong>
