@@ -200,9 +200,7 @@
 }
 .mt-transactions-screen .mt-search-field input {height:46px!important;min-height:0!important;line-height:1.35!important;}
 @media(max-width:660px){
-  /* On phones each reference screen owns its title. Keep desktop top-add CTA. */
-  .topbar:not(.topbar-home):has(+ .main-content .mt-reports-screen),
-  .topbar:not(.topbar-home):has(+ .main-content .mt-transactions-screen){display:none!important;}
+  /* All screens now share the Home brand header; screen titles remain their own. */
   .main-content:has(.mt-transactions-screen), .main-content:has(.mt-reports-screen){
     padding-top:max(16px,env(safe-area-inset-top,0px))!important;
   }
