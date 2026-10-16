@@ -448,7 +448,7 @@ export default function SlipScanner({onApply,onComplete,onBusyChange,onUndoBatch
           <strong>{rows[index]?.name||'ใบเสร็จ'}</strong>
           {rows[index]?.pendingId&&<p className="slip-queued-inline">เก็บเฉพาะข้อมูลรายการไว้ในเครื่องแล้ว · กลับมาตรวจภายหลังได้</p>}
           {reviewImageUrlsRef.current[index]&&<details className="slip-evidence"><summary>เปิดภาพสลิปเพื่อเทียบยอดเงินจริง</summary><img src={reviewImageUrlsRef.current[index]} alt={'ภาพสลิป '+(rows[index]?.name||'ที่รอตรวจ')+' สำหรับตรวจยอดจากต้นฉบับ'} loading="lazy"/><small>แสดงเฉพาะระหว่างเปิดหน้านี้ · ไม่เก็บภาพถาวร</small></details>}
-          {isTrueMoneyBankTopUp(draft.source)&&<div className="slip-wallet-guidance" role="note"><AlertTriangle size={17}/><span>นี่คือการเติมเงิน TrueMoney จาก K PLUS หากเป็นเงินออกจากบัญชีของคุณ ให้เลือก “เงินออก / รายจ่าย” เพื่อนับยอดจากธนาคารครั้งเดียว หากบันทึกการใช้จ่ายจาก Wallet เพิ่มภายหลัง อาจทำให้ยอดซ้ำ</span></div>}
+          {isTrueMoneyBankTopUp(draft.source)&&<div className="slip-wallet-guidance" role="note"><AlertTriangle size={17}/><span>ระบบจัดการเติมเงิน TrueMoney เป็นรายจ่ายจาก K PLUS ให้อัตโนมัติแล้ว รายการนี้ยังรอตรวจเพราะข้อมูล OCR บางส่วนขาดหรือขัดแย้งกัน โปรดตรวจข้อมูลให้ครบก่อนบันทึกและอย่านับการใช้เงินจาก Wallet ซ้ำ</span></div>}
           {isWalletFundingSlip(draft.source)&&<div className="slip-wallet-guidance" role="note"><AlertTriangle size={17}/><span>สลิปนี้อาจเป็นการย้ายเงินระหว่างกระเป๋าของตัวเอง หากไม่ต้องการนับเป็นรายจ่าย ให้เลือก “ไม่นับรายการนี้”</span></div>}
           <div className="slip-attention-fields">
             <label>จำนวนเงิน (บาท)<input inputMode="decimal" value={draft.amount} onChange={e=>changeCorrection(index,{amount:e.target.value})} placeholder="0.00"/></label>
