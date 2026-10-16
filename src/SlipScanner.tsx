@@ -74,6 +74,9 @@ export default function SlipScanner({onApply,onComplete,onBusyChange,onUndoBatch
   const [activeIndex,setActiveIndex]=useState(0);
   const [totalFiles,setTotalFiles]=useState(0);
   const [rows,setRows]=useState<SlipBatchRow[]>([]);
+  // Extracted display fields are held in component memory only; do not persist
+  // raw OCR text or image alongside transactions.
+  const [resultFields,setResultFields]=useState<Record<number,SlipFields>>({});
   const [corrections,setCorrections]=useState<Record<number,Correction>>({});
   const [correctionErrors,setCorrectionErrors]=useState<Record<number,string>>({});
   const [fixingIndex,setFixingIndex]=useState<number|null>(null);
@@ -127,7 +130,7 @@ export default function SlipScanner({onApply,onComplete,onBusyChange,onUndoBatch
     setBusy(true);setStopRequested(false);onBusyChange(true);
     for(const url of Object.values(reviewImageUrlsRef.current))URL.revokeObjectURL(url);
     reviewImageUrlsRef.current={};
-    setRows([]);setCorrections({});setCorrectionErrors({});setComplete(false);
+    setRows([]);setResultFields({});setCorrections({});setCorrectionErrors({});setComplete(false);
     setProgress(0);setStage('download');setActiveIndex(0);
     setTotalFiles(files.length);clearPreview();
     const processed:SlipBatchRow[]=[];
@@ -251,7 +254,9 @@ export default function SlipScanner({onApply,onComplete,onBusyChange,onUndoBatch
                   (error instanceof Error?error.message:'โปรดลองใหม่');
               }
             }
-            publish({name:file.name,...outcome,recipient:outcome.recipient||reading.recipient||undefined,amountSatang:outcome.amountSatang||reading.amountSatang||undefined,date:outcome.date||reading.date||undefined,direction:outcome.direction||reading.direction||undefined});
+            const resultIndex=processed.length;
+            if(mountedRef.current)setResultFields(previous=>({...previous,[resultIndex]:reading}));
+            publish({name:file.name,...outcome,recipient:outcome.recipient||reading.recipient||undefined,amountSatang:outcome.amountSatang??reading.amountSatang??undefined,date:outcome.date||reading.date||undefined,direction:outcome.direction||reading.direction||undefined});
             if(outcome.status==='incomplete'){
               // Keep the photo only in volatile browser memory for same-session
               // review. Do not persist or send it through the API.
@@ -395,8 +400,10 @@ export default function SlipScanner({onApply,onComplete,onBusyChange,onUndoBatch
   const summary=summarizeSlipBatch(rows);
   const savedTotals=savedSlipTotals(rows);
   const needsAttention=Object.entries(corrections).filter(([index])=>rows[Number(index)]?.status==='incomplete');
-  return <section className="slip-panel slip-panel-primary slip-workspace" aria-label="อัปโหลดสลิปหรือใบเสร็จหลายรูป">
-    <div className="slip-head"><div><ScanLine size={18}/><strong>เพิ่มสลิปหรือใบเสร็จ</strong></div></div>
+  const detail=rows.length===1?rows[0]:null;
+  const detailFields=detail?resultFields[0]:undefined;
+  return <section className="slip-panel slip-panel-primary slip-workspace mt-ocr-workspace" aria-label="อัปโหลดสลิปหรือใบเสร็จหลายรูป">
+    <div className="slip-head"><div><ScanLine size={18}/><strong>อัปโหลดสลิป</strong></div></div>
     {!busy&&!complete&&<p className="slip-hint">เพิ่มสลิปได้ครั้งละ 20 รูป ระบบจะอ่านและบันทึกเมื่อข้อมูลครบ โดยไม่เพิ่มรายการที่ตรวจพบว่าซ้ำ</p>}
     {!busy&&(!complete||needsAttention.length===0)&&<div className="slip-upload-box">
       <div className="slip-upload-icon" aria-hidden="true"><FileImage size={28}/></div>
@@ -420,7 +427,20 @@ export default function SlipScanner({onApply,onComplete,onBusyChange,onUndoBatch
         if(workerRef.current)void workerRef.current.terminate().catch(()=>{});
       }}><Square size={16}/> {stopRequested?'กำลังหยุด…':'หยุดรูปที่เหลือ'}</button>
     </div>}
-    {preview&&(busy||complete)&&<figure className="slip-preview ref-ocr-evidence"><img src={preview} alt={busy?'รูปสลิปที่กำลังประมวลผล':'รูปสลิปใบล่าสุดของชุดที่เลือก'}/><figcaption>{filename} · แสดงเฉพาะระหว่างเปิดหน้านี้ ไม่เก็บรูปถาวร</figcaption></figure>}
+    {preview&&(busy||complete)&&<figure className="slip-preview ref-ocr-evidence mt-ocr-preview"><img src={preview} alt={busy?'รูปสลิปที่กำลังประมวลผล':'รูปสลิปใบล่าสุดของชุดที่เลือก'}/><figcaption>{filename} · แสดงเฉพาะระหว่างเปิดหน้านี้ ไม่เก็บรูปถาวร</figcaption></figure>}
+    {complete&&detail&&<section className="mt-ocr-readout" aria-label="ข้อมูลที่อ่านได้จากสลิป">
+      <div className="mt-ocr-readout-head"><strong>ข้อมูลที่ตรวจพบ</strong><span className={'mt-ocr-readout-status '+detail.status}>{statusLabels[detail.status]}</span></div>
+      <dl>
+        <div><dt><CalendarDays size={15}/> วันที่</dt><dd>{detail.date||'อ่านไม่สำเร็จ'}</dd></div>
+        <div><dt><Clock3 size={15}/> เวลา</dt><dd>{detailFields?.time||'ยังไม่ทราบ'}</dd></div>
+        <div><dt><Wallet size={15}/> จำนวนเงิน</dt><dd>{detail.amountSatang!==undefined?'฿ '+baht(detail.amountSatang):'ต้องตรวจยอดเงิน'}</dd></div>
+        <div><dt><UserRound size={15}/> ผู้รับเงิน</dt><dd>{detail.recipient||'อ่านไม่ชัดเจน'}</dd></div>
+        <div><dt><Tag size={15}/> ประเภท</dt><dd>{detail.direction==='income'?'รายรับ':detail.direction==='expense'?'รายจ่าย':'รอแยกประเภทรายการ'}</dd></div>
+        {detailFields?.category&&<div><dt><Tag size={15}/> หมวดหมู่</dt><dd>{detailFields.category}</dd></div>}
+      </dl>
+      {detail.status==='saved'&&<p className="mt-ocr-readout-note"><CheckCircle2 size={16}/> บันทึกอัตโนมัติแล้ว ไม่ต้องกดบันทึกซ้ำ</p>}
+      {detail.status!=='saved'&&<p className="mt-ocr-readout-warning">สถานะ {statusLabels[detail.status]} — รายการนี้จะไม่ถูกนับเป็นรายรับหรือรายจ่าย เว้นแต่บันทึกสำเร็จ</p>}
+    </section>}
     {complete&&<div className={'slip-batch-summary ref-ocr-results'+(summary.incomplete+summary.errors>0?' requires-review':'')} role="status" aria-live="polite">
       <div className="slip-batch-summary-title">{summary.incomplete+summary.errors>0?<AlertTriangle size={18}/>:<CheckCircle2 size={18}/>}<strong>{slipBatchHeading(summary)}</strong></div>
       <div className="slip-batch-counts"><span>บันทึกแล้ว<b>{summary.saved}</b></span><span>ซ้ำ<b>{summary.duplicate}</b></span><span>รอตรวจ<b>{summary.incomplete}</b></span><span>อ่านไม่สำเร็จ<b>{summary.errors}</b></span>{(summary.excluded||0)>0&&<span>ไม่นับรายการ<b>{summary.excluded}</b></span>}</div>
