@@ -211,7 +211,6 @@ button svg, .money-category-icon svg { stroke-linecap: round; stroke-linejoin: r
   }
   .ref-ocr-modal .modal-heading>div { flex:1; text-align:center; margin-right:44px; }
   .ref-ocr-modal .modal-heading h2 { font-size:18px!important; font-weight:800; }
-  .ref-ocr-modal .slip-flow { display:none; }
   .ref-ocr-modal .slip-entry { margin:0 0 13px; }
   .ref-ocr-modal .slip-mode-picker { margin-bottom:4px; }
   .ref-ocr-modal .slip-upload-box {
@@ -248,4 +247,23 @@ button svg, .money-category-icon svg { stroke-linecap: round; stroke-linejoin: r
 }
 @media (prefers-reduced-motion:reduce) {
   .ref-report-budget-track>div { transition:none!important; }
+}
+
+
+/* WCAG AA contrast and touch-target corrections from real responsive audit. */
+.ref-section-heading>span, .ref-section-note { color:#425c4e!important; }
+.ref-report-budget-line, .ref-budget-footnote, .ref-ocr-evidence figcaption { color:#425c4e!important; }
+.ref-hero-month button { min-width:44px; min-height:44px; }
+.ref-hero-header>strong { min-width:0; font-size:12px; }
+.ref-hero-month { gap:0; max-width:67%; }
+.ref-hero-month span { min-width:0; font-size:10px; }
+.ref-ocr-modal .slip-flow {
+  display:flex!important; width:100%; margin:0 0 15px!important;
+  gap:5px; color:#405c4c; font-size:11px;
+}
+.ref-ocr-modal .slip-flow span { font-size:10px; white-space:normal; line-height:1.4; }
+.ref-ocr-modal .slip-flow .current { color:#08643d!important; border-color:#0f824b!important; }
+.transaction-page .filter-tabs button { min-height:44px!important; }
+@media(max-width:660px) {
+  .topbar-home h1 { color:#415c4b!important; }
 }
