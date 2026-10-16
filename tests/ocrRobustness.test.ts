@@ -3,6 +3,7 @@ import {parseSlipText,mergeSlipOcrReadings} from '../src/lib/slip';
 import {prepareAutoSlip} from '../src/lib/slipAutoSave';
 import {isLowOcrConfidence,requiresLowConfidenceReview} from '../src/lib/ocrConfidence';
 import {receiptRecoveryScale} from '../src/lib/slipImage';
+import {isKPlusPaymentForOcrRecovery} from '../src/lib/kplus';
 
 const kplus=(extra:string,amount='125.50 บาท')=>[
   'จ่ายบิลสำเร็จ',
@@ -15,6 +16,18 @@ const kplus=(extra:string,amount='125.50 บาท')=>[
   amount,
   extra,
 ].filter(Boolean).join('\n');
+
+describe('K PLUS focused OCR eligibility',()=>{
+  it('allows wallet top-up payment images into the amount-only retry',()=>{
+    expect(isKPlusPaymentForOcrRecovery('เติมเงินสำเร็จ\nธ.กสิกรไทย\nจำนวน:')).toBe(true);
+    expect(isKPlusPaymentForOcrRecovery('โอนเงินสำเร็จ\nK PLUS\nจำนวน:')).toBe(true);
+  });
+  it('never crops receipts, incoming alerts, or unrelated accounts as K PLUS payouts',()=>{
+    expect(isKPlusPaymentForOcrRecovery('7-Eleven\nยอดสุทธิ 225.00 บาท')).toBe(false);
+    expect(isKPlusPaymentForOcrRecovery('ธ.กสิกรไทย\nเงินเข้าบัญชี 225.00 บาท')).toBe(false);
+    expect(isKPlusPaymentForOcrRecovery('เติมเงินสำเร็จ\nธนาคารอื่น\nจำนวน:')).toBe(false);
+  });
+});
 
 describe('financially safe K PLUS OCR fallbacks',()=>{
   it('accepts consistent repeated amount labels',()=>{
