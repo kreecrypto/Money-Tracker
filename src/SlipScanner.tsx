@@ -1,6 +1,7 @@
 import {useEffect,useRef,useState,type ChangeEvent} from 'react';
 import {Camera,CheckCircle2,FileImage,ScanLine,ShieldCheck,Upload,Square,Undo2,AlertTriangle,Check,LoaderCircle,ClipboardPaste,CalendarDays,Clock3,Wallet,UserRound,Tag} from 'lucide-react';
 import {parseSlipText,mergeSlipOcrReadings,needsSlipOcrRecovery,describeMissingSlipAmount,type SlipFields} from './lib/slip';
+import {isKPlusPaymentForOcrRecovery} from './lib/kplus';
 import {prepareSlipRecoveryImage,prepareSlipOcrFile,findKPlusAmountCrop,prepareKPlusAmountCrop} from './lib/slipImage';
 import {isLowOcrConfidence,requiresLowConfidenceReview} from './lib/ocrConfidence';
 import {withOcrDeadline,OCR_MODEL_TIMEOUT_MS,OCR_PASS_TIMEOUT_MS,OcrDeadlineError} from './lib/ocrDeadline';
@@ -197,8 +198,7 @@ export default function SlipScanner({onApply,onComplete,onBusyChange,onUndoBatch
                   // both full-page OCR passes missed a K PLUS payment value.
                   // Contradictory numbers are NEVER overridden by cropping.
                   const kplusText=firstReading.rawText+' '+recoveredReading.rawText;
-                  const isKplus=/(?:ธ\.?\s*กสิกรไทย|ธนาคาร\s*กสิกรไทย|K\s*PLUS|kasikorn|kbank)/iu.test(kplusText)
-                    &&/(?:โอน\s*เงิน|จ่าย\s*บิล|ชำระ\s*เงิน|เติม\s*เงิน)\s*สำเร็จ/iu.test(kplusText);
+                  const isKplus=isKPlusPaymentForOcrRecovery(kplusText);
                   if(isKplus&&firstReading.amountSatang===null&&recoveredReading.amountSatang===null&&
                     !reading.warnings.some(w=>w.includes('ขัดแย้ง')||w.includes('ต่างกัน'))){
                     const region=findKPlusAmountCrop(retry.data.blocks,enhanced.width,enhanced.height);
