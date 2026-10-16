@@ -1,6 +1,6 @@
 import {useCallback,useEffect,useMemo,useRef,useState,type FormEvent} from 'react';
-import {ArrowDownLeft,ArrowRight,ArrowUpRight,BarChart3,CalendarDays,Check,ScanLine,ChevronLeft,ChevronRight,CloudOff,Download,FileSpreadsheet,Menu,MoreHorizontal,Pencil,Plus,Search,Settings as SettingsIcon,ShieldCheck,SlidersHorizontal,Trash2,TrendingDown,Upload,Wallet,WalletCards,X,House,ReceiptText,UtensilsCrossed,ShoppingBag,TrainFront,HandCoins,Ellipsis,} from 'lucide-react';
-import {baht,DEFAULT_SETTINGS,EXPENSE_CATEGORIES,expenseByCategory,INCOME_CATEGORIES,lastMonths,METHODS,monthLocal,monthly,summarize,todayLocal,toSatang,type EntryType,type Method,type Settings,type Transaction} from './lib/finance';
+import {ArrowDownLeft,ArrowRight,ArrowUpRight,BarChart3,CalendarDays,Check,ScanLine,ChevronLeft,CloudOff,Download,FileSpreadsheet,Menu,MoreHorizontal,Pencil,Plus,Settings as SettingsIcon,ShieldCheck,Trash2,Upload,Wallet,WalletCards,X,House,ReceiptText,UtensilsCrossed,ShoppingBag,TrainFront,HandCoins,Ellipsis,} from 'lucide-react';
+import {baht,DEFAULT_SETTINGS,EXPENSE_CATEGORIES,INCOME_CATEGORIES,METHODS,monthLocal,monthly,summarize,todayLocal,toSatang,type EntryType,type Method,type Settings,type Transaction} from './lib/finance';
 import {deleteTransaction,loadSettings,loadTransactions,replaceAll,saveSettings,saveTransaction,loadPendingSlips,savePendingSlip,deletePendingSlip} from './lib/storage';
 import {makePendingSlip,pendingToSlipFields,matchingPendingBySlipHash,type PendingSlip} from './lib/pendingSlips';
 import PendingSlipsInbox from './PendingSlipsInbox';
@@ -29,18 +29,6 @@ const pageLabels:Record<Page,string>={home:'ภาพรวม',transactions:'�
 const navItems=[{key:'home' as const,icon:House,label:'ภาพรวม'},{key:'transactions' as const,icon:ReceiptText,label:'รายการ'},{key:'reports' as const,icon:BarChart3,label:'รายงาน'},{key:'settings' as const,icon:SettingsIcon,label:'ตั้งค่า'}];
 const monthText=(value:string)=>{const [year,m]=value.split('-').map(Number);return new Intl.DateTimeFormat('th-TH',{month:'long',year:'numeric'}).format(new Date(year,m-1,1));};
 const dateText=(date:string)=>new Intl.DateTimeFormat('th-TH',{day:'numeric',month:'short',year:'numeric'}).format(new Date(`${date}T12:00:00`));
-const percent=(n:number,d:number)=>d<=0?0:Math.round(n/d*100);
-const SPENDING_COLORS=['#16a34a','#fb6674','#3b82f6','#f59e0b','#a855f7'] as const;
-function spendingGradient(totals:readonly number[],grandTotal:number):string{
-  if(grandTotal<=0)return 'conic-gradient(#e8efec 0% 100%)';
-  let cursor=0;
-  const parts=totals.slice(0,4).map((amount,index)=>{
-    const start=cursor;cursor+=Math.max(0,amount)/grandTotal*100;
-    return `${SPENDING_COLORS[index]} ${start.toFixed(3)}% ${Math.min(cursor,100).toFixed(3)}%`;
-  });
-  if(cursor<100)parts.push(`${SPENDING_COLORS[4]} ${cursor.toFixed(3)}% 100%`);
-  return `conic-gradient(${parts.join(',')})`;
-}
 function CategoryGlyph({category,type}:{category:string;type:EntryType}){
   const food=/อาหาร|ข้าว|กาแฟ|เครื่องดื่ม|ร้าน|restaurant|cafe/i.test(category);
   const shop=/ซื้อ|ช้อป|สินค้า|shopping|shopee/i.test(category);
@@ -53,10 +41,6 @@ const uuid=()=>typeof crypto!=='undefined'&&'randomUUID' in crypto?crypto.random
 
 function Logo(){return <div className="brand"><div className="brand-logo">฿<span className="brand-dot"/></div><span className="brand-text">เงินวันนี้<small>DAILY MONEY</small></span></div>}
 function Empty({title,description,add,actionLabel='เพิ่มรายการ'}:{title:string;description:string;add?:()=>void;icon?:string;actionLabel?:string}){return <div className="empty"><div className="empty-symbol" aria-hidden="true"><WalletCards size={30} strokeWidth={1.5}/></div><b>{title}</b><p>{description}</p>{add&&<button className="btn btn-primary" onClick={add}><Plus size={16}/> {actionLabel}</button>}</div>}
-function MoneyCard({title,value,icon,variation}:{title:string;value:number;icon:'income'|'expense'|'net';variation?:string}){
-  const Icon=icon==='income'?ArrowDownLeft:icon==='expense'?ArrowUpRight:Wallet;
-  return <div className={`metric ${icon}`}><div className="metric-top"><span>{title}</span><span className="metric-icon"><Icon size={18}/></span></div><div className="metric-number">฿{baht(value)}</div><span className="metric-foot">{variation||'ยอดรวมในเดือนที่เลือก'}</span></div>;
-}
 function TransactionRow({entry,onEdit,onDelete}:{entry:Transaction;onEdit:(t:Transaction)=>void;onDelete:(t:Transaction)=>void}){
   const [actionsOpen,setActionsOpen]=useState(false);
   const actionsRef=useRef<HTMLDivElement>(null);
@@ -278,12 +262,7 @@ export default function App(){
   useEffect(()=>{if(!toast)return;const id=window.setTimeout(()=>setToast(''),3500);return()=>window.clearTimeout(id);},[toast]);
   const selected=useMemo(()=>monthly(items,month),[items,month]);
   const sums=useMemo(()=>summarize(selected),[selected]);
-  const allSums=useMemo(()=>summarize(items),[items]);
-  const byCategory=useMemo(()=>expenseByCategory(selected),[selected]);
-  const usedBudget=percent(sums.expense,settings.monthlyBudgetSatang);
   const filtered=useMemo(()=>selected.filter(x=>(filter==='all'||x.type===filter) && (!search.trim()||`${x.category} ${x.note} ${x.recipient||''} ${x.time||''} ${x.receipt?.receiptId||''} ${(x.receipt?.items||[]).map(i=>i.name).join(' ')} ${METHODS[x.method]}`.toLocaleLowerCase('th-TH').includes(search.trim().toLocaleLowerCase('th-TH')))),[selected,filter,search]);
-  const history=useMemo(()=>{const [y,m]=month.split('-').map(Number);return lastMonths(6,new Date(y,m-1,1)).map(period=>({...period,...summarize(monthly(items,period.key))}));},[items,month]);
-  const maxBar=Math.max(1,...history.map(x=>Math.max(x.income,x.expense)));
   const openReview=()=>{setInboxTab(true);setSlipInboxTab(false);setView('transactions');};
   const openPendingSlips=()=>{setInboxTab(false);setSlipInboxTab(true);setView('transactions');};
   const openAdd=()=>{setScanOnOpen(true);setEditing(null);setModalOpen(true)};
