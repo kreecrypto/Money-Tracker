@@ -1,0 +1,209 @@
+import {useEffect,useMemo,useRef,useState} from 'react';
+import {createPortal} from 'react-dom';
+import {
+  ArrowDownLeft, ArrowRight, ArrowUpRight, BarChart3, Bell, Camera,
+  ChevronDown, CircleUserRound, List, Settings2, Sprout, Target,
+  UtensilsCrossed, ShoppingBag, TrainFront, HandCoins, Ellipsis, Wallet,
+} from 'lucide-react';
+import {baht, METHODS, type Transaction} from './lib/finance';
+
+type Props={
+  month:string;
+  monthLabel:string;
+  net:number;
+  income:number;
+  expense:number;
+  recent:Transaction[];
+  onMonthChange:(month:string)=>void;
+  onUpload:()=>void;
+  onTransactions:()=>void;
+  onReports:()=>void;
+  onBudget:()=>void;
+  onSettings:()=>void;
+};
+
+export function HomeTopbar({pendingCount,onNotifications,onSettings}:{
+  pendingCount:number;onNotifications:()=>void;onSettings:()=>void;
+}){
+  return <div className="mt-home-topbar">
+    <div className="mt-home-brand-row">
+      <span className="mt-home-brand-icon" aria-hidden="true"><Sprout size={23} strokeWidth={2.8}/></span>
+      <strong className="mt-home-brand-name">เงินวันนี้</strong>
+      <div className="mt-home-header-actions">
+        <button type="button" className="mt-home-header-button" aria-label={pendingCount>0?`การแจ้งเตือน: มีสลิปรอตรวจ ${pendingCount} รายการ`:'การแจ้งเตือน'} onClick={onNotifications}>
+          <Bell size={21} strokeWidth={2.1}/>{pendingCount>0&&<span className="mt-home-alert-dot"/>}
+        </button>
+        <button type="button" className="mt-home-avatar" aria-label="ตั้งค่าของฉัน" onClick={onSettings}><CircleUserRound size={23}/></button>
+      </div>
+    </div>
+    <p className="mt-home-hello">สวัสดี ☀️</p>
+    <p className="mt-home-subtitle">มาดูสุขภาพการเงินของคุณกันเลย</p>
+  </div>;
+}
+
+function RecentIcon({transaction}:{transaction:Transaction}){
+  const c=transaction.category;
+  const food=/อาหาร|กาแฟ|เครื่องดื่ม|ร้าน/i.test(c);
+  const shop=/ซื้อ|ช้อป|สินค้า|shopping/i.test(c);
+  const ride=/รถ|เดินทาง|ขนส่ง|bts/i.test(c);
+  const Icon=transaction.type==='income'?HandCoins:food?UtensilsCrossed:shop?ShoppingBag:ride?TrainFront:Ellipsis;
+  return <span className={`mt-home-transaction-icon ${transaction.type==='income'?'is-income':food?'is-food':shop?'is-shop':ride?'is-ride':'is-other'}`} aria-hidden="true"><Icon size={18} strokeWidth={2.2}/></span>;
+}
+
+function shortDate(date:string,time?:string){
+  const parts=date.split('-').map(Number);
+  if(parts.length!==3||parts.some(x=>!Number.isFinite(x)))return date;
+  const d=new Date(parts[0],parts[1]-1,parts[2]);
+  const label=new Intl.DateTimeFormat('th-TH',{day:'numeric',month:'short',year:'numeric'}).format(d);
+  return time?`${label} ${time}`:`${label}`;
+}
+
+
+function chooseMonthKeys(value:string):{key:string;label:string}[]{
+  const [year,number]=value.split('-').map(Number);
+  if(!Number.isInteger(year)||!Number.isInteger(number)||number<1||number>12)return [];
+  // 13 months, centered on currently selected month; works for historic records.
+  return Array.from({length:13},(_,index)=>{
+    const d=new Date(year,number-1+index-6,1);
+    return {key:`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`,label:new Intl.DateTimeFormat('th-TH',{month:'short',year:'numeric'}).format(d)};
+  });
+}
+function MonthChooser({month,label,onChange}:{
+ month:string;label:string;onChange:(value:string)=>void
+}){
+  const [isOpen,setOpen]=useState(false);
+  const triggerRef=useRef<HTMLButtonElement>(null);
+  const menuRef=useRef<HTMLDivElement>(null);
+  const [position,setPosition]=useState({top:0,right:16});
+  const options=useMemo(()=>chooseMonthKeys(month),[month]);
+  useEffect(()=>{
+    if(!isOpen)return;
+    const place=()=>{
+      const r=triggerRef.current?.getBoundingClientRect();
+      if(!r)return;
+      setPosition({top:Math.min(r.bottom+6,window.innerHeight-265),right:Math.max(12,window.innerWidth-r.right)});
+    };
+    const outside=(event:PointerEvent)=>{
+      if(event.target instanceof Node&&!menuRef.current?.contains(event.target)&&!triggerRef.current?.contains(event.target))setOpen(false);
+    };
+    const escape=(event:KeyboardEvent)=>{if(event.key==='Escape'){setOpen(false);triggerRef.current?.focus();}};
+    place();
+    window.addEventListener('resize',place);
+    window.addEventListener('scroll',place,true);
+    document.addEventListener('pointerdown',outside);
+    document.addEventListener('keydown',escape);
+    return()=>{
+      window.removeEventListener('resize',place);
+      window.removeEventListener('scroll',place,true);
+      document.removeEventListener('pointerdown',outside);
+      document.removeEventListener('keydown',escape);
+    };
+  },[isOpen]);
+  return <div className="mt-home-month-control">
+    <button ref={triggerRef} type="button" className="mt-home-month-picker" aria-haspopup="listbox" aria-expanded={isOpen} aria-controls="mt-home-month-menu" aria-label={'เลือกเดือน '+label} onClick={()=>setOpen(x=>!x)}>
+      <span>{label} <ChevronDown size={14}/></span>
+    </button>
+    {isOpen&&createPortal(<div ref={menuRef} id="mt-home-month-menu" className="mt-home-month-popover" role="listbox" aria-label="เลือกเดือนของภาพรวม" style={{top:position.top,right:position.right}}>
+      {options.map(item=><button type="button" key={item.key} role="option" aria-selected={item.key===month} className={item.key===month?'selected':''} onClick={()=>{onChange(item.key);setOpen(false);triggerRef.current?.focus();}}>{item.label}</button>)}
+    </div>,document.body)}
+  </div>;
+}
+function TransactionDetail({value,onClose}:{
+ value:Transaction;onClose:()=>void
+}){
+ const ref=useRef<HTMLDialogElement>(null);
+ useEffect(()=>{
+   const d=ref.current;
+   if(!d)return;
+   if(!d.open)d.showModal();
+   return()=>{if(d.open)d.close();};
+ },[]);
+ return <dialog className="mt-home-detail" ref={ref} aria-labelledby="mt-home-detail-title" onCancel={e=>{e.preventDefault();onClose();}} onClick={e=>{if(e.target===ref.current)onClose();}}>
+   <div className="mt-home-detail-inner">
+     <div className="mt-home-detail-heading"><h2 id="mt-home-detail-title">รายละเอียดรายการ</h2><button type="button" onClick={onClose} aria-label="ปิดรายละเอียด">×</button></div>
+     <strong className={value.type==='income'?'is-income':'is-expense'}>{value.type==='income'?'+':'−'} ฿ {baht(value.amountSatang)}</strong>
+     <dl>
+       <div><dt>รายการ</dt><dd>{value.recipient||value.note||value.category}</dd></div>
+       <div><dt>วันที่และเวลา</dt><dd>{shortDate(value.date,value.time)}</dd></div>
+       <div><dt>ประเภท</dt><dd>{value.type==='income'?'รายรับ':'รายจ่าย'}</dd></div>
+       <div><dt>หมวดหมู่</dt><dd>{value.category}</dd></div>
+       <div><dt>ช่องทาง</dt><dd>{METHODS[value.method]}</dd></div>
+     </dl>
+     <button type="button" className="mt-home-detail-done" onClick={onClose}>ปิดรายละเอียด</button>
+   </div>
+ </dialog>;
+}
+
+export default function HomeScreen({
+  month,monthLabel,net,income,expense,recent,
+  onMonthChange,onUpload,onTransactions,onReports,onBudget,onSettings
+}:Props){
+  const [detail,setDetail]=useState<Transaction|null>(null);
+  const shortcuts=[
+    {key:'transactions',name:'รายการ',Icon:List,onClick:onTransactions},
+    {key:'reports',name:'รายงาน',Icon:BarChart3,onClick:onReports},
+    {key:'budget',name:'งบประมาณ',Icon:Target,onClick:onBudget},
+    {key:'settings',name:'ตั้งค่า',Icon:Settings2,onClick:onSettings},
+  ];
+  return <div className="home-dashboard mt-home-screen" aria-label="หน้าแรก เงินวันนี้">
+    <section className="summary-grid mt-home-summary" aria-label="ภาพรวมรายเดือน">
+      <div className="hero-card mt-home-balance">
+        <div className="mt-home-balance-decoration" aria-hidden="true">
+          <svg viewBox="0 0 98 105" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M43 106C52 68 67 48 89 29" stroke="#477D4B" strokeWidth="2.3" strokeLinecap="round"/>
+            <path d="M62 70C34 75 27 55 31 40C52 42 62 51 62 70Z" fill="#92CF77"/>
+            <path d="M76 49C56 43 58 24 69 14C84 27 88 38 76 49Z" fill="#78BD60"/>
+            <path d="M81 43C89 27 93 21 98 19V46C93 49 87 49 81 43Z" fill="#4DAD5B"/>
+            <path d="M48 93C24 102 13 83 17 70C37 71 46 79 48 93Z" fill="#BDE49C"/>
+            <path d="M35 88h54l-5 18H42z" fill="#f2fdf1" opacity=".92"/>
+            <ellipse cx="62" cy="87" rx="27" ry="5" fill="#fff" opacity=".9"/>
+          </svg>
+        </div>
+        <div className="mt-home-balance-header">
+          <span>ภาพรวมเดือนนี้</span>
+          <MonthChooser month={month} label={monthLabel} onChange={onMonthChange}/>
+        </div>
+        <div className="mt-home-total-label">ยอดสุทธิจากรายการ</div>
+        <strong className="mt-home-total">฿ {baht(net)}</strong>
+        <span className="mt-home-net-note">ไม่ใช่ยอดเงินจริงในบัญชีธนาคาร</span>
+        <div className="mt-home-balance-splits">
+          <div className="mt-home-split">
+            <div className="mt-home-split-head"><span className="mt-home-split-icon is-income"><ArrowDownLeft size={15}/></span> รายรับ</div>
+            <strong>฿ {baht(income)}</strong>
+            <small>เดือนที่เลือก</small>
+          </div>
+          <div className="mt-home-split">
+            <div className="mt-home-split-head"><span className="mt-home-split-icon is-expense"><ArrowUpRight size={15}/></span> รายจ่าย</div>
+            <strong>฿ {baht(expense)}</strong>
+            <small>เดือนที่เลือก</small>
+          </div>
+        </div>
+      </div>
+    </section>
+    <button className="ref-home-upload mobile-action-scan mt-home-upload" type="button" onClick={onUpload}>
+      <span className="mt-home-camera"><Camera size={25} strokeWidth={2.7}/></span>
+      <span><strong>อัปโหลดสลิป</strong><small>เพิ่มรายการจากสลิปธนาคาร</small></span>
+    </button>
+    <section className="mobile-quick-actions mt-home-shortcuts" aria-label="เมนูลัด">
+      <div className="mt-home-section-heading"><h2>เมนูลัด</h2><span>เลือกเมนูที่ต้องการ</span></div>
+      <div className="mt-home-shortcut-grid">
+        {shortcuts.map(({key,name,Icon,onClick})=><button type="button" className="mt-home-shortcut" key={key} onClick={onClick}>
+          <span><Icon size={22} strokeWidth={2.1}/></span><strong>{name}</strong>
+        </button>)}
+      </div>
+    </section>
+    <section className="surface transactions-surface mt-home-recent" aria-label="รายการล่าสุด">
+      <div className="mt-home-section-heading"><h2>รายการล่าสุด</h2><button type="button" onClick={onTransactions}>ดูทั้งหมด <ArrowRight size={15}/></button></div>
+      {recent.length?
+        <div className="mt-home-transaction-list">
+          {recent.slice(0,3).map(tx=><button type="button" className="mt-home-transaction" key={tx.id} onClick={()=>setDetail(tx)} aria-label={`ดูรายละเอียด ${tx.recipient||tx.note||tx.category}`}>
+            <RecentIcon transaction={tx}/>
+            <span className="mt-home-transaction-text"><strong>{tx.recipient||tx.note||tx.category}</strong><small>{shortDate(tx.date,tx.time)}</small></span>
+            <b className={tx.type==='income'?'is-income':'is-expense'}>{tx.type==='income'?'+':'−'} ฿ {baht(tx.amountSatang)}</b>
+          </button>)}
+        </div>
+       :<div className="mt-home-empty"><Wallet size={22}/><p>ยังไม่มีรายการในเดือนนี้</p><button type="button" onClick={onUpload}>เริ่มต้นด้วยสลิปใบแรก</button></div>}
+    </section>
+    {detail&&<TransactionDetail value={detail} onClose={()=>setDetail(null)}/>}
+  </div>;
+}

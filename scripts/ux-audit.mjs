@@ -53,14 +53,14 @@ try {
     if(width<=660){
       const mobileHome=await page.evaluate(()=>{
         const el=name=>document.querySelector(name)?.getBoundingClientRect();
-        const hero=el('.hero-card'),cta=el('.ref-home-upload'),quick=el('.mobile-quick-actions'),today=el('.daily-snapshot'),recent=el('.transactions-surface'),categories=el('.home-spending-card'),nav=el('.mobile-bottom-nav');
-        return {correctHierarchy:!!(hero&&quick&&today&&recent&&categories&&hero.top<cta.top&&cta.top<quick.top&&quick.top<recent.top&&recent.top<categories.top&&categories.top<today.top),quickActionsVisible:!!(quick&&quick.width>0),bottomNavVisible:!!(nav&&nav.width===innerWidth)};
+        const hero=el('.mt-home-balance'),cta=el('.mt-home-upload'),quick=el('.mt-home-shortcuts'),recent=el('.mt-home-recent'),nav=el('.mobile-bottom-nav');
+        return {correctHierarchy:!!(hero&&cta&&quick&&recent&&hero.top<cta.top&&cta.top<quick.top&&quick.top<recent.top),quickActionsVisible:!!(quick&&quick.width>0),bottomNavVisible:!!(nav&&nav.width===innerWidth)};
       });
       await page.locator('.mobile-action-scan').click();
       const openedOCR=await page.locator('.modal .slip-panel').isVisible();
       await page.locator('.modal .modal-heading button').click();
       record('mobile-home-actions',name,{...mobileHome,openedOCR,
-         quickActionCount:await page.locator('.mobile-quick-actions button').count(),
+         quickActionCount:await page.locator('.mt-home-shortcut-grid button').count(),
          categoryIcons:await page.locator('.money-category-icon').count(),
          pageErrors:errors});
     }

@@ -33,16 +33,29 @@ try{
       await saveTransaction({id:'safari-fixture-expense',type:'expense',amountSatang:775000,date:day,category:'อาหารและเครื่องดื่ม',note:'อาหารทดสอบ',method:'bank',createdAt:Date.now()});
     });
     await page.reload({waitUntil:'networkidle'});
-    await page.locator('.spending-donut').waitFor({timeout:10000});
+    await page.locator('.mt-home-transaction').first().waitFor({timeout:10000});
     const home=await page.evaluate(()=>{
       const rect=(selector)=>document.querySelector(selector)?.getBoundingClientRect();
-      const hero=rect('.hero-card'),cta=rect('.ref-home-upload'),quick=rect('.mobile-quick-actions'),spending=rect('.home-spending-card'),recent=rect('.transactions-surface'),navigation=rect('.mobile-bottom-nav');
+      const hero=rect('.mt-home-balance'),cta=rect('.mt-home-upload'),quick=rect('.mt-home-shortcuts'),recent=rect('.mt-home-recent'),navigation=rect('.mobile-bottom-nav');
       const icons=Array.from(document.querySelectorAll('.mobile-bottom-nav button svg')).map(el=>{const r=el.getBoundingClientRect();return {width:r.width,height:r.height};});
-      return {overflow:Math.max(0,document.documentElement.scrollWidth-innerWidth),order:!!(hero&&quick&&spending&&recent&&hero.top<cta.top&&cta.top<quick.top&&quick.top<recent.top&&recent.top<spending.top),
-        actionCount:document.querySelectorAll('.mobile-quick-actions button').length,navCount:document.querySelectorAll('.mobile-bottom-nav button').length,
+      return {overflow:Math.max(0,document.documentElement.scrollWidth-innerWidth),order:!!(hero&&cta&&quick&&recent&&hero.top<cta.top&&cta.top<quick.top&&quick.top<recent.top),
+        actionCount:document.querySelectorAll('.mt-home-shortcut-grid button').length,navCount:document.querySelectorAll('.mobile-bottom-nav button').length,
         navVisible:!!(navigation&&navigation.top>=0&&navigation.bottom<=innerHeight+2),icons};
     });
     await page.screenshot({path:`${directory}/${label}-home.png`,fullPage:true});
+    // The V2 prototype month menu must not be clipped by the green card.
+    await page.locator('.mt-home-month-picker').click();
+    const monthOptions=await page.locator('.mt-home-month-popover [role="option"]').count();
+    const menuUnclipped=await page.locator('.mt-home-month-popover').evaluate(el=>{
+      const r=el.getBoundingClientRect();
+      return r.left>=0&&r.right<=innerWidth+1&&r.top>=0&&r.bottom<=innerHeight+1;
+    });
+    await page.keyboard.press('Escape');
+    const monthCloses=await page.locator('.mt-home-month-popover').count()===0;
+    await page.locator('.mt-home-transaction').first().click();
+    const detailsOpen=await page.locator('.mt-home-detail[open]').isVisible();
+    await page.locator('.mt-home-detail-done').click();
+    const detailsClose=await page.locator('.mt-home-detail[open]').count()===0;
     await page.locator('.mobile-bottom-nav button').nth(1).click();
     const transactions=await page.locator('.transaction-financial-summary>div').count();
     const list=await page.locator('.transaction-page').isVisible();
@@ -70,13 +83,13 @@ try{
     await page.locator('.mobile-bottom-nav button').nth(3).click();
     const settings=await page.getByText('เกี่ยวกับแอป').isVisible();
     await page.screenshot({path:`${directory}/${label}-settings.png`,fullPage:true});
-    findings.push({label,home,transactions,list,scanner,scannerColors,readableScanner,trendsOnly,noReportsFab,settings,errors});
+    findings.push({label,home,monthOptions,menuUnclipped,monthCloses,detailsOpen,detailsClose,transactions,list,scanner,scannerColors,readableScanner,trendsOnly,noReportsFab,settings,errors});
     await context.close();
   }
   fs.writeFileSync(`${directory}/webkit-report.json`,JSON.stringify(findings,null,2));
   console.log('WEBKIT_SAFARI_VISUAL_RESULTS',JSON.stringify(findings));
   const failed=findings.filter(f=>f.home.overflow>1||!f.home.order||f.home.actionCount!==4||f.home.navCount!==4||
-    !f.home.navVisible||f.home.icons.some(icon=>icon.width<20||icon.height<20)||f.transactions!==2||!f.list||!f.scanner||!f.readableScanner||!f.trendsOnly||!f.noReportsFab||!f.settings||f.errors.length);
+    !f.home.navVisible||f.home.icons.some(icon=>icon.width<20||icon.height<20)||f.monthOptions!==13||!f.menuUnclipped||!f.monthCloses||!f.detailsOpen||!f.detailsClose||f.transactions!==2||!f.list||!f.scanner||!f.readableScanner||!f.trendsOnly||!f.noReportsFab||!f.settings||f.errors.length);
   if(failed.length){console.error('WEBKIT_SAFARI_VISUAL_FAIL',JSON.stringify(failed));process.exitCode=1;}
   else console.log('WEBKIT_SAFARI_VISUAL_PASS: 3 phone sizes, balance, donut, icons, tabbar, scan, transactions, settings');
 }catch(error){
