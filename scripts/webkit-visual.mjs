@@ -49,18 +49,34 @@ try{
     await page.screenshot({path:`${directory}/${label}-transactions.png`,fullPage:true});
     await page.locator('.mobile-fab').click();
     const scanner=await page.locator('.slip-upload-box').isVisible();
+    const scannerColors=await page.evaluate(()=>{
+      const title=document.querySelector('.ref-ocr-modal .slip-upload-box>strong');
+      const glyph=document.querySelector('.ref-ocr-modal .slip-upload-icon');
+      return {title:title?getComputedStyle(title).color:null,glyph:glyph?getComputedStyle(glyph).color:null};
+    });
+    const readableScanner=['title','glyph'].every(k=>{
+      const value=scannerColors[k];
+      if(!value)return false;
+      const rgb=value.match(/\\d+/g)?.slice(0,3).map(Number)||[];
+      return rgb.length===3&&rgb[0]<110&&rgb[1]<140&&rgb[2]<110;
+    });
     await page.screenshot({path:`${directory}/${label}-slip-upload.png`,fullPage:true});
     await page.locator('.modal-heading button').click();
+    await page.locator('.mobile-bottom-nav button').nth(2).click();
+    await page.locator('.ref-report-tabs button').nth(2).click();
+    const trendsOnly=await page.locator('#report-trends').isVisible()&&await page.locator('#report-budget').count()===0;
+    const noReportsFab=await page.locator('.mobile-fab').isHidden();
+    await page.screenshot({path:`${directory}/${label}-report-trends.png`,fullPage:true});
     await page.locator('.mobile-bottom-nav button').nth(3).click();
     const settings=await page.getByText('เกี่ยวกับแอป').isVisible();
     await page.screenshot({path:`${directory}/${label}-settings.png`,fullPage:true});
-    findings.push({label,home,transactions,list,scanner,settings,errors});
+    findings.push({label,home,transactions,list,scanner,scannerColors,readableScanner,trendsOnly,noReportsFab,settings,errors});
     await context.close();
   }
   fs.writeFileSync(`${directory}/webkit-report.json`,JSON.stringify(findings,null,2));
   console.log('WEBKIT_SAFARI_VISUAL_RESULTS',JSON.stringify(findings));
   const failed=findings.filter(f=>f.home.overflow>1||!f.home.order||f.home.actionCount!==4||f.home.navCount!==4||
-    !f.home.navVisible||f.home.icons.some(icon=>icon.width<20||icon.height<20)||f.transactions!==2||!f.list||!f.scanner||!f.settings||f.errors.length);
+    !f.home.navVisible||f.home.icons.some(icon=>icon.width<20||icon.height<20)||f.transactions!==2||!f.list||!f.scanner||!f.readableScanner||!f.trendsOnly||!f.noReportsFab||!f.settings||f.errors.length);
   if(failed.length){console.error('WEBKIT_SAFARI_VISUAL_FAIL',JSON.stringify(failed));process.exitCode=1;}
   else console.log('WEBKIT_SAFARI_VISUAL_PASS: 3 phone sizes, balance, donut, icons, tabbar, scan, transactions, settings');
 }catch(error){
