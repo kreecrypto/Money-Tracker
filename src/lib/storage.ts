@@ -26,6 +26,15 @@ function getDB():Promise<IDBDatabase>{
 function request<T>(req:IDBRequest<T>):Promise<T>{return new Promise((resolve,reject)=>{req.onsuccess=()=>resolve(req.result);req.onerror=()=>reject(req.error);});}
 export async function loadTransactions(){ const db=await getDB(); const data=await request<Transaction[]>(db.transaction(STORE,'readonly').objectStore(STORE).getAll()); return data.filter(isValidTransaction).sort((a,b)=>b.date.localeCompare(a.date)||(b.time||'').localeCompare(a.time||'')||b.createdAt-a.createdAt); }
 export async function saveTransaction(item:Transaction){const db=await getDB(); const tx=db.transaction(STORE,'readwrite'); await request(tx.objectStore(STORE).put(item)); await completed(tx);}
+/** Clear only this browser's Money Tracker data. Never touches Supabase. */
+export async function clearLocalData():Promise<void>{
+  const db=await getDB();
+  const tx=db.transaction([STORE,SETTINGS,PENDING],'readwrite');
+  tx.objectStore(STORE).clear();
+  tx.objectStore(SETTINGS).clear();
+  tx.objectStore(PENDING).clear();
+  await completed(tx);
+}
 export async function deleteTransaction(id:string){const db=await getDB();const tx=db.transaction(STORE,'readwrite');await request(tx.objectStore(STORE).delete(id));await completed(tx);}
 export async function loadSettings():Promise<Settings>{
   const db=await getDB();const tx=db.transaction(SETTINGS,'readonly');const store=tx.objectStore(SETTINGS);
