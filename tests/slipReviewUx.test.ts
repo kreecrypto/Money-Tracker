@@ -31,8 +31,8 @@ describe('slip review UX safety',()=>{
     })).toBe(false);
   });
   it('shows a warning headline rather than blanket success for partially completed batches',()=>{
-    expect(slipBatchHeading({total:3,saved:1,incomplete:1,errors:1})).toContain('ยังต้องตรวจ 2');
-    expect(slipBatchHeading({total:2,saved:0,incomplete:2,errors:0})).toContain('ยังมี 2 รูป');
+    expect(slipBatchHeading({total:3,saved:1,incomplete:1,errors:1})).toContain('รอตรวจข้อมูล 1 รูป · อ่านไม่สำเร็จ 1 รูป');
+    expect(slipBatchHeading({total:2,saved:0,incomplete:2,errors:0})).toContain('รอตรวจข้อมูล 2 รูป');
     expect(slipBatchHeading({total:3,saved:3,incomplete:0,errors:0})).toContain('บันทึกสลิปสำเร็จ 3');
     expect(slipBatchHeading({total:1,saved:0,incomplete:0,errors:0})).toContain('ตรวจสลิปครบ');
   });
