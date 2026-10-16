@@ -6,6 +6,7 @@ import {makePendingSlip,pendingToSlipFields,matchingPendingBySlipHash,type Pendi
 import PendingSlipsInbox from './PendingSlipsInbox';
 import {createBackup,downloadText,parseBackup,toCsv} from './lib/backup';
 import SlipScanner from './SlipScanner';
+import HomeScreen,{HomeTopbar} from './HomeScreen';
 import RestoreDialog from './RestoreDialog';
 import ResetDataDialog from './ResetDataDialog';
 import {eraseLocalMoneyTrackerData} from './lib/localDataReset';
@@ -23,7 +24,7 @@ import {APP_VERSION,APP_BUILD_SHA,APP_BUILT_AT,hasNewBundle} from './lib/appVers
 type Page='home'|'transactions'|'reports'|'settings';
 type Filter='all'|'income'|'expense';
 const pageLabels:Record<Page,string>={home:'ภาพรวม',transactions:'รายการ',reports:'รายงาน',settings:'ตั้งค่า'};
-const navItems=[{key:'home' as const,icon:LayoutDashboard,label:'ภาพรวม'},{key:'transactions' as const,icon:WalletCards,label:'รายการ'},{key:'reports' as const,icon:BarChart3,label:'รายงาน'},{key:'settings' as const,icon:SettingsIcon,label:'ตั้งค่า'}];
+const navItems=[{key:'home' as const,icon:House,label:'ภาพรวม'},{key:'transactions' as const,icon:ReceiptText,label:'รายการ'},{key:'reports' as const,icon:BarChart3,label:'รายงาน'},{key:'settings' as const,icon:SettingsIcon,label:'ตั้งค่า'}];
 const monthText=(value:string)=>{const [year,m]=value.split('-').map(Number);return new Intl.DateTimeFormat('th-TH',{month:'long',year:'numeric'}).format(new Date(year,m-1,1));};
 const dateText=(date:string)=>new Intl.DateTimeFormat('th-TH',{day:'numeric',month:'short',year:'numeric'}).format(new Date(`${date}T12:00:00`));
 const percent=(n:number,d:number)=>d<=0?0:Math.round(n/d*100);
@@ -386,60 +387,31 @@ export default function App(){
   if(!ready) return <div className="loading-screen"><div className="loading-icon">฿</div>กำลังเปิดสมุดบันทึกของคุณ...</div>;
   if(loadingError) return <div className="loading-screen"><span>⚠️</span><h2>ไม่สามารถเปิดข้อมูลได้</h2><p>{loadingError}</p><button className="btn btn-primary" onClick={()=>window.location.reload()}>ลองอีกครั้ง</button></div>;
   return <div className="app-shell"><a href="#main-content" className="skip-link">ข้ามไปยังเนื้อหาหลัก</a><aside className="sidebar"><Logo/><div className="workspace-label">เมนูหลัก</div><nav aria-label="เมนูหลัก">{navItems.map(({key,label,icon:Icon})=><button key={key} className={`nav-item ${view===key?'active':''}`} aria-label={label} aria-current={view===key?'page':undefined} onClick={()=>setView(key)}><Icon size={19} strokeWidth={1.9}/><span>{label}</span>{view===key&&<span className="nav-active-indicator"/>}</button>)}</nav><div className="sidebar-spacer"/><div className="privacy-card"><div className="privacy-graphic"><ShieldCheck size={24}/></div><strong>ข้อมูลเป็นของคุณ</strong><p>รายการในเครื่องเป็นส่วนตัว; รายการจาก Shortcut เก็บใน Cloud เมื่อเปิดการเชื่อมต่อ</p><span><CloudOff size={13}/> เก็บข้อมูลในเครื่อง</span></div><p className="sidebar-version">เงินวันนี้ · v{APP_VERSION} · {APP_BUILD_SHA}</p></aside>
-    <div className="app-body"><header className={`topbar ${view==='home'?'topbar-home':''}`}><div className="topbar-left">{view==='home'&&<span className="ref-topbar-mark" aria-hidden="true"><Sprout size={25} strokeWidth={2.5}/></span>}<div className="ref-topbar-copy"><span className="greeting">{view==='home'?'เงินวันนี้':'เงินวันนี้'} <span className="mobile-today">{view==='home'?'':'· '+dateText(todayLocal())}</span></span><h1>{view==='home'?'สวัสดีครับ 👋 บันทึกรายรับรายจ่ายได้ง่ายขึ้น':pageLabels[view]}</h1></div></div><div className="topbar-actions"><div className="today-chip"><CalendarDays size={16}/><span>{dateText(todayLocal())}</span></div><button className="btn btn-primary top-add" onClick={openAdd}><ScanLine size={18}/> <span>อัปโหลดสลิป</span></button></div></header>
+    <div className="app-body"><header className={`topbar ${view==='home'?'topbar-home home-v2-topbar':''}`}>{view==='home'
+      ?<HomeTopbar pendingCount={pendingSlips.length+(iphonePending||0)} onNotifications={()=>{if(pendingSlips.length)openPendingSlips();else if(iphonePending&&iphonePending>0)openReview();else setToast('ยังไม่มีรายการที่ต้องตรวจในตอนนี้');}} onSettings={()=>setView('settings')}/>
+      :<><div className="topbar-left"><div className="ref-topbar-copy"><span className="greeting">เงินวันนี้ <span className="mobile-today">· {dateText(todayLocal())}</span></span><h1>{pageLabels[view]}</h1></div></div><div className="topbar-actions"><div className="today-chip"><CalendarDays size={16}/><span>{dateText(todayLocal())}</span></div><button className="btn btn-primary top-add" onClick={openAdd}><ScanLine size={18}/> <span>อัปโหลดสลิป</span></button></div></>}</header>
     <main id="main-content" className="main-content" tabIndex={-1}>
       {updateAvailable&&<div className="app-update-notice" role="status"><div><strong>มีแอปเวอร์ชันใหม่พร้อมใช้งาน</strong><span>อัปเดตหน้าเว็บโดยไม่ลบรายการที่บันทึกในเครื่อง</span></div><button type="button" className="btn btn-primary" onClick={()=>window.location.reload()}>โหลดเวอร์ชันใหม่</button></div>}
       {view!=='settings'&&view!=='home' && <div className="view-topline"><div><span className="eyebrow">สรุปข้อมูลการเงิน</span><h2>{view==='reports'?'สรุปรายรับ–รายจ่าย':slipInboxTab?'สลิปที่รอตรวจ':inboxTab?'ตรวจข้อมูลจาก iPhone':'รายการรายรับ–รายจ่าย'}</h2><p>{view==='reports'?'ดูรายรับ รายจ่าย และเงินคงเหลือในแต่ละเดือน':slipInboxTab?'กลับมาแก้ไขสลิปที่อ่านไม่ครบได้ทุกเมื่อ':inboxTab?'ตรวจข้อมูลที่ยังไม่ครบก่อนบันทึก':'ค้นหาและจัดการรายการที่บันทึกไว้'}</p></div>{(view==='reports'||(!inboxTab&&!slipInboxTab))&&<div className="month-picker"><button aria-label="เดือนก่อนหน้า" title="เดือนก่อนหน้า" onClick={()=>changeMonth(-1)}><ChevronLeft size={18}/></button><span>{monthText(month)}</span><button aria-label="เดือนถัดไป" title="เดือนถัดไป" onClick={()=>changeMonth(1)}><ChevronRight size={18}/></button></div>}</div>}
-      {view==='home'&&<div className="home-dashboard">
-        <section className="surface home-upload-pitch" aria-label="นำเข้าสลิป" style={{padding:'18px',marginBottom:'16px',display:'flex',alignItems:'center',justifyContent:'space-between',gap:'14px',flexWrap:'wrap'}}><div><h2 style={{fontSize:'1.1rem',margin:'0 0 5px'}}>เพิ่มรายการจากสลิป</h2><p style={{margin:0}}>อัปโหลดสลิป ระบบช่วยบันทึกรายการให้คุณเมื่ออ่านข้อมูลครบ</p></div><button type="button" className="btn btn-primary" onClick={openAdd}><ScanLine size={18}/> อัปโหลดสลิป</button></section>
-        {(settings.ownerNames||[]).length===0&&<section className="surface" aria-label="ตั้งชื่อผู้ถือบัญชีเพื่อช่วยอ่านสลิป" style={{padding:'12px 18px',marginBottom:'16px',display:'flex',alignItems:'center',gap:'12px',justifyContent:'space-between',flexWrap:'wrap'}}><div><strong>แนะนำ: เพิ่มชื่อของคุณบนสลิป</strong><p style={{margin:'4px 0 0'}}>ช่วยให้ระบบแยกเงินเข้าและเงินออกได้แม่นยำขึ้น · ตั้งค่าภายหลังได้</p></div><button type="button" className="btn btn-secondary" onClick={()=>setView('settings')}>ตั้งชื่อของฉัน</button></section>}
-        {pendingSlips.length>0&&<section className="surface" aria-label="สลิปที่ต้องตรวจสอบ" role="status" style={{padding:'16px 18px',marginBottom:'16px',display:'flex',alignItems:'center',justifyContent:'space-between',gap:'12px',flexWrap:'wrap'}}><div><strong>สลิปรอตรวจ {pendingSlips.length} รายการ</strong><p style={{margin:'4px 0 0'}}>ข้อมูลเหล่านี้ยังไม่รวมในยอดรายรับ–รายจ่าย</p></div><button type="button" className="btn btn-secondary" onClick={()=>{setInboxTab(false);setSlipInboxTab(true);setView('transactions');}}>ตรวจสลิป <ArrowRight size={16}/></button></section>}
-        {items.length>=5&&Date.now()-lastBackupAt>30*24*60*60*1000&&<div className="backup-alert" role="status"><div><strong>อย่าลืมสำรองข้อมูลการเงิน</strong><span>รายการที่เพิ่มในเครื่องอาจสูญหายหากล้างข้อมูลเบราว์เซอร์ กรุณาสำรองข้อมูล</span></div><button type="button" className="btn btn-secondary" onClick={exportJson}>สำรองข้อมูล JSON</button></div>}
-        <section className="summary-grid" aria-label="ยอดรวมรายเดือน"><div className="hero-card ref-hero-card"><div className="hero-pattern"/><div className="balance-botanical" aria-hidden="true"><Leaf size={64} strokeWidth={1.1}/><Leaf size={42} strokeWidth={1.1}/></div><div className="ref-hero-header"><strong>ภาพรวมเดือนนี้</strong><div className="ref-hero-month" role="group" aria-label="เลือกเดือน"><button aria-label="เดือนก่อนหน้า" onClick={()=>changeMonth(-1)}><ChevronLeft size={15}/></button><span>{monthText(month)}</span><button aria-label="เดือนถัดไป" onClick={()=>changeMonth(1)}><ChevronRight size={15}/></button></div></div><div className="hero-kicker"><Eye size={16}/> เงินสุทธิจากรายการ</div><div className="hero-value"><span>฿</span>{baht(sums.net)}</div><p>ผลต่างจากรายการที่บันทึก · ไม่ใช่ยอดเงินในธนาคาร</p><div className="hero-line"/><div className="hero-bottom"><div><span><ArrowDownLeft size={17}/> รายรับ</span><strong>฿{baht(sums.income)}</strong></div><div><span><ArrowUpRight size={17}/> รายจ่าย</span><strong>฿{baht(sums.expense)}</strong></div></div></div>
-          </section>
-        <button type="button" className="ref-home-upload mobile-action-scan" onClick={openAdd}><span className="ref-upload-icon"><Camera size={24}/></span><span><strong>อัปโหลดสลิป</strong><small>เพิ่มรายการจากสลิปธนาคาร</small></span><ArrowRight size={18} className="ref-upload-arrow"/></button>
-        <section className="mobile-quick-actions ref-home-shortcuts" aria-label="เมนูลัด">
-          <div className="ref-section-heading"><h2>เมนูลัด</h2><span>เลือกเมนูที่ต้องการ</span></div>
-          <button type="button" className="mobile-action-all" onClick={()=>{setInboxTab(false);setSlipInboxTab(false);setView('transactions');}}><span className="quick-action-symbol"><ReceiptText size={22}/></span><span><strong>รายการ</strong><small>ดูประวัติ</small></span></button>
-          <button type="button" className="mobile-action-reports" onClick={()=>setView('reports')}><span className="quick-action-symbol"><ChartNoAxesColumn size={23}/></span><span><strong>รายงาน</strong><small>ดูสรุป</small></span></button>
-          <button type="button" className="mobile-action-budget" onClick={()=>setView('settings')}><span className="quick-action-symbol"><Wallet size={23}/></span><span><strong>งบประมาณ</strong><small>จัดการงบ</small></span></button>
-          <button type="button" className="mobile-action-settings" onClick={()=>setView('settings')}><span className="quick-action-symbol"><SettingsIcon size={22}/></span><span><strong>ตั้งค่า</strong><small>การใช้งาน</small></span></button>
-        </section>
-        <section className="daily-snapshot" aria-label="สรุปเงินเข้าออกวันนี้">
-          <div className="daily-snapshot-main"><span>วันนี้ใช้ไป</span><strong>฿{baht(todaySummary.expense)}</strong><small>จากรายการที่บันทึก {todaySummary.count} รายการ</small></div>
-          <div className="daily-snapshot-income"><span><ArrowDownLeft size={16}/> รับเงินวันนี้</span><strong>+฿{baht(todaySummary.income)}</strong></div>
-        </section>
-        {pendingSlips.length>0&&<section className="pending-home-alert" role="status" aria-label="รายการรอตรวจจากสลิป">
-          <div className="pending-home-icon"><ScanLine size={19}/></div>
-          <div><strong>มีสลิป {pendingSlips.length} รูปรอตรวจ</strong>
-            <span>ยังไม่รวมในรายรับ–รายจ่าย · เก็บข้อมูลไว้ในเครื่องแล้ว</span></div>
-          <button type="button" onClick={openPendingSlips}>ตรวจรายการ <ArrowRight size={16}/></button>
-        </section>}
-        {settings.monthlyBudgetSatang>0&&sums.expense>settings.monthlyBudgetSatang&&<div className="budget-alert" role="status">⚠️ รายจ่ายเดือนนี้เกินงบที่ตั้งไว้ ฿{baht(sums.expense-settings.monthlyBudgetSatang)}</div>}
-        {iphoneConfigured()&&iphoneConnected()&&<section className={"iphone-inbox-banner"+(iphoneSyncError?" is-error":"")} aria-label="สถานะการนำเข้าจาก iPhone">
-          <div className="iphone-inbox-banner-copy">
-            <strong>{iphoneSyncError?'ซิงก์จาก iPhone ไม่สำเร็จ':iphonePending===null?'กำลังตรวจสถานะรายการจาก iPhone':iphonePending>0?'มีรายการที่ต้องตรวจจาก iPhone '+iphonePending+' รายการ':'นำเข้าจาก iPhone'}</strong>
-            <span>{iphoneSyncError?'ยังดึงรายการล่าสุดไม่ได้ รายการในเครื่องยังใช้งานได้':iphonePending===null?'ตรวจสอบการเชื่อมต่อและรายการที่ต้องตรวจ':'รายการที่ต้องตรวจจะยังไม่รวมในยอดรายรับ–รายจ่าย'}</span>
-          </div>
-          <button type="button" className="btn btn-secondary" onClick={iphoneSyncError?()=>setView('settings'):openReview}>
-            {iphoneSyncError?'ดูการเชื่อมต่อ':iphonePending&&iphonePending>0?'ตรวจรายการ':'ดูรายการ'} <ArrowRight size={16}/>
-          </button>
-        </section>}
-        <section className="surface transactions-surface"><div className="section-header"><div><span className="card-overline">รายการที่บันทึกไว้</span><h3>รายการล่าสุด</h3></div><button className="text-action" onClick={()=>setView('transactions')}>ดูทั้งหมด <ArrowRight size={16}/></button></div>{selected.length?<TxList items={selected} onEdit={onEdit} onDelete={onDelete} limit={6}/>:<Empty title={items.length?'เดือนนี้ยังไม่มีรายการ':'เริ่มต้นด้วยสลิปใบแรก'} description="เลือกรูปสลิปหรือใบเสร็จเพื่อเพิ่มรายการ" add={openAdd} actionLabel="เพิ่มสลิป"/>}</section>
-        <section className="surface home-spending-card" aria-label="สัดส่วนรายจ่ายเดือนที่เลือก">
-           <div className="section-header"><div><span className="card-overline">การใช้เงิน</span><h3>สรุปรายจ่ายเดือนนี้</h3></div><button type="button" className="text-action" onClick={()=>setView('reports')}>ดูทั้งหมด <ArrowRight size={16}/></button></div>
-           {byCategory.length>0?<div className="home-spending-breakdown"><div className="spending-donut" role="img" aria-label={'สัดส่วนรายจ่ายเดือนนี้ ฿'+baht(sums.expense)} style={{background:spendingGradient(byCategory.map(x=>x.total),sums.expense)}}><div className="spending-donut-hole"><strong>฿{baht(sums.expense)}</strong><span>รายจ่าย</span></div></div><div className="spending-legend">{byCategory.slice(0,4).map((category,index)=><div key={category.name} className="spending-legend-row"><span className="spending-legend-dot" style={{background:SPENDING_COLORS[index]}}/><span>{category.name}</span><strong>{percent(category.total,sums.expense)}%</strong></div>)}{byCategory.length>4&&<div className="spending-legend-row"><span className="spending-legend-dot" style={{background:SPENDING_COLORS[4]}}/><span>อื่น ๆ</span><strong>{percent(byCategory.slice(4).reduce((s,x)=>s+x.total,0),sums.expense)}%</strong></div>}</div></div>:<p className="home-category-empty">ยังไม่มีรายจ่ายในเดือนนี้ เพิ่มสลิปเพื่อดูสัดส่วนรายจ่ายได้ที่นี่</p>}         </section>
-         <section className="home-budget-after" aria-label="งบประมาณเดือนนี้"><div className="budget-card">
-            <div className="budget-summary-head">
-              <div><h3>งบประมาณเดือนนี้</h3><p>{settings.monthlyBudgetSatang>0?`ใช้ไป ${usedBudget}% ของงบที่ตั้งไว้`:'ยังไม่ได้ตั้งงบประมาณ'}</p></div>
-              <button className="text-action" onClick={()=>setView('settings')}>{settings.monthlyBudgetSatang?'แก้ไขงบ':'ตั้งงบ'} <ArrowRight size={16}/></button>
-            </div>
-            {settings.monthlyBudgetSatang>0&&<><div className="budget-linear-track" role="progressbar" aria-label="การใช้งบประมาณเดือนนี้" aria-valuemin={0} aria-valuemax={100} aria-valuenow={Math.min(usedBudget,100)}><span className={usedBudget>100?'over-budget':''} style={{width:`${Math.min(usedBudget,100)}%`}} /></div>
-              <div className="budget-linear-meta"><span>ใช้ไป ฿{baht(sums.expense)}</span><span>จาก ฿{baht(settings.monthlyBudgetSatang)}</span></div></>}
-          </div></section>
-         <div className="home-report-link"><button type="button" className="btn btn-ghost bordered" onClick={()=>setView('reports')}><BarChart3 size={17}/> ดูรายงานและกราฟทั้งหมด <ArrowRight size={16}/></button></div>
-      </div>}
-      {view==='transactions'&&<>
+      {view==='home'&&<>
+        <HomeScreen
+          month={month} monthLabel={monthText(month)} net={sums.net} income={sums.income} expense={sums.expense}
+          recent={selected}
+          onMonthChange={setMonth}
+          onUpload={openAdd}
+          onTransactions={()=>{setInboxTab(false);setSlipInboxTab(false);setView('transactions');}}
+          onReports={()=>setView('reports')}
+          onBudget={()=>setView('settings')}
+          onSettings={()=>setView('settings')}
+        />
+        <div className="mt-home-below">
+          {(settings.ownerNames||[]).length===0&&<div className="mt-home-advisory"><div><strong>เพิ่มชื่อของคุณบนสลิป</strong><p>ช่วยให้แยกรายรับและรายจ่ายอัตโนมัติได้แม่นยำขึ้น</p></div><button type="button" onClick={()=>setView('settings')}>ตั้งชื่อของฉัน <ArrowRight size={16}/></button></div>}
+          {pendingSlips.length>0&&<div className="mt-home-advisory mt-home-review"><div><strong>มีสลิปรอตรวจ {pendingSlips.length} รายการ</strong><p>รายการที่ยังไม่ตรวจจะไม่รวมในยอดเงิน</p></div><button type="button" onClick={openPendingSlips}>ตรวจรายการ <ArrowRight size={16}/></button></div>}
+          {items.length>=5&&Date.now()-lastBackupAt>30*24*60*60*1000&&<div className="mt-home-advisory"><div><strong>สำรองข้อมูลการเงิน</strong><p>ข้อมูลในเครื่องอาจสูญหายหากล้างข้อมูลของ Safari</p></div><button type="button" onClick={exportJson}>สำรอง JSON</button></div>}
+          {iphoneConfigured()&&iphoneConnected()&&iphoneSyncError&&<div className="mt-home-advisory"><div><strong>ซิงก์จาก iPhone ไม่สำเร็จ</strong><p>รายการเดิมในเครื่องยังใช้งานได้</p></div><button type="button" onClick={()=>setView('settings')}>ดูการเชื่อมต่อ</button></div>}
+        </div>
+      </>}
+            {view==='transactions'&&<>
         {(pendingSlips.length>0||(iphonePending!==null&&iphonePending>0)||slipInboxTab||inboxTab)&&<div className="inbox-view-tabs" role="group" aria-label="หมวดรายการ">
           <button type="button" className={!inboxTab&&!slipInboxTab?'active':''} aria-pressed={!inboxTab&&!slipInboxTab} onClick={()=>{setInboxTab(false);setSlipInboxTab(false);}}>บันทึกแล้ว</button>
           <button type="button" className={slipInboxTab?'active':''} aria-pressed={slipInboxTab} onClick={()=>{setInboxTab(false);setSlipInboxTab(true);}}>
