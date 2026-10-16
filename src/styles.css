@@ -106,3 +106,24 @@
   .inbox-view-tabs{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:7px}
   .inbox-view-tabs button{font-size:12px;padding:9px 8px;white-space:normal;line-height:1.45}
 }
+
+/* Local data management — clear separation between repair and destructive reset. */
+.data-reset-options{display:flex;flex-direction:column;gap:14px;margin-top:20px;padding-top:20px;border-top:1px solid #dce8e2}
+.data-repair-option,.data-clear-option{display:flex;align-items:center;justify-content:space-between;gap:16px;padding:14px;border:1px solid #e0e9e5;border-radius:12px}
+.data-reset-options strong{color:#233e33;font-size:14px}
+.data-reset-options p{margin:5px 0 0;color:#53645d;font-size:13px;line-height:1.6}
+.data-reset-options .btn{flex:none}
+.data-clear-option{border-color:#efd4ce;background:#fffafa}
+.data-clear-option strong{color:#853b34}
+.btn.data-delete-btn{color:#923f38;border-color:#dca69d}
+.btn.data-delete-btn:hover:not(:disabled){background:#fff0ed}
+.local-reset-help{margin:4px 0 16px;font-size:13px;line-height:1.65;color:#475b53}
+.local-reset-input{width:100%;min-height:44px;margin:7px 0 12px;padding:10px 12px;border:1px solid #9cb8ac;border-radius:10px;font:inherit}
+.local-reset-input:focus-visible{outline:3px solid #246958;outline-offset:2px}
+.local-reset-modal .error-message{margin:4px 0 12px}
+@media(max-width:660px){
+  .data-repair-option,.data-clear-option{align-items:stretch;flex-direction:column}
+  .data-reset-options .btn{width:100%;white-space:normal;text-align:center}
+  .local-reset-modal .modal-footer{flex-direction:column-reverse;align-items:stretch}
+  .local-reset-modal .modal-footer .btn{width:100%}
+}

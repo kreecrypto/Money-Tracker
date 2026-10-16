@@ -8,7 +8,7 @@ export type KPlusSlip = {
   direction: 'expense' | null;
   directionReason: string;
 };
-const CONFIRMATION = /(?:โอน\s*เงิน|จ่าย\s*บิล|ชำระ\s*เงิน)\s*สำเร็จ/iu;
+const CONFIRMATION = /(?:โอน\s*เงิน|จ่าย\s*บิล|ชำระ\s*เงิน|เติม\s*เงิน)\s*สำเร็จ/iu;
 const SENDER_BANK = /(?:ธ\.?\s*กสิกรไทย|ธนาคาร\s*กสิกรไทย|kasikorn\s*bank|kbank)/iu;
 const MASKED_ACCOUNT = /[xX*]{2,}(?:[\s-]?[xX*\d]){4,}/u;
 const AMOUNT_LABEL = /^(?:จำนวน(?:\s*เงิน)?|ยอด(?:เงิน|ชำระ|จ่าย|โอน))\s*[:：]?/iu;
@@ -70,25 +70,27 @@ export function parseKPlusSlip(ocrLines: string[]): KPlusSlip | null {
   };
 }
 
-/**
- * Wallet funding is an asset transfer (bank -> wallet), not necessarily a
- * purchase. Recording it as an expense and then recording wallet purchases
- * again would double count spending. Require a deliberate user decision.
- */
-export function parseKPlusTopUp(ocrLines:string[]):{recipient:string;directionReason:string}|null{
+/** A verified K PLUS "เติมเงินสำเร็จ" is an expense in Money Tracker's
+ * bank-outflow ledger. Later wallet purchases should not be counted twice. */
+export function parseKPlusTopUp(ocrLines:string[]):{recipient:string;directionReason:string;kind:'truemoney'|'wallet_transfer'}|null{
   const lines=ocrLines.map(textLine).filter(Boolean);
   const header=lines.slice(0,5).join(' ');
   if(!/เติม\s*เงิน\s*สำเร็จ/iu.test(header))return null;
   if(!lines.some(line=>SENDER_BANK.test(line)))return null;
   if(!lines.some(line=>MASKED_ACCOUNT.test(line)))return null;
-  const walletIndex=lines.findIndex(line=>/(?:g[\s-]*wallet|พร้อม\s*เพย์\s*อี[\s-]*วอลเล็ต|e[\s-]*wallet)/iu.test(line));
+  const walletIndex=lines.findIndex(line=>/(?:g[\s-]*wallet|พร้อม\s*เพย์\s*อี[\s-]*วอลเล็ต|e[\s-]*wallet|ทรู\s*มัน\s*นี่|true\s*money(?:\s*wallet)?)/iu.test(line));
   if(walletIndex<0)return null;
   const wallet=lines[walletIndex];
   // K PLUS may put "พร้อมเพย์ อี-วอลเล็ต /" and "G-Wallet" on separate lines.
   const next=lines[walletIndex+1]||'';
   const walletName=wallet.endsWith('/')&&/^g[\s-]*wallet$/iu.test(next)?wallet+' '+next:wallet;
+  // Money Tracker counts bank-to-wallet funding as an outgoing expense.
+  const trueMoney=/(?:ทรู\s*มัน\s*นี่|true\s*money)/iu.test(walletName);
   return {
     recipient: walletName.slice(0,160),
-    directionReason:'เติมเงินเข้า e-Wallet อาจเป็นการโอนเงินระหว่างบัญชีของตนเอง จึงยังไม่บันทึกเป็นรายจ่ายอัตโนมัติ',
+    kind:trueMoney?'truemoney':'wallet_transfer',
+    directionReason:trueMoney
+      ?'เติมเงินเข้า e-Wallet TrueMoney จากบัญชีธนาคาร (รายจ่าย)'
+      :'เติมเงินเข้า e-Wallet จากบัญชีธนาคาร (รายจ่าย)',
   };
 }

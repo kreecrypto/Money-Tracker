@@ -1,5 +1,5 @@
 import {describe,expect,it} from 'vitest';
-import {correctionDirection,isWalletFundingSlip,shouldWarnBeforeLeaving,slipBatchHeading,pendingReviewCount} from '../src/lib/slipReview';
+import {correctionDirection,isWalletFundingSlip,isTrueMoneyBankTopUp,shouldWarnBeforeLeaving,slipBatchHeading,pendingReviewCount} from '../src/lib/slipReview';
 import {summarizeSlipBatch} from '../src/lib/slipBatch';
 import {parseSlipText} from '../src/lib/slip';
 
@@ -16,13 +16,23 @@ describe('slip review UX safety',()=>{
       'xxx-x-x0000-x','พร้อมเพย์ อี-วอลเล็ต /','G-Wallet',
       'จำนวน:','150.00 บาท',
     ].join('\n'));
-    expect(correctionDirection(slip)).toBe('');
-    expect(isWalletFundingSlip(slip)).toBe(true);
+    expect(correctionDirection(slip)).toBe('expense');
+    expect(isWalletFundingSlip(slip)).toBe(false);
     expect(isWalletFundingSlip({directionReason:'พบการจ่ายบิลสำเร็จ'})).toBe(false);
   });
+  it('separates TrueMoney bank outflow review from G-Wallet internal transfers',()=>{
+    const topup={
+      directionReason:'เติมเงินเข้า e-Wallet TrueMoney จากบัญชีธนาคาร · ยังยืนยันชื่อผู้ส่งไม่ครบ',
+    };
+    expect(isTrueMoneyBankTopUp(topup)).toBe(true);
+    expect(isWalletFundingSlip(topup)).toBe(false);
+    expect(isWalletFundingSlip({
+      directionReason:'เติมเงินเข้า e-Wallet จากบัญชีธนาคาร (รายจ่าย)',
+    })).toBe(false);
+  });
   it('shows a warning headline rather than blanket success for partially completed batches',()=>{
-    expect(slipBatchHeading({total:3,saved:1,incomplete:1,errors:1})).toContain('ยังต้องตรวจ 2');
-    expect(slipBatchHeading({total:2,saved:0,incomplete:2,errors:0})).toContain('ยังมี 2 รูป');
+    expect(slipBatchHeading({total:3,saved:1,incomplete:1,errors:1})).toContain('รอตรวจข้อมูล 1 รูป · อ่านไม่สำเร็จ 1 รูป');
+    expect(slipBatchHeading({total:2,saved:0,incomplete:2,errors:0})).toContain('รอตรวจข้อมูล 2 รูป');
     expect(slipBatchHeading({total:3,saved:3,incomplete:0,errors:0})).toContain('บันทึกสลิปสำเร็จ 3');
     expect(slipBatchHeading({total:1,saved:0,incomplete:0,errors:0})).toContain('ตรวจสลิปครบ');
   });

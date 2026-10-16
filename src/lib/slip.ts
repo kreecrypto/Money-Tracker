@@ -89,13 +89,17 @@ function parseAmount(lines:string[]):{amountSatang:number|null;ambiguous:boolean
   for(let i=0;i<lines.length;i++){
     const line=lines[i];
     const label=AMOUNT_LABEL.exec(line);
-    if(!label)continue;
+    // Real K PLUS OCR sometimes outputs the complete amount heading as an
+    // isolated 'จำนวน' row (without colon or 'เงิน'). Do not treat arbitrary
+    // product quantity text as an amount label.
+    const isolatedAmountLabel=!label&&/^จำนวน\s*$/iu.test(line);
+    if(!label&&!isolatedAmountLabel)continue;
     // A whole fee/balance line containing the word "จำนวน" is not a paid label.
-    const beforeLabel=line.slice(0,label.index);
+    const beforeLabel=label?line.slice(0,label.index):'';
     const feeBefore=EXCLUDED_AMOUNT.exec(beforeLabel);
     if(feeBefore && !/(?:บาท|THB|฿|\d{2}\s*[:.]\s*\d{2})/iu.test(beforeLabel.slice(feeBefore.index+feeBefore[0].length)))continue;
     sawLabel=true;
-    const after=line.slice(label.index+label[0].length);
+    const after=label?line.slice(label.index+label[0].length):'';
     const nextField=EXCLUDED_AMOUNT.exec(after);
     const paymentSpan=nextField?after.slice(0,nextField.index):after;
     const countOnly=/(?:ชิ้น|สินค้า|รายการสินค้า|items?|quantity|qty)/iu.test(paymentSpan)
@@ -287,24 +291,32 @@ export function parseSlipText(rawText:string,layoutLines:string[]=[],ownerNames:
   const amountSatang=special?special.amountSatang:amountResult!.amountSatang;
   const date=parseDate(lines);
   const time=parseTime(lines);
-  const labelledParties=extractSlipParties(lines,kplus?.recipient||null);
-  const sender=labelledParties.sender;
-  const recipient=special?special.recipient:(walletTopUp?.recipient||kplus?.recipient||labelledParties.recipient||parseRecipient(lines));
+  const paymentRecipient=kplus?.recipient||walletTopUp?.recipient||null;
+  const labelledParties=extractSlipParties(lines,paymentRecipient);
+  // Tesseract may reconstruct the sender name only in spatial word rows.
+  // Recover it only when missing in the text reading; never override a
+  // contradictory identified sender or guess one from the payee.
+  const layoutParties=layoutLines.length
+    ?extractSlipParties(layoutLines.map(line=>normalizeSlipOcrText(line).trim()).filter(Boolean),paymentRecipient)
+    :null;
+  const sender=labelledParties.sender??layoutParties?.sender??null;
+  const recipient=special?special.recipient:(walletTopUp?.recipient||kplus?.recipient||labelledParties.recipient||layoutParties?.recipient||parseRecipient(lines));
   const inferred=inferSlipDirection(rawText);
   // A complete K PLUS sender-side confirmation is outgoing for its sender.
   // Keep incoming and contradictory OCR evidence conservative.
   const configuredNames=sanitizeOwnerNames([...ownerNames]);
   const identityDirection=configuredNames.length>0
     ?classifyByAccountNames({sender,recipient},configuredNames):null;
-  // Owner's sender/receiver identity is authoritative even when a forwarded
-  // K PLUS slip says "โอนเงินสำเร็จ" from the *other person's* perspective.
-  // Keep shop receipts and wallet-funding protections independent.
-  const classified=walletTopUp?{direction:null,directionReason:walletTopUp.directionReason}:
-    special??identityDirection??(kplus?.direction&&inferred.direction===null&&
+  // User-defined accounting rule: verified K PLUS wallet top-ups are
+  // bank expenses. Optional owner-name aliases do not block this category.
+  // OCR conflicts, missing financial fields and duplicates are still guarded.
+  const classified=walletTopUp
+    ?{direction:'expense' as const,directionReason:walletTopUp.directionReason}
+    :special??identityDirection??(kplus?.direction&&inferred.direction===null&&
       !inferred.directionReason.includes('ทั้งเงินเข้าและเงินออก')?kplus:inferred);
   const {direction,directionReason}=classified;
   const source=special?.source;
-  const method:Method|undefined=walletTopUp?'wallet':special?.method;
+  const method:Method|undefined=walletTopUp?'bank':special?.method;
   const category=special?.category;
   const receipt=special?readReceiptDetails(special.source,lines,amountSatang,layoutLines,recipient):
     kplus&&amountSatang!==null?{
@@ -314,7 +326,7 @@ export function parseSlipText(rawText:string,layoutLines:string[]=[],ownerNames:
     }:undefined;
   const warnings:string[]=[];
   if(amountResult?.ambiguous)warnings.push('พบยอดเงินที่ขัดแย้งกันในสลิปเดียวกัน กรุณาตรวจยอดก่อนบันทึก');
-  if(walletTopUp)warnings.push('เป็นรายการเติมเงิน e-Wallet ซึ่งอาจทำให้รายจ่ายซ้ำหากบันทึกการใช้จ่ายจากกระเป๋าเงินด้วย กรุณาตรวจสอบ');
+  if(walletTopUp)warnings.push('การเติมเงิน e-Wallet นับเป็นรายจ่ายจากธนาคารแล้ว โปรดอย่าบันทึกการใช้ Wallet ซ้ำ');
   if(!lines.length)warnings.push('ไม่พบตัวอักษรในรูปภาพ ลองถ่ายใหม่ให้ชัดขึ้น');
   if(amountSatang===null)warnings.push('ไม่สามารถระบุยอดโอนได้อย่างมั่นใจ กรุณากรอกยอดเอง');
   if(date===null)warnings.push('อ่านวันที่ไม่ชัดเจน กรุณาตรวจและกรอกวันที่ก่อนบันทึก');
@@ -323,6 +335,22 @@ export function parseSlipText(rawText:string,layoutLines:string[]=[],ownerNames:
   return {amountSatang,date,time,sender,recipient,direction,directionReason,source,method,category,receipt:receipt||undefined,rawText,warnings};
 }
 
+
+/** Provide a clear, privacy-preserving reason for a missing amount.
+ * Only the two OCR readings are inspected in memory; no raw text is logged. */
+export function describeMissingSlipAmount(first:SlipFields,recovery:SlipFields|null):string {
+  if(first.amountSatang!==null&&recovery!==null&&recovery.amountSatang!==null&&
+    first.amountSatang!==recovery.amountSatang)
+    return 'OCR อ่านจำนวนเงินสองรอบไม่ตรงกัน จึงไม่เลือกยอดใดยอดหนึ่งอัตโนมัติ';
+  if(first.warnings.some(w=>w.includes('ขัดแย้ง'))||
+     recovery?.warnings.some(w=>w.includes('ขัดแย้ง')))
+    return 'OCR พบตัวเลขจำนวนเงินหลายค่าที่ขัดแย้งกัน กรุณาตรวจจากภาพ';
+  const text=[first.rawText,recovery?.rawText||''].join(' ').trim();
+  if(text.length<8)return 'OCR ยังอ่านตัวอักษรจากรูปได้ไม่เพียงพอ ลองใช้ภาพสลิปต้นฉบับที่คมชัด';
+  if(!/(?:จำนวน|ยอด|บาท|฿|THB|amount|total)/iu.test(text))
+    return 'OCR อ่านข้อความบางส่วนได้ แต่ไม่พบหัวข้อจำนวนเงินบนสลิป';
+  return 'OCR พบข้อความเกี่ยวกับยอดเงิน แต่ยังแยกตัวเลขที่จ่ายจริงไม่ได้ กรุณาตรวจจากภาพ';
+}
 
 /** Only run a recovery OCR pass when one of the four user-required fields is missing. */
 export function needsSlipOcrRecovery(result:SlipFields):boolean {
@@ -346,17 +374,15 @@ export function mergeSlipOcrReadings(first:SlipFields,second:SlipFields):SlipFie
   const time=select('เวลา',first.time,second.time);
   const recipient=select('ชื่อผู้รับ',first.recipient,second.recipient);
   const sender=select('ชื่อผู้ส่ง',first.sender??null,second.sender??null);
-  // Wallet funding is a transfer, not proof of consumption. Preserve this even
-  // if a noisy recovery pass misclassifies its success header as a payment.
-  const walletFunding=[first,second].some(reading=>reading.directionReason.includes('เติมเงินเข้า e-Wallet'));
+  // The K PLUS funding confirmation is explicitly an expense by product rule.
+  // Keep contradictory OCR evidence as a separate financial safety gate.
   const candidateDirection=select('ประเภทรายรับรายจ่าย',first.direction,second.direction);
   const identityConflict=conflicts.some(x=>x.includes('ชื่อผู้ส่ง')||x.includes('ชื่อผู้รับ'));
-  const direction=walletFunding||identityConflict?null:candidateDirection;
-  const source=walletFunding?undefined:
-    first.source&&second.source&&first.source!==second.source?undefined:(first.source||second.source);
+  const direction=identityConflict?null:candidateDirection;
+  const source=first.source&&second.source&&first.source!==second.source?undefined:(first.source||second.source);
   if(first.source&&second.source&&first.source!==second.source)
     conflicts.push('OCR อ่านประเภทสลิปต่างกันระหว่างสองรอบ กรุณาตรวจสอบ');
-  const method:Method|undefined=walletFunding?'wallet':source===(first.source||undefined)?first.method:(second.method||first.method);
+  const method:Method|undefined=source===(first.source||undefined)?first.method:(second.method||first.method);
   const category=source===(first.source||undefined)?first.category:(second.category||first.category);
   const firstReceipt=first.receipt,secondReceipt=second.receipt;
   let receipt=firstReceipt?.itemsComplete?firstReceipt:(secondReceipt?.itemsComplete?secondReceipt:(firstReceipt||secondReceipt));
@@ -372,18 +398,17 @@ export function mergeSlipOcrReadings(first:SlipFields,second:SlipFields):SlipFie
     }
   }
   if(receipt&&amountSatang!==receipt.paidSatang)receipt=undefined;
-  if(walletFunding)receipt=undefined;
   const walletReason=[first,second].find(reading=>reading.directionReason.includes('เติมเงินเข้า e-Wallet'))?.directionReason;
-  const directionReason=walletReason||(
-    direction?(first.direction===direction?first.directionReason:second.directionReason):
-    'สลิปยังไม่สามารถระบุรายรับหรือรายจ่ายได้ชัดเจน กรุณาเลือกเอง'
-  );
+  // A noisy pass may have insufficient sender evidence; keep the actionable
+  // reason from that pending pass instead of replacing it with a generic note.
+  const directionReason=direction
+    ?(walletReason||(first.direction===direction?first.directionReason:second.directionReason))
+    :'OCR อ่านประเภทรายการไม่ตรงกันระหว่างสองรอบ กรุณาตรวจสอบ';
   // Never let a cleaner retry erase an ambiguity discovered inside either
   // OCR pass; the second result cannot establish which conflicting total was real.
   const persistentWarnings=[...first.warnings,...second.warnings]
     .filter(w=>w.includes('ขัดแย้ง')||w.includes('ความมั่นใจต่ำ'));
   const warnings=[...new Set([...conflicts,...persistentWarnings])];
-  if(walletFunding)warnings.push('พบรายการเติมเงิน e-Wallet โปรดตรวจสอบก่อนบันทึกเพื่อป้องกันการนับรายจ่ายซ้ำ');
   if(amountSatang===null&&!conflicts.some(x=>x.includes('จำนวนเงิน')))warnings.push('อ่านจำนวนเงินไม่ได้ กรุณากรอกเอง');
   if(date===null&&!conflicts.some(x=>x.includes('วันที่')))warnings.push('อ่านวันที่ไม่ได้ กรุณากรอกเอง');
   if(time===null&&!conflicts.some(x=>x.includes('เวลา')))warnings.push('อ่านเวลาไม่ได้ กรุณากรอกเอง');

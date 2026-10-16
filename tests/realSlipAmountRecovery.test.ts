@@ -1,5 +1,5 @@
 import {describe,expect,it} from 'vitest';
-import {parseSlipText,needsSlipOcrRecovery} from '../src/lib/slip';
+import {parseSlipText,needsSlipOcrRecovery,describeMissingSlipAmount} from '../src/lib/slip';
 import {prepareAutoSlip} from '../src/lib/slipAutoSave';
 
 /** Fictional bank layout only; no private source screenshots or identifiers. */
@@ -52,6 +52,35 @@ describe('real-world K PLUS amount formatting recovery',()=>{
     }
   });
 
+  it.each([
+    ['bare amount heading', 'จำนวน\n30.00 บาท', 3000],
+    ['bare heading with split currency', 'จำนวน\n50.00\nบาท', 5000],
+    ['isolated OCR number and currency', 'จำนวน\n฿\n90.00', 9000],
+  ])('recovers %s in K PLUS text',(_name,amountText,expected)=>{
+    const slip=parseSlipText(payment(amountText));
+    expect(slip.amountSatang).toBe(expected);
+  });
+
+  it('recovers a bare amount heading in spatial OCR rows',()=>{
+    const slip=parseSlipText(payment('จำนวน\nอ่านไม่ชัด'),['จำนวน','90.00','บาท','ค่าธรรมเนียม: 0.00 บาท']);
+    expect(slip.amountSatang).toBe(9000);
+  });
+
+  it('refuses fee and reference amounts after a bare heading',()=>{
+    const slip=parseSlipText(payment('จำนวน\nค่าธรรมเนียม: 50.00 บาท\nเลขที่รายการ: 9000'));
+    expect(slip.amountSatang).toBeNull();
+  });
+
+  it('explains unreadable text, missing amount labels, and disagreement separately',()=>{
+    const empty=parseSlipText('');
+    expect(describeMissingSlipAmount(empty,null)).toContain('ตัวอักษร');
+    const noLabel=parseSlipText('วันที่ 14 ต.ค. 69\nชื่อร้านทดสอบ');
+    expect(describeMissingSlipAmount(noLabel,null)).toContain('ไม่พบหัวข้อ');
+    const first=parseSlipText(payment('จำนวน: 30.00 บาท'));
+    const second=parseSlipText(payment('จำนวน: 90.00 บาท'));
+    expect(describeMissingSlipAmount(first,second)).toContain('สองรอบไม่ตรงกัน');
+  });
+
   it('recovers a right-aligned amount from layout when OCR text places unrelated text after the label',()=>{
     const text=payment('จำนวน:\nอ่านไม่ชัด');
     const slip=parseSlipText(text,['จำนวน:','30.00','บาท','ค่าธรรมเนียม: 0.00 บาท']);
@@ -88,5 +117,22 @@ describe('real-world K PLUS amount formatting recovery',()=>{
   it('never promotes a fee caption or QR reference as an amount by itself',()=>{
     const slip=parseSlipText('จ่ายบิลสำเร็จ\nค่าธรรมเนียม 60.00 บาท\nเลขอ้างอิง 222.00 บาท');
     expect(slip.amountSatang).toBeNull();
+  });
+});
+
+
+describe('K PLUS amount-only crop safety',()=>{
+  it('accepts labelled text that a focused OCR pass may recover',()=>{
+    const crop=parseSlipText('จำนวน\n90.00\nบาท');
+    expect(crop.amountSatang).toBe(9000);
+  });
+  it('refuses unlabelled account, fee and reference figures',()=>{
+    for(const text of [
+      'ค่าธรรมเนียม 0.00 บาท\nรหัสอ้างอิง 9000',
+      'จำนวน\nค่าธรรมเนียม 30.00 บาท',
+      'ยอดชำระ: 30.00 บาท\nจำนวน: 90.00 บาท',
+    ]){
+      expect(parseSlipText(text).amountSatang).toBeNull();
+    }
   });
 });

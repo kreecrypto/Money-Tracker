@@ -1,5 +1,5 @@
 import {describe,expect,it} from 'vitest';
-import {makePendingSlip,isValidPendingSlip,pendingFingerprintMatch,pendingToSlipFields} from '../src/lib/pendingSlips';
+import {makePendingSlip,isValidPendingSlip,pendingFingerprintMatch,pendingToSlipFields,matchingPendingBySlipHash} from '../src/lib/pendingSlips';
 import {parseSlipText} from '../src/lib/slip';
 import {prepareAutoSlip} from '../src/lib/slipAutoSave';
 
@@ -54,12 +54,33 @@ describe('persistent local slip review draft',()=>{
     if(result.status==='ready')expect(result.transaction.amountSatang).toBe(1);
   });
 
-  it('wallet funding stays pending until a person chooses a direction',()=>{
-    const slip=parseSlipText('เติมเงินสำเร็จ\n11 ต.ค. 69 17:55 น.\nธ.กสิกรไทย\nxxx-x-x0000-x\nพร้อมเพย์ อี-วอลเล็ต /\nG-Wallet\nจำนวน: 150.00 บาท');
-    const draft=makePendingSlip(slip,'topup.png','ต้องตรวจ','topup');
+  it('pending a wallet top-up for missing date does not lose its expense category',()=>{
+    const slip=parseSlipText('เติมเงินสำเร็จ\nธ.กสิกรไทย\nxxx-x-x0000-x\nพร้อมเพย์ อี-วอลเล็ต /\nG-Wallet\nจำนวน: 150.00 บาท');
+    const draft=makePendingSlip(slip,'topup.png','อ่านวันที่ไม่ได้','topup');
     expect(draft.kind).toBe('wallet_topup');
-    expect(draft.direction).toBeNull();
+    expect(draft.direction).toBe('expense');
     expect(prepareAutoSlip(pendingToSlipFields(draft),[],'new',Date.now()).status).toBe('incomplete');
+    expect(pendingToSlipFields(draft).directionReason).toContain('เติมเงินเข้า e-Wallet');
+  });
+
+  it('upgrades previously pending wallet top-ups to the outgoing-bank expense policy',()=>{
+    const slip=parseSlipText('เติมเงินสำเร็จ\n11 ต.ค. 69 17:55 น.\nธ.กสิกรไทย\nxxx-x-x0000-x\nทรูมันนี่\nจำนวน: 150.00 บาท');
+    const old={...makePendingSlip(slip,'legacy.png','รอตรวจ','legacy'),
+      direction:null,method:'wallet' as const};
+    const current=pendingToSlipFields(old);
+    expect(current.direction).toBe('expense');
+    expect(current.directionReason).toContain('เติมเงินเข้า e-Wallet');
+    expect(prepareAutoSlip(current,[],'saved',Date.now()).status).toBe('ready');
+  });
+
+  it('clears only exact-hash stale pending drafts after a successful re-upload',()=>{
+    const old=makePendingSlip(sample(),'same.png','needs review','old');
+    const another=makePendingSlip(sample(),'another.png','needs review','another');
+    old.imageHash='a'.repeat(64);
+    another.imageHash='b'.repeat(64);
+    expect(matchingPendingBySlipHash([old,another],'a'.repeat(64))).toEqual(['old']);
+    expect(matchingPendingBySlipHash([old,another],'c'.repeat(64))).toEqual([]);
+    expect(matchingPendingBySlipHash([old,another],undefined)).toEqual([]);
   });
 
   it('rejects malformed snapshots and arbitrary private payloads',()=>{
