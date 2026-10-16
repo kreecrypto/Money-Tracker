@@ -69,7 +69,7 @@ function PendingCard({item,onSave,onKeep,onDiscard}:{
       ?'เติมเงิน TrueMoney: ระบบกำหนดเป็นรายจ่ายจากธนาคารแล้ว ตรวจยอด วันที่ เวลา และผู้รับก่อนบันทึก'
       :draft.kind==='wallet_topup'
         ?'เติมเงิน Wallet: ระบบกำหนดเป็นรายจ่ายจากธนาคารแล้ว ตรวจข้อมูลที่ยังไม่ครบก่อนบันทึก'
-        :draft.reason||'ข้อมูลจาก OCR ยังไม่ครบ ต้องตรวจรายการก่อนบันทึก'}</div>
+        :draft.reason||'ยังอ่านข้อมูลจากสลิปไม่ครบ กรุณาตรวจข้อมูลก่อนบันทึก'}</div>
     <button type="button" className="pending-slip-toggle" aria-expanded={expanded} onClick={()=>setExpanded(v=>!v)}>
       {expanded?'ซ่อนรายละเอียด':'ตรวจและแก้ไข'} {expanded?<ChevronUp size={17}/>:<ChevronDown size={17}/>}
     </button>
@@ -122,7 +122,7 @@ function PendingCard({item,onSave,onKeep,onDiscard}:{
 export default function PendingSlipsInbox({items,onSave,onKeep,onDiscard,onAdd}:Props){
   return <section className="surface pending-inbox" aria-label="รายการสลิปที่รอตรวจ">
     <div className="pending-inbox-head">
-      <div><span className="pending-inbox-kicker"><Clock3 size={17}/> OCR จากสลิปในเครื่อง</span>
+      <div><span className="pending-inbox-kicker"><Clock3 size={17}/> อ่านสลิปในเครื่อง</span>
         <h3>รายการรอตรวจ {items.length>0?'('+items.length+')':''}</h3>
         <p>ปิดแอปแล้วกลับมาแก้ไขภายหลังได้ · ยังไม่รวมในยอดรายรับรายจ่าย · ต้องใช้รูปต้นฉบับจาก Photos หากต้องเทียบยอด</p>
       </div>
