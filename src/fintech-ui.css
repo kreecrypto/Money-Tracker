@@ -319,3 +319,6 @@ button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible{ou
 .slip-upload-box .slip-actions .btn-primary,.slip-upload-box .slip-actions .slip-pick{
  background:#236c50!important;border-color:#236c50!important;color:#fff!important
 }
+
+/* Inactive ledger filter pills must meet AA against pale mint, not use muted placeholder ink. */
+.transaction-page .filter-tabs button:not(.selected){color:#344f43!important;min-height:44px}
