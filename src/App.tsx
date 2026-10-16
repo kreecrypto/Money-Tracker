@@ -1,12 +1,12 @@
 import {useCallback,useEffect,useMemo,useRef,useState,type FormEvent} from 'react';
-import {ArrowDownLeft,ArrowRight,ArrowUpRight,BarChart3,CalendarDays,Check,ScanLine,ChevronLeft,CloudOff,Download,FileSpreadsheet,Menu,MoreHorizontal,Pencil,Plus,Settings as SettingsIcon,ShieldCheck,Trash2,Upload,Wallet,WalletCards,X,House,ReceiptText,UtensilsCrossed,ShoppingBag,TrainFront,HandCoins,Ellipsis,} from 'lucide-react';
+import {ArrowDownLeft,ArrowRight,ArrowUpRight,BarChart3,CalendarDays,Check,ScanLine,ChevronLeft,CloudOff,Download,FileSpreadsheet,Menu,MoreHorizontal,Pencil,Plus,Settings as SettingsIcon,ShieldCheck,Trash2,Upload,Wallet,WalletCards,X,House,ReceiptText,UtensilsCrossed,ShoppingBag,TrainFront,HandCoins,Ellipsis,Sprout,} from 'lucide-react';
 import {baht,DEFAULT_SETTINGS,EXPENSE_CATEGORIES,INCOME_CATEGORIES,METHODS,monthLocal,monthly,summarize,todayLocal,toSatang,type EntryType,type Method,type Settings,type Transaction} from './lib/finance';
 import {deleteTransaction,loadSettings,loadTransactions,replaceAll,saveSettings,saveTransaction,loadPendingSlips,savePendingSlip,deletePendingSlip} from './lib/storage';
 import {makePendingSlip,pendingToSlipFields,matchingPendingBySlipHash,type PendingSlip} from './lib/pendingSlips';
 import PendingSlipsInbox from './PendingSlipsInbox';
 import {createBackup,downloadText,parseBackup,toCsv} from './lib/backup';
 import SlipScanner from './SlipScanner';
-import HomeScreen,{HomeTopbar} from './HomeScreen';
+import HomeScreen,{AppBrandBar,HomeTopbar} from './HomeScreen';
 import TransactionsScreen from './TransactionsScreen';
 import ReportsScreen from './ReportsScreen';
 import RestoreDialog from './RestoreDialog';
@@ -39,7 +39,7 @@ function CategoryGlyph({category,type}:{category:string;type:EntryType}){
 }
 const uuid=()=>typeof crypto!=='undefined'&&'randomUUID' in crypto?crypto.randomUUID():`${Date.now()}-${Math.random().toString(16).slice(2)}`;
 
-function Logo(){return <div className="brand"><div className="brand-logo">฿<span className="brand-dot"/></div><span className="brand-text">เงินวันนี้<small>DAILY MONEY</small></span></div>}
+function Logo(){return <div className="brand"><div className="brand-logo mt-app-brand-logo" aria-hidden="true"><Sprout size={25} strokeWidth={2.8}/></div><span className="brand-text">เงินวันนี้<small>DAILY MONEY</small></span></div>}
 function Empty({title,description,add,actionLabel='เพิ่มรายการ'}:{title:string;description:string;add?:()=>void;icon?:string;actionLabel?:string}){return <div className="empty"><div className="empty-symbol" aria-hidden="true"><WalletCards size={30} strokeWidth={1.5}/></div><b>{title}</b><p>{description}</p>{add&&<button className="btn btn-primary" onClick={add}><Plus size={16}/> {actionLabel}</button>}</div>}
 function TransactionRow({entry,onEdit,onDelete}:{entry:Transaction;onEdit:(t:Transaction)=>void;onDelete:(t:Transaction)=>void}){
   const [actionsOpen,setActionsOpen]=useState(false);
@@ -367,9 +367,9 @@ export default function App(){
   if(!ready) return <div className="loading-screen"><div className="loading-icon">฿</div>กำลังเปิดสมุดบันทึกของคุณ...</div>;
   if(loadingError) return <div className="loading-screen"><span>⚠️</span><h2>ไม่สามารถเปิดข้อมูลได้</h2><p>{loadingError}</p><button className="btn btn-primary" onClick={()=>window.location.reload()}>ลองอีกครั้ง</button></div>;
   return <div className="app-shell"><a href="#main-content" className="skip-link">ข้ามไปยังเนื้อหาหลัก</a><aside className="sidebar"><Logo/><div className="workspace-label">เมนูหลัก</div><nav aria-label="เมนูหลัก">{navItems.map(({key,label,icon:Icon})=><button key={key} className={`nav-item ${view===key?'active':''}`} aria-label={label} aria-current={view===key?'page':undefined} onClick={()=>setView(key)}><Icon size={19} strokeWidth={1.9}/><span>{label}</span>{view===key&&<span className="nav-active-indicator"/>}</button>)}</nav><div className="sidebar-spacer"/><div className="privacy-card"><div className="privacy-graphic"><ShieldCheck size={24}/></div><strong>ข้อมูลเป็นของคุณ</strong><p>รายการในเครื่องเป็นส่วนตัว; รายการจาก Shortcut เก็บใน Cloud เมื่อเปิดการเชื่อมต่อ</p><span><CloudOff size={13}/> เก็บข้อมูลในเครื่อง</span></div><p className="sidebar-version">เงินวันนี้ · v{APP_VERSION} · {APP_BUILD_SHA}</p></aside>
-    <div className="app-body"><header className={`topbar ${view==='home'?'topbar-home home-v2-topbar':''}`}>{view==='home'
+    <div className="app-body"><header className={`topbar ${view==='home'?'topbar-home home-v2-topbar':'mt-shared-topbar'}`}>{view==='home'
       ?<HomeTopbar pendingCount={pendingSlips.length+(iphonePending||0)} onNotifications={()=>{if(pendingSlips.length)openPendingSlips();else if(iphonePending&&iphonePending>0)openReview();else setToast('ยังไม่มีรายการที่ต้องตรวจในตอนนี้');}} onSettings={()=>setView('settings')}/>
-      :<><div className="topbar-left"><div className="ref-topbar-copy"><span className="greeting">เงินวันนี้ <span className="mobile-today">· {dateText(todayLocal())}</span></span><h1>{pageLabels[view]}</h1></div></div><div className="topbar-actions"><div className="today-chip"><CalendarDays size={16}/><span>{dateText(todayLocal())}</span></div><button className="btn btn-primary top-add" onClick={openAdd}><ScanLine size={18}/> <span>อัปโหลดสลิป</span></button></div></>}</header>
+      :<><div className="mt-home-topbar mt-app-topbar"><AppBrandBar pendingCount={pendingSlips.length+(iphonePending||0)} onNotifications={()=>{if(pendingSlips.length)openPendingSlips();else if(iphonePending&&iphonePending>0)openReview();else setToast('ยังไม่มีรายการที่ต้องตรวจในตอนนี้');}} onSettings={()=>setView('settings')}/></div><div className="topbar-actions"><div className="today-chip"><CalendarDays size={16}/><span>{dateText(todayLocal())}</span></div><button className="btn btn-primary top-add" onClick={openAdd}><ScanLine size={18}/> <span>อัปโหลดสลิป</span></button></div></>}</header>
     <main id="main-content" className="main-content" tabIndex={-1}>
       {updateAvailable&&<div className="app-update-notice" role="status"><div><strong>มีแอปเวอร์ชันใหม่พร้อมใช้งาน</strong><span>อัปเดตหน้าเว็บโดยไม่ลบรายการที่บันทึกในเครื่อง</span></div><button type="button" className="btn btn-primary" onClick={()=>window.location.reload()}>โหลดเวอร์ชันใหม่</button></div>}
       {view==='home'&&<>
