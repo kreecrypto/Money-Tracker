@@ -56,12 +56,28 @@ function MoneyCard({title,value,icon,variation}:{title:string;value:number;icon:
 }
 function TransactionRow({entry,onEdit,onDelete}:{entry:Transaction;onEdit:(t:Transaction)=>void;onDelete:(t:Transaction)=>void}){
   const [actionsOpen,setActionsOpen]=useState(false);
+  const actionsRef=useRef<HTMLDivElement>(null);
+  useEffect(()=>{
+    if(!actionsOpen)return;
+    const onOutside=(event:PointerEvent)=>{
+      if(event.target instanceof Node&&!actionsRef.current?.contains(event.target))setActionsOpen(false);
+    };
+    const onKey=(event:KeyboardEvent)=>{
+      if(event.key==='Escape'){setActionsOpen(false);event.stopPropagation();}
+    };
+    document.addEventListener('pointerdown',onOutside);
+    document.addEventListener('keydown',onKey);
+    return ()=>{
+      document.removeEventListener('pointerdown',onOutside);
+      document.removeEventListener('keydown',onKey);
+    };
+  },[actionsOpen]);
   return <div className="transaction-with-receipt"><div className="transaction-row">
     <CategoryGlyph category={entry.category} type={entry.type}/>
     <div className="transaction-copy"><strong>{entry.recipient||entry.note||entry.category}</strong><span>{entry.category}{entry.sender?` · จาก ${entry.sender}`:''}{entry.note&&entry.recipient?` · ${entry.note}`:""} <i>·</i> {METHODS[entry.method]}</span></div>
     <div className="transaction-end"><b className={entry.type==='income'?'positive':'negative'}>{entry.type==='income'?'+':'−'}฿{baht(entry.amountSatang)}</b><span>{dateText(entry.date)}{entry.time?` · ${entry.time} น.`:""}</span></div>
     <div className="transaction-actions"><button aria-label={`แก้ไข ${entry.note||entry.category}`} title="แก้ไข" className="icon-btn" onClick={()=>onEdit(entry)}><Pencil size={17}/></button><button aria-label={`ลบ ${entry.note||entry.category}`} title="ลบ" className="icon-btn danger" onClick={()=>onDelete(entry)}><Trash2 size={17}/></button></div>
-    <div className="mobile-row-actions"><button className="icon-btn mobile-row-more" title="จัดการรายการ" aria-label={`จัดการ ${entry.note||entry.category}`} aria-expanded={actionsOpen} onClick={()=>setActionsOpen(!actionsOpen)}><MoreHorizontal size={21}/></button>
+    <div className="mobile-row-actions" ref={actionsRef}><button className="icon-btn mobile-row-more" title="จัดการรายการ" aria-label={`จัดการ ${entry.note||entry.category}`} aria-expanded={actionsOpen} onClick={()=>setActionsOpen(!actionsOpen)}><MoreHorizontal size={21}/></button>
       {actionsOpen&&<div className="mobile-row-menu" role="group" aria-label="ตัวเลือกรายการ">
         <button onClick={()=>{setActionsOpen(false);onEdit(entry);}}><Pencil size={17}/> แก้ไข</button>
         <button className="danger" onClick={()=>{setActionsOpen(false);onDelete(entry);}}><Trash2 size={17}/> ลบรายการ</button>
@@ -200,6 +216,10 @@ export default function App(){
   const [repairBusy,setRepairBusy]=useState(false);
   const [restoreBusy,setRestoreBusy]=useState(false);
   const importRef=useRef<HTMLInputElement>(null);
+  useEffect(()=>{
+    document.title=`${pageLabels[view]} — เงินวันนี้`;
+    window.scrollTo({top:0,behavior:'auto'});
+  },[view]);
   const reloadPending=useCallback(async()=>{setPendingSlips(await loadPendingSlips());},[]);
   const reload=useCallback(async()=>{const [rows,s,pending]=await Promise.all([loadTransactions(),loadSettings(),loadPendingSlips()]);setItems(rows);setSettings(s);setPendingSlips(pending);setBudgetEdit(s.monthlyBudgetSatang?String(s.monthlyBudgetSatang/100):'');setOwnerNamesEdit((s.ownerNames||[]).join('\n'));},[]);
   useEffect(()=>{reload().catch(e=>setLoadingError(e instanceof Error?e.message:'เปิดฐานข้อมูลไม่สำเร็จ')).finally(()=>setReady(true));},[reload]);
@@ -365,9 +385,9 @@ export default function App(){
   };
   if(!ready) return <div className="loading-screen"><div className="loading-icon">฿</div>กำลังเปิดสมุดบันทึกของคุณ...</div>;
   if(loadingError) return <div className="loading-screen"><span>⚠️</span><h2>ไม่สามารถเปิดข้อมูลได้</h2><p>{loadingError}</p><button className="btn btn-primary" onClick={()=>window.location.reload()}>ลองอีกครั้ง</button></div>;
-  return <div className="app-shell"><aside className="sidebar"><Logo/><div className="workspace-label">เมนูหลัก</div><nav aria-label="เมนูหลัก">{navItems.map(({key,label,icon:Icon})=><button key={key} className={`nav-item ${view===key?'active':''}`} aria-label={label} aria-current={view===key?'page':undefined} onClick={()=>setView(key)}><Icon size={19} strokeWidth={1.9}/><span>{label}</span>{view===key&&<span className="nav-active-indicator"/>}</button>)}</nav><div className="sidebar-spacer"/><div className="privacy-card"><div className="privacy-graphic"><ShieldCheck size={24}/></div><strong>ข้อมูลเป็นของคุณ</strong><p>รายการในเครื่องเป็นส่วนตัว; รายการจาก Shortcut เก็บใน Cloud เมื่อเปิดการเชื่อมต่อ</p><span><CloudOff size={13}/> เก็บข้อมูลในเครื่อง</span></div><p className="sidebar-version">เงินวันนี้ · v{APP_VERSION} · {APP_BUILD_SHA}</p></aside>
+  return <div className="app-shell"><a href="#main-content" className="skip-link">ข้ามไปยังเนื้อหาหลัก</a><aside className="sidebar"><Logo/><div className="workspace-label">เมนูหลัก</div><nav aria-label="เมนูหลัก">{navItems.map(({key,label,icon:Icon})=><button key={key} className={`nav-item ${view===key?'active':''}`} aria-label={label} aria-current={view===key?'page':undefined} onClick={()=>setView(key)}><Icon size={19} strokeWidth={1.9}/><span>{label}</span>{view===key&&<span className="nav-active-indicator"/>}</button>)}</nav><div className="sidebar-spacer"/><div className="privacy-card"><div className="privacy-graphic"><ShieldCheck size={24}/></div><strong>ข้อมูลเป็นของคุณ</strong><p>รายการในเครื่องเป็นส่วนตัว; รายการจาก Shortcut เก็บใน Cloud เมื่อเปิดการเชื่อมต่อ</p><span><CloudOff size={13}/> เก็บข้อมูลในเครื่อง</span></div><p className="sidebar-version">เงินวันนี้ · v{APP_VERSION} · {APP_BUILD_SHA}</p></aside>
     <div className="app-body"><header className={`topbar ${view==='home'?'topbar-home':''}`}><div className="topbar-left"><span className="greeting">{view==='home'?'สวัสดีครับ':'เงินวันนี้'} <span className="mobile-today">{view==='home'?'🌿':'· '+dateText(todayLocal())}</span></span><h1>{view==='home'?'ดูแลการเงินให้ดีขึ้นในทุกวัน':pageLabels[view]}</h1></div><div className="topbar-actions"><div className="today-chip"><CalendarDays size={16}/><span>{dateText(todayLocal())}</span></div><button className="btn btn-primary top-add" onClick={openAdd}><ScanLine size={18}/> <span>อัปโหลดสลิป</span></button></div></header>
-    <main className="main-content">
+    <main id="main-content" className="main-content" tabIndex={-1}>
       {updateAvailable&&<div className="app-update-notice" role="status"><div><strong>มีแอปเวอร์ชันใหม่พร้อมใช้งาน</strong><span>อัปเดตหน้าเว็บโดยไม่ลบรายการที่บันทึกในเครื่อง</span></div><button type="button" className="btn btn-primary" onClick={()=>window.location.reload()}>โหลดเวอร์ชันใหม่</button></div>}
       {view!=='settings'&&view!=='home' && <div className="view-topline"><div><span className="eyebrow">สรุปข้อมูลการเงิน</span><h2>{view==='reports'?'สรุปรายรับ–รายจ่าย':slipInboxTab?'สลิปที่รอตรวจ':inboxTab?'ตรวจข้อมูลจาก iPhone':'รายการรายรับ–รายจ่าย'}</h2><p>{view==='reports'?'ดูรายรับ รายจ่าย และเงินคงเหลือในแต่ละเดือน':slipInboxTab?'กลับมาแก้ไขสลิปที่อ่านไม่ครบได้ทุกเมื่อ':inboxTab?'ตรวจข้อมูลที่ยังไม่ครบก่อนบันทึก':'ค้นหาและจัดการรายการที่บันทึกไว้'}</p></div>{(view==='reports'||(!inboxTab&&!slipInboxTab))&&<div className="month-picker"><button aria-label="เดือนก่อนหน้า" title="เดือนก่อนหน้า" onClick={()=>changeMonth(-1)}><ChevronLeft size={18}/></button><span>{monthText(month)}</span><button aria-label="เดือนถัดไป" title="เดือนถัดไป" onClick={()=>changeMonth(1)}><ChevronRight size={18}/></button></div>}</div>}
       {view==='home'&&<div className="home-dashboard">
