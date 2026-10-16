@@ -36,9 +36,9 @@ try{
     await page.locator('.spending-donut').waitFor({timeout:10000});
     const home=await page.evaluate(()=>{
       const rect=(selector)=>document.querySelector(selector)?.getBoundingClientRect();
-      const hero=rect('.hero-card'),quick=rect('.mobile-quick-actions'),spending=rect('.home-spending-card'),recent=rect('.transactions-surface'),navigation=rect('.mobile-bottom-nav');
+      const hero=rect('.hero-card'),cta=rect('.ref-home-upload'),quick=rect('.mobile-quick-actions'),spending=rect('.home-spending-card'),recent=rect('.transactions-surface'),navigation=rect('.mobile-bottom-nav');
       const icons=Array.from(document.querySelectorAll('.mobile-bottom-nav button svg')).map(el=>{const r=el.getBoundingClientRect();return {width:r.width,height:r.height};});
-      return {overflow:Math.max(0,document.documentElement.scrollWidth-innerWidth),order:!!(hero&&quick&&spending&&recent&&hero.top<quick.top&&quick.top<spending.top&&spending.top<recent.top),
+      return {overflow:Math.max(0,document.documentElement.scrollWidth-innerWidth),order:!!(hero&&quick&&spending&&recent&&hero.top<cta.top&&cta.top<quick.top&&quick.top<recent.top&&recent.top<spending.top),
         actionCount:document.querySelectorAll('.mobile-quick-actions button').length,navCount:document.querySelectorAll('.mobile-bottom-nav button').length,
         navVisible:!!(navigation&&navigation.top>=0&&navigation.bottom<=innerHeight+2),icons};
     });
