@@ -198,7 +198,7 @@ export default function SlipScanner({onApply,onComplete,onBusyChange,onUndoBatch
                   // Contradictory numbers are NEVER overridden by cropping.
                   const kplusText=firstReading.rawText+' '+recoveredReading.rawText;
                   const isKplus=/(?:ธ\.?\s*กสิกรไทย|ธนาคาร\s*กสิกรไทย|K\s*PLUS|kasikorn|kbank)/iu.test(kplusText)
-                    &&/(?:โอน\s*เงิน|จ่าย\s*บิล|ชำระ\s*เงิน)\s*สำเร็จ/iu.test(kplusText);
+                    &&/(?:โอน\s*เงิน|จ่าย\s*บิล|ชำระ\s*เงิน|เติม\s*เงิน)\s*สำเร็จ/iu.test(kplusText);
                   if(isKplus&&firstReading.amountSatang===null&&recoveredReading.amountSatang===null&&
                     !reading.warnings.some(w=>w.includes('ขัดแย้ง')||w.includes('ต่างกัน'))){
                     const region=findKPlusAmountCrop(retry.data.blocks,enhanced.width,enhanced.height);
