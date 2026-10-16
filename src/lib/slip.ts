@@ -307,32 +307,16 @@ export function parseSlipText(rawText:string,layoutLines:string[]=[],ownerNames:
   const configuredNames=sanitizeOwnerNames([...ownerNames]);
   const identityDirection=configuredNames.length>0
     ?classifyByAccountNames({sender,recipient},configuredNames):null;
-  // TrueMoney funding is an outgoing bank transfer in the bank-only ledger.
-  // If account holder names are configured, the sender must match. Never
-  // auto-classify an unrelated person's forwarded confirmation.
-  const trueMoneyFunding=walletTopUp?.kind==='truemoney';
-  const ambiguousWalletTransfer=walletTopUp?.kind==='wallet_transfer';
-  const trueMoneyDirection=trueMoneyFunding
-    ?(configuredNames.length>0
-      ?(identityDirection?.direction==='expense'?identityDirection:{
-        direction:null,directionReason:identityDirection?.directionReason||
-          'ยังยืนยันไม่ได้ว่านี่เป็นรายการของบัญชีคุณ'})
-      :(kplus?.direction==='expense'?kplus:{
-        direction:null,directionReason:'หลักฐานผู้โอน K PLUS ไม่ครบ กรุณาตรวจสอบ'}))
-    :null;
-  const classified=ambiguousWalletTransfer?{direction:null,directionReason:walletTopUp!.directionReason}:
-    trueMoneyFunding?{
-      direction:trueMoneyDirection?.direction??null,
-      directionReason:walletTopUp!.directionReason+
-        (trueMoneyDirection?.direction==='expense'
-          ?' · บันทึกเป็นรายจ่ายของผู้โอน'
-          :' · '+(trueMoneyDirection?.directionReason||'ยังระบุผู้โอนไม่ครบ')),
-    }:
-    special??identityDirection??(kplus?.direction&&inferred.direction===null&&
+  // User-defined accounting rule: verified K PLUS wallet top-ups are
+  // bank expenses. Optional owner-name aliases do not block this category.
+  // OCR conflicts, missing financial fields and duplicates are still guarded.
+  const classified=walletTopUp
+    ?{direction:'expense' as const,directionReason:walletTopUp.directionReason}
+    :special??identityDirection??(kplus?.direction&&inferred.direction===null&&
       !inferred.directionReason.includes('ทั้งเงินเข้าและเงินออก')?kplus:inferred);
   const {direction,directionReason}=classified;
   const source=special?.source;
-  const method:Method|undefined=trueMoneyFunding?'bank':walletTopUp?'wallet':special?.method;
+  const method:Method|undefined=walletTopUp?'bank':special?.method;
   const category=special?.category;
   const receipt=special?readReceiptDetails(special.source,lines,amountSatang,layoutLines,recipient):
     kplus&&amountSatang!==null?{
@@ -342,7 +326,7 @@ export function parseSlipText(rawText:string,layoutLines:string[]=[],ownerNames:
     }:undefined;
   const warnings:string[]=[];
   if(amountResult?.ambiguous)warnings.push('พบยอดเงินที่ขัดแย้งกันในสลิปเดียวกัน กรุณาตรวจยอดก่อนบันทึก');
-  if(walletTopUp)warnings.push(trueMoneyFunding?'เติมเงิน TrueMoney นับเป็นเงินออกจากธนาคาร หากบันทึกการใช้ Wallet ภายหลังอาจเกิดยอดซ้ำ':'เป็นรายการเติมเงิน e-Wallet ซึ่งอาจทำให้รายจ่ายซ้ำหากบันทึกการใช้จ่ายจากกระเป๋าเงินด้วย กรุณาตรวจสอบ');
+  if(walletTopUp)warnings.push('การเติมเงิน e-Wallet นับเป็นรายจ่ายจากธนาคารแล้ว โปรดอย่าบันทึกการใช้ Wallet ซ้ำ');
   if(!lines.length)warnings.push('ไม่พบตัวอักษรในรูปภาพ ลองถ่ายใหม่ให้ชัดขึ้น');
   if(amountSatang===null)warnings.push('ไม่สามารถระบุยอดโอนได้อย่างมั่นใจ กรุณากรอกยอดเอง');
   if(date===null)warnings.push('อ่านวันที่ไม่ชัดเจน กรุณาตรวจและกรอกวันที่ก่อนบันทึก');
@@ -390,20 +374,15 @@ export function mergeSlipOcrReadings(first:SlipFields,second:SlipFields):SlipFie
   const time=select('เวลา',first.time,second.time);
   const recipient=select('ชื่อผู้รับ',first.recipient,second.recipient);
   const sender=select('ชื่อผู้ส่ง',first.sender??null,second.sender??null);
-  // Wallet funding is a transfer, not proof of consumption. Preserve this even
-  // if a noisy recovery pass misclassifies its success header as a payment.
-  const walletFunding=[first,second].some(reading=>
-    reading.directionReason.includes('เติมเงินเข้า e-Wallet')&&reading.direction===null);
-  const pendingTrueMoneyReason=[first,second].find(reading=>
-    reading.directionReason.includes('เติมเงินเข้า e-Wallet TrueMoney')&&reading.direction===null)?.directionReason;
+  // The K PLUS funding confirmation is explicitly an expense by product rule.
+  // Keep contradictory OCR evidence as a separate financial safety gate.
   const candidateDirection=select('ประเภทรายรับรายจ่าย',first.direction,second.direction);
   const identityConflict=conflicts.some(x=>x.includes('ชื่อผู้ส่ง')||x.includes('ชื่อผู้รับ'));
-  const direction=walletFunding||identityConflict?null:candidateDirection;
-  const source=walletFunding?undefined:
-    first.source&&second.source&&first.source!==second.source?undefined:(first.source||second.source);
+  const direction=identityConflict?null:candidateDirection;
+  const source=first.source&&second.source&&first.source!==second.source?undefined:(first.source||second.source);
   if(first.source&&second.source&&first.source!==second.source)
     conflicts.push('OCR อ่านประเภทสลิปต่างกันระหว่างสองรอบ กรุณาตรวจสอบ');
-  const method:Method|undefined=walletFunding?'wallet':source===(first.source||undefined)?first.method:(second.method||first.method);
+  const method:Method|undefined=source===(first.source||undefined)?first.method:(second.method||first.method);
   const category=source===(first.source||undefined)?first.category:(second.category||first.category);
   const firstReceipt=first.receipt,secondReceipt=second.receipt;
   let receipt=firstReceipt?.itemsComplete?firstReceipt:(secondReceipt?.itemsComplete?secondReceipt:(firstReceipt||secondReceipt));
@@ -419,20 +398,17 @@ export function mergeSlipOcrReadings(first:SlipFields,second:SlipFields):SlipFie
     }
   }
   if(receipt&&amountSatang!==receipt.paidSatang)receipt=undefined;
-  if(walletFunding)receipt=undefined;
   const walletReason=[first,second].find(reading=>reading.directionReason.includes('เติมเงินเข้า e-Wallet'))?.directionReason;
   // A noisy pass may have insufficient sender evidence; keep the actionable
   // reason from that pending pass instead of replacing it with a generic note.
-  const directionReason=pendingTrueMoneyReason||walletReason||(
-    direction?(first.direction===direction?first.directionReason:second.directionReason):
-    'สลิปยังไม่สามารถระบุรายรับหรือรายจ่ายได้ชัดเจน กรุณาเลือกเอง'
-  );
+  const directionReason=direction
+    ?(walletReason||(first.direction===direction?first.directionReason:second.directionReason))
+    :'OCR อ่านประเภทรายการไม่ตรงกันระหว่างสองรอบ กรุณาตรวจสอบ';
   // Never let a cleaner retry erase an ambiguity discovered inside either
   // OCR pass; the second result cannot establish which conflicting total was real.
   const persistentWarnings=[...first.warnings,...second.warnings]
     .filter(w=>w.includes('ขัดแย้ง')||w.includes('ความมั่นใจต่ำ'));
   const warnings=[...new Set([...conflicts,...persistentWarnings])];
-  if(walletFunding)warnings.push('พบรายการเติมเงิน e-Wallet โปรดตรวจสอบก่อนบันทึกเพื่อป้องกันการนับรายจ่ายซ้ำ');
   if(amountSatang===null&&!conflicts.some(x=>x.includes('จำนวนเงิน')))warnings.push('อ่านจำนวนเงินไม่ได้ กรุณากรอกเอง');
   if(date===null&&!conflicts.some(x=>x.includes('วันที่')))warnings.push('อ่านวันที่ไม่ได้ กรุณากรอกเอง');
   if(time===null&&!conflicts.some(x=>x.includes('เวลา')))warnings.push('อ่านเวลาไม่ได้ กรุณากรอกเอง');
