@@ -331,3 +331,19 @@ button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible{ou
 /* Desktop saved-tab uses dark green fill; mobile uses a white selection chip. */
 @media(min-width:661px){.inbox-view-tabs button.active{color:#fff!important}}
 @media(max-width:660px){.inbox-view-tabs button.active{color:#17523d!important}}
+
+/* WebKit/Safari: 16px form controls stop focus auto-zoom and modal jumping.
+   Respect bottom/side safe areas and prevent icon shrink in tight toolbars. */
+@media(max-width:660px){
+ .modal input,.modal select,.modal textarea,
+ .iphone-draft input,.iphone-draft select,
+ .settings-card input,.settings-card select,.settings-card textarea{
+   font-size:16px!important;
+ }
+ .modal{max-height:92vh!important;max-height:92dvh!important;
+   padding-left:max(18px,env(safe-area-inset-left,0px))!important;
+   padding-right:max(18px,env(safe-area-inset-right,0px))!important}
+ .mobile-bottom-nav button svg,.mobile-quick-actions button svg,
+ .topbar-actions button svg,.slip-actions button svg{flex-shrink:0;display:block}
+ .main-content,.transaction-page,.settings-card,.slip-panel{min-width:0}
+}
