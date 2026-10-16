@@ -65,21 +65,21 @@ describe('local-only data reset',()=>{
     resetIphoneImportHistory();
     vi.stubGlobal('fetch',vi.fn().mockResolvedValue(new Response(JSON.stringify({transactions:[remote]}),{status:200})));
     const result=await iphoneSync();
-    expect(result).toEqual({imported:1,received:1});
+    expect(result).toEqual({imported:1,received:1,invalid:0});
     expect(mocks.save).toHaveBeenCalledWith(remote);
   });
   it('keeps an intentionally deleted cloud import hidden until explicit repair',async()=>{
     local.setItem('money-tracker-iphone-review-token-v1','A'.repeat(64));
     local.setItem('money-tracker-iphone-seen-v1',JSON.stringify([remote.id]));
     vi.stubGlobal('fetch',vi.fn().mockResolvedValue(new Response(JSON.stringify({transactions:[remote]}),{status:200})));
-    expect(await iphoneSync()).toEqual({imported:0,received:1});
+    expect(await iphoneSync()).toEqual({imported:0,received:1,invalid:0});
     expect(mocks.save).not.toHaveBeenCalled();
   });
   it('does not duplicate a transaction that still exists locally',async()=>{
     local.setItem('money-tracker-iphone-review-token-v1','A'.repeat(64));
     mocks.load.mockResolvedValue([remote]);
     vi.stubGlobal('fetch',vi.fn().mockResolvedValue(new Response(JSON.stringify({transactions:[remote]}),{status:200})));
-    expect(await iphoneSync()).toEqual({imported:0,received:1});
+    expect(await iphoneSync()).toEqual({imported:0,received:1,invalid:0});
     expect(mocks.save).not.toHaveBeenCalled();
   });
 });
