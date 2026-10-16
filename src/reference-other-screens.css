@@ -189,3 +189,21 @@
 @media(prefers-reduced-motion:reduce){
  .mt-transactions-screen *, .mt-reports-screen *,.mt-ocr-workspace *{scroll-behavior:auto!important;transition:none!important;}
 }
+
+
+/* Safari QA: legacy .search-box {flex:1} stretched the search field to fill
+   .transaction-page min-height on mobile. Explicitly lock native search size. */
+.mt-transactions-screen .mt-transaction-body {min-height:0!important;height:auto!important;}
+.mt-transactions-screen .mt-search-field {
+  flex:0 0 48px!important;height:48px!important;min-height:48px!important;max-height:48px!important;
+  align-self:stretch;
+}
+.mt-transactions-screen .mt-search-field input {height:46px!important;min-height:0!important;line-height:1.35!important;}
+@media(max-width:660px){
+  /* On phones each reference screen owns its title. Keep desktop top-add CTA. */
+  .topbar:not(.topbar-home):has(+ .main-content .mt-reports-screen),
+  .topbar:not(.topbar-home):has(+ .main-content .mt-transactions-screen){display:none!important;}
+  .main-content:has(.mt-transactions-screen), .main-content:has(.mt-reports-screen){
+    padding-top:max(16px,env(safe-area-inset-top,0px))!important;
+  }
+}
