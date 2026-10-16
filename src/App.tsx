@@ -1,5 +1,5 @@
 import {useCallback,useEffect,useMemo,useRef,useState,type FormEvent} from 'react';
-import {ArrowDownLeft,ArrowRight,ArrowUpRight,BarChart3,CalendarDays,Check,ScanLine,ChevronLeft,ChevronRight,CloudOff,Download,FileSpreadsheet,LayoutDashboard,Menu,MoreHorizontal,Pencil,Plus,Search,Settings as SettingsIcon,ShieldCheck,SlidersHorizontal,Trash2,TrendingDown,Upload,Wallet,WalletCards,X} from 'lucide-react';
+import {ArrowDownLeft,ArrowRight,ArrowUpRight,BarChart3,CalendarDays,Check,ScanLine,ChevronLeft,ChevronRight,CloudOff,Download,FileSpreadsheet,LayoutDashboard,Menu,MoreHorizontal,Pencil,Plus,Search,Settings as SettingsIcon,ShieldCheck,SlidersHorizontal,Trash2,TrendingDown,Upload,Wallet,WalletCards,X,House,ReceiptText,UtensilsCrossed,ShoppingBag,TrainFront,Leaf,HandCoins,Ellipsis,Eye,ChartNoAxesColumn} from 'lucide-react';
 import {baht,DEFAULT_SETTINGS,EXPENSE_CATEGORIES,expenseByCategory,INCOME_CATEGORIES,lastMonths,METHODS,monthLocal,monthly,summarize,todayLocal,toSatang,type EntryType,type Method,type Settings,type Transaction} from './lib/finance';
 import {deleteTransaction,loadSettings,loadTransactions,replaceAll,saveSettings,saveTransaction,loadPendingSlips,savePendingSlip,deletePendingSlip} from './lib/storage';
 import {makePendingSlip,pendingToSlipFields,matchingPendingBySlipHash,type PendingSlip} from './lib/pendingSlips';
@@ -27,6 +27,25 @@ const navItems=[{key:'home' as const,icon:LayoutDashboard,label:'ภาพรว
 const monthText=(value:string)=>{const [year,m]=value.split('-').map(Number);return new Intl.DateTimeFormat('th-TH',{month:'long',year:'numeric'}).format(new Date(year,m-1,1));};
 const dateText=(date:string)=>new Intl.DateTimeFormat('th-TH',{day:'numeric',month:'short',year:'numeric'}).format(new Date(`${date}T12:00:00`));
 const percent=(n:number,d:number)=>d<=0?0:Math.round(n/d*100);
+const SPENDING_COLORS=['#fd7566','#f8ba86','#ae97d7','#83cdb0','#cddbdd'] as const;
+function spendingGradient(totals:readonly number[],grandTotal:number):string{
+  if(grandTotal<=0)return 'conic-gradient(#e8efec 0% 100%)';
+  let cursor=0;
+  const parts=totals.slice(0,4).map((amount,index)=>{
+    const start=cursor;cursor+=Math.max(0,amount)/grandTotal*100;
+    return `${SPENDING_COLORS[index]} ${start.toFixed(3)}% ${Math.min(cursor,100).toFixed(3)}%`;
+  });
+  if(cursor<100)parts.push(`${SPENDING_COLORS[4]} ${cursor.toFixed(3)}% 100%`);
+  return `conic-gradient(${parts.join(',')})`;
+}
+function CategoryGlyph({category,type}:{category:string;type:EntryType}){
+  const food=/อาหาร|ข้าว|กาแฟ|เครื่องดื่ม|ร้าน|restaurant|cafe/i.test(category);
+  const shop=/ซื้อ|ช้อป|สินค้า|shopping|shopee/i.test(category);
+  const transport=/เดินทาง|รถ|ขนส่ง|bts|mrt/i.test(category);
+  const home=/บ้าน|ที่อยู่|น้ำ|ไฟ|ค่าเช่า/i.test(category);
+  const Icon=type==='income'?HandCoins:food?UtensilsCrossed:shop?ShoppingBag:transport?TrainFront:home?House:Ellipsis;
+  return <span className={`money-category-icon ${type==='income'?'cat-income':food?'cat-food':shop?'cat-shopping':transport?'cat-transport':home?'cat-home':'cat-other'}`} aria-hidden="true"><Icon size={19} strokeWidth={2}/></span>;
+}
 const uuid=()=>typeof crypto!=='undefined'&&'randomUUID' in crypto?crypto.randomUUID():`${Date.now()}-${Math.random().toString(16).slice(2)}`;
 
 function Logo(){return <div className="brand"><div className="brand-logo">฿<span className="brand-dot"/></div><span className="brand-text">เงินวันนี้<small>DAILY MONEY</small></span></div>}
@@ -38,7 +57,7 @@ function MoneyCard({title,value,icon,variation}:{title:string;value:number;icon:
 function TransactionRow({entry,onEdit,onDelete}:{entry:Transaction;onEdit:(t:Transaction)=>void;onDelete:(t:Transaction)=>void}){
   const [actionsOpen,setActionsOpen]=useState(false);
   return <div className="transaction-with-receipt"><div className="transaction-row">
-    <div className={`transaction-emoji ${entry.type}`} aria-hidden="true">{entry.category.slice(0,1)}</div>
+    <CategoryGlyph category={entry.category} type={entry.type}/>
     <div className="transaction-copy"><strong>{entry.recipient||entry.note||entry.category}</strong><span>{entry.category}{entry.sender?` · จาก ${entry.sender}`:''}{entry.note&&entry.recipient?` · ${entry.note}`:""} <i>·</i> {METHODS[entry.method]}</span></div>
     <div className="transaction-end"><b className={entry.type==='income'?'positive':'negative'}>{entry.type==='income'?'+':'−'}฿{baht(entry.amountSatang)}</b><span>{dateText(entry.date)}{entry.time?` · ${entry.time} น.`:""}</span></div>
     <div className="transaction-actions"><button aria-label={`แก้ไข ${entry.note||entry.category}`} title="แก้ไข" className="icon-btn" onClick={()=>onEdit(entry)}><Pencil size={17}/></button><button aria-label={`ลบ ${entry.note||entry.category}`} title="ลบ" className="icon-btn danger" onClick={()=>onDelete(entry)}><Trash2 size={17}/></button></div>
@@ -69,7 +88,7 @@ function TxList({items,onEdit,onDelete,limit,groupByDay=false}:{items:Transactio
   const today=todayLocal();
   const yesterday=new Date(today+'T12:00:00');yesterday.setDate(yesterday.getDate()-1);
   return <div className="tx-list tx-list-grouped">{groupTransactionsByDay(visible).map(group=><section className="transaction-day-group" key={group.date} aria-label={'รายการวันที่ '+dateText(group.date)}>
-    <div className="transaction-day-heading"><strong>{dateSectionLabel(group.date,today,todayLocal(yesterday),dateText)}</strong><span>{group.items.length} รายการ</span></div>
+    <div className="transaction-day-heading"><strong>{dateSectionLabel(group.date,today,todayLocal(yesterday),dateText)} · {dateText(group.date)}</strong><span className={group.items.reduce((t,item)=>t+(item.type==='income'?item.amountSatang:-item.amountSatang),0)>=0?'positive':'negative'}>{group.items.reduce((t,item)=>t+(item.type==='income'?item.amountSatang:-item.amountSatang),0)>=0?'+':'−'}฿{baht(Math.abs(group.items.reduce((t,item)=>t+(item.type==='income'?item.amountSatang:-item.amountSatang),0)))}</span></div>
     {group.items.map(entry=><TransactionRow key={entry.id} entry={entry} onEdit={onEdit} onDelete={onDelete}/>)}
   </section>)}</div>;
 }
@@ -345,17 +364,17 @@ export default function App(){
   if(!ready) return <div className="loading-screen"><div className="loading-icon">฿</div>กำลังเปิดสมุดบันทึกของคุณ...</div>;
   if(loadingError) return <div className="loading-screen"><span>⚠️</span><h2>ไม่สามารถเปิดข้อมูลได้</h2><p>{loadingError}</p><button className="btn btn-primary" onClick={()=>window.location.reload()}>ลองอีกครั้ง</button></div>;
   return <div className="app-shell"><aside className="sidebar"><Logo/><div className="workspace-label">เมนูหลัก</div><nav aria-label="เมนูหลัก">{navItems.map(({key,label,icon:Icon})=><button key={key} className={`nav-item ${view===key?'active':''}`} aria-label={label} aria-current={view===key?'page':undefined} onClick={()=>setView(key)}><Icon size={19} strokeWidth={1.9}/><span>{label}</span>{view===key&&<span className="nav-active-indicator"/>}</button>)}</nav><div className="sidebar-spacer"/><div className="privacy-card"><div className="privacy-graphic"><ShieldCheck size={24}/></div><strong>ข้อมูลเป็นของคุณ</strong><p>รายการในเครื่องเป็นส่วนตัว; รายการจาก Shortcut เก็บใน Cloud เมื่อเปิดการเชื่อมต่อ</p><span><CloudOff size={13}/> เก็บข้อมูลในเครื่อง</span></div><p className="sidebar-version">เงินวันนี้ · v{APP_VERSION} · {APP_BUILD_SHA}</p></aside>
-    <div className="app-body"><header className="topbar"><div className="topbar-left"><span className="greeting">เงินวันนี้ <span className="mobile-today">· {dateText(todayLocal())}</span></span><h1>{pageLabels[view]}</h1></div><div className="topbar-actions"><div className="today-chip"><CalendarDays size={16}/><span>{dateText(todayLocal())}</span></div><button className="btn btn-primary top-add" onClick={openAdd}><ScanLine size={18}/> <span>อัปโหลดสลิป</span></button></div></header>
+    <div className="app-body"><header className="topbar"><div className="topbar-left"><span className="greeting">{view==='home'?'สวัสดีครับ':'เงินวันนี้'} <span className="mobile-today">{view==='home'?'🌿':'· '+dateText(todayLocal())}</span></span><h1>{view==='home'?'ดูแลการเงินให้ดีขึ้นในทุกวัน':pageLabels[view]}</h1></div><div className="topbar-actions"><div className="today-chip"><CalendarDays size={16}/><span>{dateText(todayLocal())}</span></div><button className="btn btn-primary top-add" onClick={openAdd}><ScanLine size={18}/> <span>อัปโหลดสลิป</span></button></div></header>
     <main className="main-content">
       {updateAvailable&&<div className="app-update-notice" role="status"><div><strong>มีแอปเวอร์ชันใหม่พร้อมใช้งาน</strong><span>อัปเดตหน้าเว็บโดยไม่ลบรายการที่บันทึกในเครื่อง</span></div><button type="button" className="btn btn-primary" onClick={()=>window.location.reload()}>โหลดเวอร์ชันใหม่</button></div>}
       {view!=='settings'&&view!=='home' && <div className="view-topline"><div><span className="eyebrow">สรุปข้อมูลการเงิน</span><h2>{view==='reports'?'สรุปรายรับ–รายจ่าย':slipInboxTab?'สลิปที่รอตรวจ':inboxTab?'ตรวจข้อมูลจาก iPhone':'รายการรายรับ–รายจ่าย'}</h2><p>{view==='reports'?'ดูรายรับ รายจ่าย และเงินคงเหลือในแต่ละเดือน':slipInboxTab?'กลับมาแก้ไขสลิปที่อ่านไม่ครบได้ทุกเมื่อ':inboxTab?'ตรวจข้อมูลที่ยังไม่ครบก่อนบันทึก':'ค้นหาและจัดการรายการที่บันทึกไว้'}</p></div>{(view==='reports'||(!inboxTab&&!slipInboxTab))&&<div className="month-picker"><button aria-label="เดือนก่อนหน้า" title="เดือนก่อนหน้า" onClick={()=>changeMonth(-1)}><ChevronLeft size={18}/></button><span>{monthText(month)}</span><button aria-label="เดือนถัดไป" title="เดือนถัดไป" onClick={()=>changeMonth(1)}><ChevronRight size={18}/></button></div>}</div>}
       {view==='home'&&<div className="home-dashboard">
          <div className="home-month-picker" aria-label="เดือนของภาพรวม"><span className="home-month-caption">ภาพรวมรายเดือน</span><div className="month-picker"><button aria-label="เดือนก่อนหน้า" title="เดือนก่อนหน้า" onClick={()=>changeMonth(-1)}><ChevronLeft size={18}/></button><span>{monthText(month)}</span><button aria-label="เดือนถัดไป" title="เดือนถัดไป" onClick={()=>changeMonth(1)}><ChevronRight size={18}/></button></div></div>
-        <section className="surface" aria-label="นำเข้าสลิป" style={{padding:'18px',marginBottom:'16px',display:'flex',alignItems:'center',justifyContent:'space-between',gap:'14px',flexWrap:'wrap'}}><div><h2 style={{fontSize:'1.1rem',margin:'0 0 5px'}}>เพิ่มรายการจากสลิป</h2><p style={{margin:0}}>อัปโหลดสลิป ระบบช่วยบันทึกรายการให้คุณเมื่ออ่านข้อมูลครบ</p></div><button type="button" className="btn btn-primary" onClick={openAdd}><ScanLine size={18}/> อัปโหลดสลิป</button></section>
+        <section className="surface home-upload-pitch" aria-label="นำเข้าสลิป" style={{padding:'18px',marginBottom:'16px',display:'flex',alignItems:'center',justifyContent:'space-between',gap:'14px',flexWrap:'wrap'}}><div><h2 style={{fontSize:'1.1rem',margin:'0 0 5px'}}>เพิ่มรายการจากสลิป</h2><p style={{margin:0}}>อัปโหลดสลิป ระบบช่วยบันทึกรายการให้คุณเมื่ออ่านข้อมูลครบ</p></div><button type="button" className="btn btn-primary" onClick={openAdd}><ScanLine size={18}/> อัปโหลดสลิป</button></section>
         {(settings.ownerNames||[]).length===0&&<section className="surface" aria-label="ตั้งชื่อผู้ถือบัญชีเพื่อช่วยอ่านสลิป" style={{padding:'12px 18px',marginBottom:'16px',display:'flex',alignItems:'center',gap:'12px',justifyContent:'space-between',flexWrap:'wrap'}}><div><strong>แนะนำ: เพิ่มชื่อของคุณบนสลิป</strong><p style={{margin:'4px 0 0'}}>ช่วยให้ระบบแยกเงินเข้าและเงินออกได้แม่นยำขึ้น · ตั้งค่าภายหลังได้</p></div><button type="button" className="btn btn-secondary" onClick={()=>setView('settings')}>ตั้งชื่อของฉัน</button></section>}
         {pendingSlips.length>0&&<section className="surface" aria-label="สลิปที่ต้องตรวจสอบ" role="status" style={{padding:'16px 18px',marginBottom:'16px',display:'flex',alignItems:'center',justifyContent:'space-between',gap:'12px',flexWrap:'wrap'}}><div><strong>สลิปรอตรวจ {pendingSlips.length} รายการ</strong><p style={{margin:'4px 0 0'}}>ข้อมูลเหล่านี้ยังไม่รวมในยอดรายรับ–รายจ่าย</p></div><button type="button" className="btn btn-secondary" onClick={()=>{setInboxTab(false);setSlipInboxTab(true);setView('transactions');}}>ตรวจสลิป <ArrowRight size={16}/></button></section>}
         {items.length>=5&&Date.now()-lastBackupAt>30*24*60*60*1000&&<div className="backup-alert" role="status"><div><strong>อย่าลืมสำรองข้อมูลการเงิน</strong><span>รายการที่เพิ่มในเครื่องอาจสูญหายหากล้างข้อมูลเบราว์เซอร์ กรุณาสำรองข้อมูล</span></div><button type="button" className="btn btn-secondary" onClick={exportJson}>สำรองข้อมูล JSON</button></div>}
-        <section className="summary-grid" aria-label="ยอดรวมรายเดือน"><div className="hero-card"><div className="hero-pattern"/><div className="hero-kicker"><span className="hero-dot"/> เงินสุทธิจากรายการที่บันทึก</div><div className="hero-value"><span>฿</span>{baht(sums.net)}</div><p>รายรับ − รายจ่าย · ไม่ใช่ยอดบัญชีธนาคาร</p><div className="hero-line"/><div className="hero-bottom"><div><span><ArrowDownLeft size={17}/> รายรับ</span><strong>฿{baht(sums.income)}</strong></div><div><span><ArrowUpRight size={17}/> รายจ่าย</span><strong>฿{baht(sums.expense)}</strong></div></div></div>
+        <section className="summary-grid" aria-label="ยอดรวมรายเดือน"><div className="hero-card"><div className="hero-pattern"/><div className="balance-botanical" aria-hidden="true"><Leaf size={64} strokeWidth={1.1}/><Leaf size={42} strokeWidth={1.1}/></div><div className="hero-kicker"><Eye size={16}/> เงินสุทธิเดือนนี้</div><div className="hero-value"><span>฿</span>{baht(sums.net)}</div><p>ผลต่างจากรายการที่บันทึก · ไม่ใช่ยอดเงินในธนาคาร</p><div className="hero-line"/><div className="hero-bottom"><div><span><ArrowDownLeft size={17}/> รายรับ</span><strong>฿{baht(sums.income)}</strong></div><div><span><ArrowUpRight size={17}/> รายจ่าย</span><strong>฿{baht(sums.expense)}</strong></div></div></div>
           <div className="budget-card">
             <div className="budget-summary-head">
               <div><h3>งบประมาณเดือนนี้</h3><p>{settings.monthlyBudgetSatang>0?`ใช้ไป ${usedBudget}% ของงบที่ตั้งไว้`:'ยังไม่ได้ตั้งงบประมาณ'}</p></div>
@@ -365,8 +384,10 @@ export default function App(){
               <div className="budget-linear-meta"><span>ใช้ไป ฿{baht(sums.expense)}</span><span>จาก ฿{baht(settings.monthlyBudgetSatang)}</span></div></>}
           </div></section>
         <section className="mobile-quick-actions" aria-label="บันทึกเงินอย่างรวดเร็ว">
-          <button type="button" className="mobile-action-scan" onClick={openAdd}><span className="quick-action-symbol"><ScanLine size={22}/></span><span><strong>เพิ่มสลิป</strong><small>อ่านข้อมูลและช่วยบันทึกรายการ</small></span><ArrowRight size={17}/></button>
-          <button type="button" className="mobile-action-add" onClick={openManual}><span className="quick-action-symbol"><Plus size={20}/></span><span><strong>กรอกรายการเอง</strong><small>เมื่อไม่มีสลิป</small></span><ArrowRight size={17}/></button>
+          <button type="button" className="mobile-action-scan" onClick={openAdd}><span className="quick-action-symbol"><ScanLine size={23}/></span><span><strong>อัปโหลดสลิป</strong><small>อ่านสลิปอัตโนมัติ</small></span></button>
+          <button type="button" className="mobile-action-add" onClick={openManual}><span className="quick-action-symbol"><Plus size={23}/></span><span><strong>เพิ่มด้วยมือ</strong><small>กรอกรายการเอง</small></span></button>
+          <button type="button" className="mobile-action-all" onClick={()=>{setInboxTab(false);setSlipInboxTab(false);setView('transactions');}}><span className="quick-action-symbol"><ReceiptText size={22}/></span><span><strong>รายการทั้งหมด</strong><small>ดูประวัติ</small></span></button>
+          <button type="button" className="mobile-action-reports" onClick={()=>setView('reports')}><span className="quick-action-symbol"><ChartNoAxesColumn size={23}/></span><span><strong>ดูรายงาน</strong><small>สรุปรายจ่าย</small></span></button>
         </section>
         <section className="daily-snapshot" aria-label="สรุปเงินเข้าออกวันนี้">
           <div className="daily-snapshot-main"><span>วันนี้ใช้ไป</span><strong>฿{baht(todaySummary.expense)}</strong><small>จากรายการที่บันทึก {todaySummary.count} รายการ</small></div>
