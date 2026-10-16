@@ -95,7 +95,7 @@ describe('additional K PLUS layouts from seven image examples',()=>{
       'ธ.กสิกรไทย','xxx-x-x0000-x','ทรูมันนี่','0000000000',
       'จำนวน:','1,000.00 บาท','ค่าธรรมเนียม:','0.00 บาท',
       'เลขที่รายการ: TESTTOPUP20261015000001',
-    ].join('\\n');
+    ].join('\n');
     const slip=parseSlipText(text);
     expect(slip).toMatchObject({
       amountSatang:100000,date:'2026-10-15',time:'14:00',
@@ -116,20 +116,20 @@ describe('additional K PLUS layouts from seven image examples',()=>{
       'เติมเงินสำเร็จ','15 ต.ค. 69 14:00 น.','นาย ตัวอย่าง ผู้ส่ง',
       'ธ.กสิกรไทย','xxx-x-x0000-x','TrueMoney','0000000000',
       'จำนวน:','1,000.00 บาท','ค่าธรรมเนียม: 0.00 บาท',
-    ].join('\\n');
+    ].join('\n');
     expect(parseSlipText(text,[],['นาย บุคคลอื่น']).direction).toBeNull();
     expect(parseSlipText(text,[],['นาย ตัวอย่าง ผู้ส่ง']).direction).toBe('expense');
     expect(prepareAutoSlip(parseSlipText(text,[],['นาย บุคคลอื่น']),[],'unowned',Date.now()).status).toBe('incomplete');
   });
 
   it('does not turn unverified or unreadable TrueMoney top-ups into auto-saved expenses',()=>{
-    const noMasked=['เติมเงินสำเร็จ','15 ต.ค. 69 14:00 น.','TrueMoney','จำนวน: 1,000.00 บาท'].join('\\n');
+    const noMasked=['เติมเงินสำเร็จ','15 ต.ค. 69 14:00 น.','TrueMoney','จำนวน: 1,000.00 บาท'].join('\n');
     expect(prepareAutoSlip(parseSlipText(noMasked),[],'missing-bank',Date.now()).status).toBe('incomplete');
     const noAmount=[
       'เติมเงินสำเร็จ','15 ต.ค. 69 14:00 น.','นาย ตัวอย่าง ผู้ส่ง',
       'ธ.กสิกรไทย','xxx-x-x0000-x','ทรูมันนี่','จำนวน:','อ่านไม่ชัด',
       'ค่าธรรมเนียม 0.00 บาท',
-    ].join('\\n');
+    ].join('\n');
     expect(prepareAutoSlip(parseSlipText(noAmount),[],'missing-amount',Date.now()).status).toBe('incomplete');
   });
 
