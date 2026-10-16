@@ -7,11 +7,10 @@ export function correctionDirection(source:Pick<SlipFields,'direction'>):EntryTy
   return source.direction??'';
 }
 
-/** Ambiguous internal wallet transfers have a deliberate "do not count" action.
- * Verified TrueMoney bank outflows should not be presented as the same case. */
+/** Legacy Pending entries made before the funding-as-expense policy. */
 export function isWalletFundingSlip(source:Pick<SlipFields,'directionReason'>):boolean {
   return source.directionReason.includes('เติมเงินเข้า e-Wallet')&&
-    !source.directionReason.includes('TrueMoney');
+    source.directionReason.includes('ไม่บันทึกเป็นรายจ่ายอัตโนมัติ');
 }
 
 export function isTrueMoneyBankTopUp(source:Pick<SlipFields,'directionReason'>):boolean {
