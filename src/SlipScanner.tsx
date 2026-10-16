@@ -395,7 +395,6 @@ export default function SlipScanner({onApply,onComplete,onBusyChange,onUndoBatch
   const needsAttention=Object.entries(corrections).filter(([index])=>rows[Number(index)]?.status==='incomplete');
   return <section className="slip-panel slip-panel-primary slip-workspace" aria-label="อัปโหลดสลิปหรือใบเสร็จหลายรูป">
     <div className="slip-head"><div><ScanLine size={18}/><strong>เพิ่มสลิปหรือใบเสร็จ</strong></div></div>
-    <div className="ref-ocr-steps" aria-label="ขั้นตอนอัปโหลดสลิป"><span className={!busy&&!complete?'is-current':''}>1. เลือกรูป</span><span className={busy?'is-current':''}>2. อ่านข้อมูล</span><span className={complete?'is-current':''}>3. ดูผลการบันทึก</span></div>
     {!busy&&!complete&&<p className="slip-hint">เพิ่มสลิปได้ครั้งละ 20 รูป ระบบจะอ่านและบันทึกเมื่อข้อมูลครบ โดยไม่เพิ่มรายการที่ตรวจพบว่าซ้ำ</p>}
     {!busy&&(!complete||needsAttention.length===0)&&<div className="slip-upload-box">
       <div className="slip-upload-icon" aria-hidden="true"><FileImage size={28}/></div>
