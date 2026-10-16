@@ -1,5 +1,5 @@
 import {useCallback,useEffect,useMemo,useRef,useState,type FormEvent} from 'react';
-import {ArrowDownLeft,ArrowRight,ArrowUpRight,BarChart3,CalendarDays,Check,ScanLine,Camera,Sprout,ChevronLeft,ChevronRight,CloudOff,Download,FileSpreadsheet,LayoutDashboard,Menu,MoreHorizontal,Pencil,Plus,Search,Settings as SettingsIcon,ShieldCheck,SlidersHorizontal,Trash2,TrendingDown,Upload,Wallet,WalletCards,X,House,ReceiptText,UtensilsCrossed,ShoppingBag,TrainFront,Leaf,HandCoins,Ellipsis,Eye,ChartNoAxesColumn} from 'lucide-react';
+import {ArrowDownLeft,ArrowRight,ArrowUpRight,BarChart3,CalendarDays,Check,ScanLine,ChevronLeft,ChevronRight,CloudOff,Download,FileSpreadsheet,Menu,MoreHorizontal,Pencil,Plus,Search,Settings as SettingsIcon,ShieldCheck,SlidersHorizontal,Trash2,TrendingDown,Upload,Wallet,WalletCards,X,House,ReceiptText,UtensilsCrossed,ShoppingBag,TrainFront,HandCoins,Ellipsis,} from 'lucide-react';
 import {baht,DEFAULT_SETTINGS,EXPENSE_CATEGORIES,expenseByCategory,INCOME_CATEGORIES,lastMonths,METHODS,monthLocal,monthly,summarize,todayLocal,toSatang,type EntryType,type Method,type Settings,type Transaction} from './lib/finance';
 import {deleteTransaction,loadSettings,loadTransactions,replaceAll,saveSettings,saveTransaction,loadPendingSlips,savePendingSlip,deletePendingSlip} from './lib/storage';
 import {makePendingSlip,pendingToSlipFields,matchingPendingBySlipHash,type PendingSlip} from './lib/pendingSlips';
@@ -18,7 +18,7 @@ import type {SlipFields} from './lib/slip';
 import {prepareAutoSlip} from './lib/slipAutoSave';
 import {sanitizeOwnerNames} from './lib/slipIdentity';
 import type {SlipBatchOutcome,SlipBatchSummary} from './lib/slipBatch';
-import {dailyTotals,groupTransactionsByDay,dateSectionLabel} from './lib/spendingInsights';
+import {groupTransactionsByDay,dateSectionLabel} from './lib/spendingInsights';
 import {APP_VERSION,APP_BUILD_SHA,APP_BUILT_AT,hasNewBundle} from './lib/appVersion';
 
 type Page='home'|'transactions'|'reports'|'settings';
@@ -278,7 +278,6 @@ export default function App(){
   const sums=useMemo(()=>summarize(selected),[selected]);
   const allSums=useMemo(()=>summarize(items),[items]);
   const byCategory=useMemo(()=>expenseByCategory(selected),[selected]);
-  const todaySummary=useMemo(()=>dailyTotals(items,todayLocal()),[items]);
   const usedBudget=percent(sums.expense,settings.monthlyBudgetSatang);
   const filtered=useMemo(()=>selected.filter(x=>(filter==='all'||x.type===filter) && (!search.trim()||`${x.category} ${x.note} ${x.recipient||''} ${x.time||''} ${x.receipt?.receiptId||''} ${(x.receipt?.items||[]).map(i=>i.name).join(' ')} ${METHODS[x.method]}`.toLocaleLowerCase('th-TH').includes(search.trim().toLocaleLowerCase('th-TH')))),[selected,filter,search]);
   const history=useMemo(()=>{const [y,m]=month.split('-').map(Number);return lastMonths(6,new Date(y,m-1,1)).map(period=>({...period,...summarize(monthly(items,period.key))}));},[items,month]);
