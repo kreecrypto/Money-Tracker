@@ -7,12 +7,12 @@ export const maxDuration=15;
  * It only tests whether Supabase REST responds to a zero-row query.
  * No financial data, owner identifiers, or secrets leave the endpoint.
  */
-export async function GET(request:Request):Promise<Response>{
+export async function GET(request?:Request):Promise<Response>{
   // This repository deploys as two Vercel projects. When the app has an
   // explicit backend URL, probe that storage instead of reporting that the
   // static frontend project is missing Supabase credentials.
   const bridge=process.env.VITE_IPHONE_BRIDGE_URL?.trim();
-  if(bridge){
+  if(bridge&&request){
     try{
       const target=new URL(bridge);
       if(target.protocol!=='https:'||target.origin===new URL(request.url).origin)
