@@ -19,6 +19,9 @@ export function prepareAutoSlip(
     return {status:'incomplete',reason:'OCR พบข้อมูลการเงินที่ขัดแย้งกัน จึงยังไม่บันทึก กรุณาตรวจจากภาพหรือกรอกเอง'};
   if(slip.warnings.some(w=>w.includes('ความมั่นใจต่ำ')))
     return {status:'incomplete',reason:'OCR อ่านภาพด้วยความมั่นใจต่ำและยังยืนยันยอดเงินหรือข้อมูลธุรกรรมไม่ได้ กรุณาตรวจสลิปก่อนบันทึก'};
+  if(!slip.direction&&slip.directionReason.includes('เติมเงินเข้า e-Wallet TrueMoney'))
+    return {status:'incomplete',reason:slip.directionReason+
+      ' · กรุณาตรวจชื่อผู้ส่งกับชื่อบัญชีใน Settings หรือเลือกเงินออก / รายจ่ายด้วยตนเอง'};
   if(!slip.direction&&slip.directionReason.includes('เติมเงินเข้า e-Wallet'))
     return {status:'incomplete',reason:'พบรายการเติมเงิน e-Wallet ซึ่งอาจเป็นการย้ายเงินระหว่างบัญชี จึงยังไม่บันทึกเป็นรายจ่ายอัตโนมัติเพื่อป้องกันยอดซ้ำ กรุณาตรวจสอบรายการนี้'};
   if(!slip.direction)

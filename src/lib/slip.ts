@@ -291,9 +291,16 @@ export function parseSlipText(rawText:string,layoutLines:string[]=[],ownerNames:
   const amountSatang=special?special.amountSatang:amountResult!.amountSatang;
   const date=parseDate(lines);
   const time=parseTime(lines);
-  const labelledParties=extractSlipParties(lines,kplus?.recipient||walletTopUp?.recipient||null);
-  const sender=labelledParties.sender;
-  const recipient=special?special.recipient:(walletTopUp?.recipient||kplus?.recipient||labelledParties.recipient||parseRecipient(lines));
+  const paymentRecipient=kplus?.recipient||walletTopUp?.recipient||null;
+  const labelledParties=extractSlipParties(lines,paymentRecipient);
+  // Tesseract may reconstruct the sender name only in spatial word rows.
+  // Recover it only when missing in the text reading; never override a
+  // contradictory identified sender or guess one from the payee.
+  const layoutParties=layoutLines.length
+    ?extractSlipParties(layoutLines.map(line=>normalizeSlipOcrText(line).trim()).filter(Boolean),paymentRecipient)
+    :null;
+  const sender=labelledParties.sender??layoutParties?.sender??null;
+  const recipient=special?special.recipient:(walletTopUp?.recipient||kplus?.recipient||labelledParties.recipient||layoutParties?.recipient||parseRecipient(lines));
   const inferred=inferSlipDirection(rawText);
   // A complete K PLUS sender-side confirmation is outgoing for its sender.
   // Keep incoming and contradictory OCR evidence conservative.
@@ -306,8 +313,12 @@ export function parseSlipText(rawText:string,layoutLines:string[]=[],ownerNames:
   const trueMoneyFunding=walletTopUp?.kind==='truemoney';
   const ambiguousWalletTransfer=walletTopUp?.kind==='wallet_transfer';
   const trueMoneyDirection=trueMoneyFunding
-    ?(configuredNames.length>0?identityDirection:
-      (kplus?.direction==='expense'?kplus:{direction:null,directionReason:'หลักฐานผู้โอน K PLUS ไม่ครบ กรุณาตรวจสอบ'}))
+    ?(configuredNames.length>0
+      ?(identityDirection?.direction==='expense'?identityDirection:{
+        direction:null,directionReason:identityDirection?.directionReason||
+          'ยังยืนยันไม่ได้ว่านี่เป็นรายการของบัญชีคุณ'})
+      :(kplus?.direction==='expense'?kplus:{
+        direction:null,directionReason:'หลักฐานผู้โอน K PLUS ไม่ครบ กรุณาตรวจสอบ'}))
     :null;
   const classified=ambiguousWalletTransfer?{direction:null,directionReason:walletTopUp!.directionReason}:
     trueMoneyFunding?{
@@ -381,7 +392,10 @@ export function mergeSlipOcrReadings(first:SlipFields,second:SlipFields):SlipFie
   const sender=select('ชื่อผู้ส่ง',first.sender??null,second.sender??null);
   // Wallet funding is a transfer, not proof of consumption. Preserve this even
   // if a noisy recovery pass misclassifies its success header as a payment.
-  const walletFunding=[first,second].some(reading=>reading.directionReason.includes('เติมเงินเข้า e-Wallet')&&reading.direction===null);
+  const walletFunding=[first,second].some(reading=>
+    reading.directionReason.includes('เติมเงินเข้า e-Wallet')&&reading.direction===null);
+  const pendingTrueMoneyReason=[first,second].find(reading=>
+    reading.directionReason.includes('เติมเงินเข้า e-Wallet TrueMoney')&&reading.direction===null)?.directionReason;
   const candidateDirection=select('ประเภทรายรับรายจ่าย',first.direction,second.direction);
   const identityConflict=conflicts.some(x=>x.includes('ชื่อผู้ส่ง')||x.includes('ชื่อผู้รับ'));
   const direction=walletFunding||identityConflict?null:candidateDirection;
@@ -407,7 +421,9 @@ export function mergeSlipOcrReadings(first:SlipFields,second:SlipFields):SlipFie
   if(receipt&&amountSatang!==receipt.paidSatang)receipt=undefined;
   if(walletFunding)receipt=undefined;
   const walletReason=[first,second].find(reading=>reading.directionReason.includes('เติมเงินเข้า e-Wallet'))?.directionReason;
-  const directionReason=walletReason||(
+  // A noisy pass may have insufficient sender evidence; keep the actionable
+  // reason from that pending pass instead of replacing it with a generic note.
+  const directionReason=pendingTrueMoneyReason||walletReason||(
     direction?(first.direction===direction?first.directionReason:second.directionReason):
     'สลิปยังไม่สามารถระบุรายรับหรือรายจ่ายได้ชัดเจน กรุณาเลือกเอง'
   );

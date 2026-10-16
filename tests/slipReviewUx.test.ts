@@ -1,5 +1,5 @@
 import {describe,expect,it} from 'vitest';
-import {correctionDirection,isWalletFundingSlip,shouldWarnBeforeLeaving,slipBatchHeading,pendingReviewCount} from '../src/lib/slipReview';
+import {correctionDirection,isWalletFundingSlip,isTrueMoneyBankTopUp,shouldWarnBeforeLeaving,slipBatchHeading,pendingReviewCount} from '../src/lib/slipReview';
 import {summarizeSlipBatch} from '../src/lib/slipBatch';
 import {parseSlipText} from '../src/lib/slip';
 
@@ -19,6 +19,16 @@ describe('slip review UX safety',()=>{
     expect(correctionDirection(slip)).toBe('');
     expect(isWalletFundingSlip(slip)).toBe(true);
     expect(isWalletFundingSlip({directionReason:'พบการจ่ายบิลสำเร็จ'})).toBe(false);
+  });
+  it('separates TrueMoney bank outflow review from G-Wallet internal transfers',()=>{
+    const topup={
+      directionReason:'เติมเงินเข้า e-Wallet TrueMoney จากบัญชีธนาคาร · ยังยืนยันชื่อผู้ส่งไม่ครบ',
+    };
+    expect(isTrueMoneyBankTopUp(topup)).toBe(true);
+    expect(isWalletFundingSlip(topup)).toBe(false);
+    expect(isWalletFundingSlip({
+      directionReason:'เติมเงินเข้า e-Wallet อาจเป็นการย้ายเงินระหว่างบัญชีของตนเอง',
+    })).toBe(true);
   });
   it('shows a warning headline rather than blanket success for partially completed batches',()=>{
     expect(slipBatchHeading({total:3,saved:1,incomplete:1,errors:1})).toContain('ยังต้องตรวจ 2');

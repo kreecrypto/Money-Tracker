@@ -7,7 +7,7 @@ import {withOcrDeadline,OCR_MODEL_TIMEOUT_MS,OCR_PASS_TIMEOUT_MS,OcrDeadlineErro
 import {clipboardSlipFiles} from './lib/shortcutClipboard';
 import {receiptLayoutLines,receiptReconciliationError} from './lib/receiptIntelligence';
 import {baht,toSatang,EXPENSE_CATEGORIES,INCOME_CATEGORIES,type EntryType,type Method} from './lib/finance';
-import {correctionDirection,isWalletFundingSlip,slipBatchHeading} from './lib/slipReview';
+import {correctionDirection,isWalletFundingSlip,isTrueMoneyBankTopUp,slipBatchHeading} from './lib/slipReview';
 import {
   MAX_SLIP_BATCH_FILES,summarizeSlipBatch,validateSlipImage,
   type SlipBatchOutcome,type SlipBatchRow,
@@ -448,7 +448,8 @@ export default function SlipScanner({onApply,onComplete,onBusyChange,onUndoBatch
           <strong>{rows[index]?.name||'ใบเสร็จ'}</strong>
           {rows[index]?.pendingId&&<p className="slip-queued-inline">เก็บเฉพาะข้อมูลรายการไว้ในเครื่องแล้ว · กลับมาตรวจภายหลังได้</p>}
           {reviewImageUrlsRef.current[index]&&<details className="slip-evidence"><summary>เปิดภาพสลิปเพื่อเทียบยอดเงินจริง</summary><img src={reviewImageUrlsRef.current[index]} alt={'ภาพสลิป '+(rows[index]?.name||'ที่รอตรวจ')+' สำหรับตรวจยอดจากต้นฉบับ'} loading="lazy"/><small>แสดงเฉพาะระหว่างเปิดหน้านี้ · ไม่เก็บภาพถาวร</small></details>}
-          {isWalletFundingSlip(draft.source)&&<div className="slip-wallet-guidance" role="note"><AlertTriangle size={17}/><span>พบการเติมเงิน e-Wallet หากเป็นการย้ายเงินระหว่างบัญชีตัวเอง ให้เลือก “ไม่นับรายการนี้” เพื่อไม่ให้รายจ่ายซ้ำกับการใช้เงินจาก Wallet ภายหลัง</span></div>}
+          {isTrueMoneyBankTopUp(draft.source)&&<div className="slip-wallet-guidance" role="note"><AlertTriangle size={17}/><span>นี่คือการเติมเงิน TrueMoney จาก K PLUS หากเป็นเงินออกจากบัญชีของคุณ ให้เลือก “เงินออก / รายจ่าย” เพื่อนับยอดจากธนาคารครั้งเดียว หากบันทึกการใช้จ่ายจาก Wallet เพิ่มภายหลัง อาจทำให้ยอดซ้ำ</span></div>}
+          {isWalletFundingSlip(draft.source)&&<div className="slip-wallet-guidance" role="note"><AlertTriangle size={17}/><span>สลิปนี้อาจเป็นการย้ายเงินระหว่างกระเป๋าของตัวเอง หากไม่ต้องการนับเป็นรายจ่าย ให้เลือก “ไม่นับรายการนี้”</span></div>}
           <div className="slip-attention-fields">
             <label>จำนวนเงิน (บาท)<input inputMode="decimal" value={draft.amount} onChange={e=>changeCorrection(index,{amount:e.target.value})} placeholder="0.00"/></label>
             <label>ประเภท (ต้องเลือก)<select required value={draft.direction} onChange={e=>changeCorrection(index,{direction:e.target.value as EntryType,category:'อื่น ๆ'})}><option value="" disabled>เลือกประเภทรายการ</option><option value="expense">เงินออก / รายจ่าย</option><option value="income">เงินเข้า / รายรับ</option></select></label>

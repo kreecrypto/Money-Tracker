@@ -7,8 +7,15 @@ export function correctionDirection(source:Pick<SlipFields,'direction'>):EntryTy
   return source.direction??'';
 }
 
+/** Ambiguous internal wallet transfers have a deliberate "do not count" action.
+ * Verified TrueMoney bank outflows should not be presented as the same case. */
 export function isWalletFundingSlip(source:Pick<SlipFields,'directionReason'>):boolean {
-  return source.directionReason.includes('เติมเงินเข้า e-Wallet');
+  return source.directionReason.includes('เติมเงินเข้า e-Wallet')&&
+    !source.directionReason.includes('TrueMoney');
+}
+
+export function isTrueMoneyBankTopUp(source:Pick<SlipFields,'directionReason'>):boolean {
+  return source.directionReason.includes('เติมเงินเข้า e-Wallet TrueMoney');
 }
 
 export function pendingReviewCount(summary:Pick<SlipBatchSummary,'incomplete'>):number{

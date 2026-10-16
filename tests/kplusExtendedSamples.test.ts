@@ -122,6 +122,26 @@ describe('additional K PLUS layouts from seven image examples',()=>{
     expect(prepareAutoSlip(parseSlipText(text,[],['นาย บุคคลอื่น']),[],'unowned',Date.now()).status).toBe('incomplete');
   });
 
+  it('shows the true owner-name reason instead of a generic wallet funding error',()=>{
+    const text=[
+      'เติมเงินสำเร็จ','15 ต.ค. 69 08:52 น.','นาย ตัวอย่าง ผู้ส่ง',
+      'ธ.กสิกรไทย','xxx-x-x0000-x','ทรูมันนี่','0000000000',
+      'จำนวน:','100.00 บาท','ค่าธรรมเนียม:','0.00 บาท',
+    ].join('\n');
+    const slip=parseSlipText(text,[],['นาย ผู้ใช้ อีกคน']);
+    expect(slip.amountSatang).toBe(10000);
+    expect(slip.direction).toBeNull();
+    const result=prepareAutoSlip(slip,[],'pending-truemoney',Date.now());
+    expect(result.status).toBe('incomplete');
+    if(result.status==='incomplete'){
+      expect(result.reason).toContain('ชื่อผู้ส่งและผู้รับไม่ตรง');
+      expect(result.reason).toContain('Settings');
+    }
+    const matched=parseSlipText(text,[],['นาย ตัวอย่าง ผู้ส่ง']);
+    expect(matched.direction).toBe('expense');
+    expect(prepareAutoSlip(matched,[],'saved-truemoney',Date.now()).status).toBe('ready');
+  });
+
   it('does not turn unverified or unreadable TrueMoney top-ups into auto-saved expenses',()=>{
     const noMasked=['เติมเงินสำเร็จ','15 ต.ค. 69 14:00 น.','TrueMoney','จำนวน: 1,000.00 บาท'].join('\n');
     expect(prepareAutoSlip(parseSlipText(noMasked),[],'missing-bank',Date.now()).status).toBe('incomplete');

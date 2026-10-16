@@ -2,6 +2,7 @@ import {useState,type FormEvent} from 'react';
 import {AlertTriangle,ArchiveX,Check,CheckCircle2,ChevronDown,ChevronUp,Clock3,Save,Wallet} from 'lucide-react';
 import {EXPENSE_CATEGORIES,INCOME_CATEGORIES,baht,toSatang,type EntryType,type Method} from './lib/finance';
 import type {PendingSlip} from './lib/pendingSlips';
+import {isTrueMoneyBankTopUp} from './lib/slipReview';
 
 type Decision={status:'saved'|'duplicate'|'incomplete';reason?:string};
 type Props={
@@ -63,9 +64,11 @@ function PendingCard({item,onSave,onKeep,onDiscard}:{
       </div>
       <span className={'pending-slip-chip'+(draft.kind==='wallet_topup'?' wallet':'')}>{draft.kind==='wallet_topup'?'เติม Wallet':'รอตรวจ'}</span>
     </div>
-    <div className="pending-slip-detail">{draft.kind==='wallet_topup'?
-      'การเติมเงินเข้า Wallet อาจเป็นการย้ายเงินระหว่างบัญชีตัวเอง จึงไม่นับเป็นรายจ่ายโดยอัตโนมัติ':
-      draft.reason||'ข้อมูลจาก OCR ยังไม่ครบ ต้องตรวจรายการก่อนบันทึก'}</div>
+    <div className="pending-slip-detail">{isTrueMoneyBankTopUp(draft)
+      ?draft.reason||'พบการเติมเงิน TrueMoney กรุณาตรวจชื่อเจ้าของบัญชีและเลือกเงินออกจากธนาคาร'
+      :draft.kind==='wallet_topup'
+        ?'การเติมเงินเข้า Wallet อาจเป็นการย้ายเงินระหว่างบัญชีตัวเอง จึงไม่นับเป็นรายจ่ายโดยอัตโนมัติ'
+        :draft.reason||'ข้อมูลจาก OCR ยังไม่ครบ ต้องตรวจรายการก่อนบันทึก'}</div>
     <button type="button" className="pending-slip-toggle" aria-expanded={expanded} onClick={()=>setExpanded(v=>!v)}>
       {expanded?'ซ่อนรายละเอียด':'ตรวจและแก้ไข'} {expanded?<ChevronUp size={17}/>:<ChevronDown size={17}/>}
     </button>
