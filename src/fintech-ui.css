@@ -327,3 +327,7 @@ button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible{ou
    Inactive label tint must exceed AA even at 11px. */
 .inbox-view-tabs button:not(.active){color:#355246!important}
 .inbox-view-tabs button.active{color:#17523d!important}
+
+/* Desktop saved-tab uses dark green fill; mobile uses a white selection chip. */
+@media(min-width:661px){.inbox-view-tabs button.active{color:#fff!important}}
+@media(max-width:660px){.inbox-view-tabs button.active{color:#17523d!important}}
