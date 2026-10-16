@@ -16,8 +16,8 @@ describe('slip review UX safety',()=>{
       'xxx-x-x0000-x','พร้อมเพย์ อี-วอลเล็ต /','G-Wallet',
       'จำนวน:','150.00 บาท',
     ].join('\n'));
-    expect(correctionDirection(slip)).toBe('');
-    expect(isWalletFundingSlip(slip)).toBe(true);
+    expect(correctionDirection(slip)).toBe('expense');
+    expect(isWalletFundingSlip(slip)).toBe(false);
     expect(isWalletFundingSlip({directionReason:'พบการจ่ายบิลสำเร็จ'})).toBe(false);
   });
   it('separates TrueMoney bank outflow review from G-Wallet internal transfers',()=>{
@@ -27,8 +27,8 @@ describe('slip review UX safety',()=>{
     expect(isTrueMoneyBankTopUp(topup)).toBe(true);
     expect(isWalletFundingSlip(topup)).toBe(false);
     expect(isWalletFundingSlip({
-      directionReason:'เติมเงินเข้า e-Wallet อาจเป็นการย้ายเงินระหว่างบัญชีของตนเอง',
-    })).toBe(true);
+      directionReason:'เติมเงินเข้า e-Wallet จากบัญชีธนาคาร (รายจ่าย)',
+    })).toBe(false);
   });
   it('shows a warning headline rather than blanket success for partially completed batches',()=>{
     expect(slipBatchHeading({total:3,saved:1,incomplete:1,errors:1})).toContain('ยังต้องตรวจ 2');
