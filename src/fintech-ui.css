@@ -310,3 +310,12 @@ button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible{ou
  .topbar:not(.topbar-home) h1{color:#172b25!important}
  .home-month-picker .month-picker button{width:44px;min-width:44px;height:44px}
 }
+
+/* Verified WCAG AA contrast for small financial amounts and primary upload CTA. */
+.transaction-summary-expense{color:#a82640!important}
+.transaction-end b.negative,.transaction-day-heading .negative{color:#ad263b!important}
+.transaction-copy span,.transaction-end span{color:#53685e!important}
+.transaction-page .list-count,.list-count{color:#455f54!important}
+.slip-upload-box .slip-actions .btn-primary,.slip-upload-box .slip-actions .slip-pick{
+ background:#236c50!important;border-color:#236c50!important;color:#fff!important
+}
