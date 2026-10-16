@@ -141,6 +141,9 @@ try {
       record('pending-queue-smoke',name,{homeBadge,pendingBefore,pendingAfter,savedVisible,pageErrors:errors});
       await page.locator('.mobile-bottom-nav button').nth(3).click();
     }
+    // The Home primary CTA and ledger FAB are the two scan entry points.
+    // Settings is intentionally distraction-free and does not float a scan button.
+    if(width<=660)await page.locator('.mobile-bottom-nav button').nth(1).click();
     const add=page.locator(width<=660?'.mobile-fab':'.top-add');
     await add.click({timeout:3500});
     const slipDefault=await page.locator('.modal .slip-panel').isVisible();
