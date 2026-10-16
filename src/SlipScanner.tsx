@@ -1,7 +1,7 @@
 import {useEffect,useRef,useState,type ChangeEvent} from 'react';
 import {Camera,CheckCircle2,FileImage,ScanLine,ShieldCheck,Upload,Square,Undo2,AlertTriangle,Check,LoaderCircle,ClipboardPaste} from 'lucide-react';
 import {parseSlipText,mergeSlipOcrReadings,needsSlipOcrRecovery,describeMissingSlipAmount,type SlipFields} from './lib/slip';
-import {prepareSlipRecoveryImage,prepareSlipOcrFile} from './lib/slipImage';
+import {prepareSlipRecoveryImage,prepareSlipOcrFile,findKPlusAmountCrop,prepareKPlusAmountCrop} from './lib/slipImage';
 import {isLowOcrConfidence,requiresLowConfidenceReview} from './lib/ocrConfidence';
 import {withOcrDeadline,OCR_MODEL_TIMEOUT_MS,OCR_PASS_TIMEOUT_MS,OcrDeadlineError} from './lib/ocrDeadline';
 import {clipboardSlipFiles} from './lib/shortcutClipboard';
@@ -180,6 +180,8 @@ export default function SlipScanner({onApply,onComplete,onBusyChange,onUndoBatch
             let recoveredReading:SlipFields|null=null;
             let recoveredConfidence:number|null=null;
             const lowConfidence=isLowOcrConfidence(initial.data.confidence);
+            // A failed OCR pass is not proof that the number is absent in the image.
+            // Keep the enhanced image only long enough for a bounded amount crop retry.
             if((needsSlipOcrRecovery(reading)||lowConfidence)&&mountedRef.current&&!stopRef.current){
               setStage('retry');setProgress(0);
               try{
@@ -190,6 +192,34 @@ export default function SlipScanner({onApply,onComplete,onBusyChange,onUndoBatch
                   recoveredReading=parseSlipText(retry.data.text,receiptLayoutLines(retry.data.blocks),ownerNames);
                   recoveredConfidence=retry.data.confidence;
                   reading=mergeSlipOcrReadings(reading,recoveredReading);
+                  // Third recognition is strictly amount-only, and only when
+                  // both full-page OCR passes missed a K PLUS payment value.
+                  // Contradictory numbers are NEVER overridden by cropping.
+                  const kplusText=firstReading.rawText+' '+recoveredReading.rawText;
+                  const isKplus=/(?:ธ\\.?\\s*กสิกรไทย|ธนาคาร\\s*กสิกรไทย|K\\s*PLUS|kasikorn|kbank)/iu.test(kplusText)
+                    &&/(?:โอน\\s*เงิน|จ่าย\\s*บิล|ชำระ\\s*เงิน)\\s*สำเร็จ/iu.test(kplusText);
+                  if(isKplus&&firstReading.amountSatang===null&&recoveredReading.amountSatang===null&&
+                    !reading.warnings.some(w=>w.includes('ขัดแย้ง')||w.includes('ต่างกัน'))){
+                    const region=findKPlusAmountCrop(retry.data.blocks,enhanced.width,enhanced.height);
+                    if(region){
+                      const crop=prepareKPlusAmountCrop(enhanced,region);
+                      await worker.setParameters({tessedit_pageseg_mode:PSM.SINGLE_BLOCK});
+                      const focused=await withOcrDeadline(
+                        worker.recognize(crop,{}, {text:true,blocks:true}),
+                        OCR_PASS_TIMEOUT_MS,'อ่านจำนวนเงินเฉพาะจุด '
+                      );
+                      const parsed=parseSlipText(focused.data.text,receiptLayoutLines(focused.data.blocks));
+                      // Require a confidently legible, explicitly labelled
+                      // amount inside the bounded crop. No fee/reference guesses.
+                      const hasPaidLabel=/(?:จำนวน(?:\\s*เงิน)?|ยอด(?:เงิน|โอน|ชำระ|จ่าย))\\s*[:：]?/iu.test(focused.data.text);
+                      const hasConflict=parsed.warnings.some(w=>w.includes('ขัดแย้ง'));
+                      if(parsed.amountSatang!==null&&hasPaidLabel&&!hasConflict&&
+                        !isLowOcrConfidence(focused.data.confidence)){
+                        reading={...reading,amountSatang:parsed.amountSatang,
+                          warnings:reading.warnings.filter(w=>!w.includes('อ่านจำนวนเงินไม่ได้'))};
+                      }
+                    }
+                  }
                 }
               }catch(error){
                 // A decode/enhancement failure can keep the first reading, but a

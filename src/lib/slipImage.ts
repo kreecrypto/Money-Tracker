@@ -98,3 +98,71 @@ export async function prepareSlipOcrFile(file:File):Promise<File> {
     return new File([blob],file.name.replace(/\.(?:heic|heif)$/iu,'.jpg'),{type:'image/jpeg'});
   }finally{URL.revokeObjectURL(url);}
 }
+
+
+/**
+ * Find a single labelled payment region in Tesseract's transient OCR word
+ * geometry. Only run this on K PLUS transfer/bill slips, never on itemised
+ * receipts. A missing or ambiguous label means there is no safe crop.
+ */
+export type SlipAmountCrop={x:number;y:number;width:number;height:number};
+type OcrBounds={x0:number;y0:number;x1:number;y1:number};
+const isOcrBounds=(value:unknown):value is OcrBounds=>{
+  if(!value||typeof value!=='object')return false;
+  const b=value as Partial<OcrBounds>;
+  return [b.x0,b.y0,b.x1,b.y1].every(n=>typeof n==='number'&&Number.isFinite(n)) &&
+    (b.x1 as number)>(b.x0 as number)&&(b.y1 as number)>(b.y0 as number);
+};
+const PAYMENT_HEADING=/(?:^|\s)(?:จำนวน(?:\s*เงิน)?|ยอด(?:เงิน|ชำระ|จ่าย|โอน))\s*(?:[:：]|$|\s)/iu;
+const NOT_PAYMENT=/(?:ค่าธรรมเนียม|ค่าบริการ|fee\b|ยอดคงเหลือ|เลข(?:ที่|บัญชี)|บัญชี|รหัสอ้างอิง|reference|สินค้า|ชิ้น|qty\b)/iu;
+export function findKPlusAmountCrop(blocks:unknown,width:number,height:number):SlipAmountCrop|null {
+  if(!Array.isArray(blocks)||!Number.isFinite(width)||!Number.isFinite(height)||width<50||height<50)return null;
+  const headings:OcrBounds[]=[];
+  for(const block of blocks.slice(0,100)){
+    const paragraphs=block?.paragraphs;
+    if(!Array.isArray(paragraphs))continue;
+    for(const paragraph of paragraphs.slice(0,100)){
+      const lines=paragraph?.lines;
+      if(!Array.isArray(lines))continue;
+      for(const line of lines.slice(0,150)){
+        if(!Array.isArray(line?.words))continue;
+        const words=(line.words as {text?:unknown;bbox?:unknown}[]).slice(0,100)
+          .filter(w=>typeof w?.text==='string'&&isOcrBounds(w?.bbox));
+        if(!words.length)continue;
+        const label=words.map(w=>(w.text as string).trim()).join(' ').replace(/\s+/gu,' ').trim();
+        if(!PAYMENT_HEADING.test(label)||NOT_PAYMENT.test(label))continue;
+        const boxes=words.map(w=>w.bbox as OcrBounds);
+        headings.push({
+          x0:Math.min(...boxes.map(b=>b.x0)),
+          y0:Math.min(...boxes.map(b=>b.y0)),
+          x1:Math.max(...boxes.map(b=>b.x1)),
+          y1:Math.max(...boxes.map(b=>b.y1)),
+        });
+      }
+    }
+  }
+  // A crop is safe only when the payment heading is unambiguous.
+  if(headings.length!==1)return null;
+  const anchor=headings[0];
+  if(anchor.y0<0||anchor.y1>height||anchor.x0<0||anchor.x1>width)return null;
+  const y=Math.max(0,Math.floor(anchor.y0-height*0.02));
+  const bottom=Math.min(height,Math.ceil(anchor.y1+Math.min(height*0.16,280)));
+  const x=Math.floor(width*0.03);
+  const right=Math.ceil(width*0.97);
+  if(bottom-y<30||right-x<40)return null;
+  return {x,y,width:right-x,height:bottom-y};
+}
+
+/** In-memory crop only; does not store or upload the user's slip. */
+export function prepareKPlusAmountCrop(image:HTMLCanvasElement,region:SlipAmountCrop):HTMLCanvasElement {
+  const scale=Math.min(2,1800/region.width,900/region.height);
+  const canvas=document.createElement('canvas');
+  canvas.width=Math.max(1,Math.round(region.width*scale));
+  canvas.height=Math.max(1,Math.round(region.height*scale));
+  const ctx=canvas.getContext('2d');
+  if(!ctx)throw new Error('ไม่สามารถอ่านบริเวณจำนวนเงินได้');
+  ctx.fillStyle='#fff';
+  ctx.fillRect(0,0,canvas.width,canvas.height);
+  ctx.drawImage(image,region.x,region.y,region.width,region.height,0,0,canvas.width,canvas.height);
+  return canvas;
+}

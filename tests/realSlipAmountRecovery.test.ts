@@ -119,3 +119,20 @@ describe('real-world K PLUS amount formatting recovery',()=>{
     expect(slip.amountSatang).toBeNull();
   });
 });
+
+
+describe('K PLUS amount-only crop safety',()=>{
+  it('accepts labelled text that a focused OCR pass may recover',()=>{
+    const crop=parseSlipText('จำนวน\n90.00\nบาท');
+    expect(crop.amountSatang).toBe(9000);
+  });
+  it('refuses unlabelled account, fee and reference figures',()=>{
+    for(const text of [
+      'ค่าธรรมเนียม 0.00 บาท\nรหัสอ้างอิง 9000',
+      'จำนวน\nค่าธรรมเนียม 30.00 บาท',
+      'ยอดชำระ: 30.00 บาท\nจำนวน: 90.00 บาท',
+    ]){
+      expect(parseSlipText(text).amountSatang).toBeNull();
+    }
+  });
+});
