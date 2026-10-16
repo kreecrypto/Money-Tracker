@@ -25,9 +25,12 @@ export function shouldWarnBeforeLeaving(unresolved:number):boolean {
 }
 
 export function slipBatchHeading(summary:Pick<SlipBatchSummary,'total'|'saved'|'incomplete'|'errors'>):string {
-  const pending=summary.incomplete+summary.errors;
-  if(pending>0 && summary.saved>0)return `บันทึกแล้ว ${summary.saved} รูป · ยังต้องตรวจ ${pending} รูป`;
-  if(pending>0)return `ยังมี ${pending} รูปที่ต้องตรวจ`;
+  const issues=[
+    ...(summary.incomplete>0?[`รอตรวจข้อมูล ${summary.incomplete} รูป`]:[]),
+    ...(summary.errors>0?[`อ่านไม่สำเร็จ ${summary.errors} รูป`]:[]),
+  ];
+  if(issues.length && summary.saved>0)return `บันทึกแล้ว ${summary.saved} รูป · ${issues.join(' · ')}`;
+  if(issues.length)return issues.join(' · ');
   if(summary.saved>0)return `บันทึกสลิปสำเร็จ ${summary.saved} รูป`;
   return `ตรวจสลิปครบ ${summary.total} รูป`;
 }
