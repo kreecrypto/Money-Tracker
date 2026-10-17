@@ -76,6 +76,39 @@ export function parseKPlusSlip(ocrLines: string[]): KPlusSlip | null {
   };
 }
 
+/**
+ * Read a recipient from a tightly bounded K PLUS beneficiary image region.
+ * Unlike whole-page OCR, the crop has already been anchored between the
+ * sender's masked account and the payment heading. Never inspect payer names.
+ * Skip the promotional watermark, bank sublabels and payment identifiers.
+ */
+export function parseKPlusRecipientRegion(ocrText:string):string|null {
+  const rows=ocrText.split(/\r?\n/u).map(textLine).filter(Boolean);
+  const selected:string[]=[];
+  for(const original of rows.slice(0,18)){
+    let line=cleanRecipient(original).replace(
+      /\s+(?:THAILAND\s*2026|ไทยพร้อมเป็นเจ้าภาพ|สแกน\s*ตรวจสอบสลิป).*$/iu,''
+    ).trim();
+    if(!line)continue;
+    if(AMOUNT_LABEL.test(line)||STOP_LABEL.test(line))break;
+    if(DETAIL_LABEL.test(line)||MASKED_ACCOUNT.test(line)){
+      if(selected.length)break;
+      continue;
+    }
+    if(/(?:THAILAND\s*2026|ไทยพร้อมเป็นเจ้าภาพ|การประชุมประจำปี|กองทุนการเงินระหว่างประเทศ)/iu.test(line))continue;
+    if(/^(?:โอนเงินสำเร็จ|ชำระเงินสำเร็จ|จ่ายบิลสำเร็จ|(?:วันที่|เวลา|amount|fee|reference|เลขที่รายการ)\b|สแกน|ตรวจสอบสลิป)/iu.test(line))continue;
+    if(NUMERIC_ID.test(line)&&/\d/u.test(line))break;
+    if(/^\d/u.test(line)||line.length>90||!/[\p{L}]/u.test(line)){
+      if(selected.length)break;
+      continue;
+    }
+    selected.push(line);
+    if(selected.length>=3)break;
+  }
+  const name=selected.join(' ').replace(/\s+/gu,' ').trim();
+  return name.length>=3&&name.length<=160?name:null;
+}
+
 /** A verified K PLUS "เติมเงินสำเร็จ" is an expense in Money Tracker's
  * bank-outflow ledger. Later wallet purchases should not be counted twice. */
 export function parseKPlusTopUp(ocrLines:string[]):{recipient:string;directionReason:string;kind:'truemoney'|'wallet_transfer'}|null{
