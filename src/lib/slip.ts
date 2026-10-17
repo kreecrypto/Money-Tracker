@@ -1,7 +1,7 @@
 import {toSatang,type EntryType,type Method,type ReceiptDetails} from './finance.js';
 import {readReceiptDetails} from './receiptIntelligence.js';
 import {parseSpecialReceipt,type ReceiptSource} from './receiptFormats.js';
-import {parseKPlusSlip,parseKPlusTopUp} from './kplus.js';
+import {parseKPlusSlip,parseKPlusTopUp,isKPlusPromoNoise} from './kplus.js';
 import {classifyByAccountNames,extractSlipParties,sanitizeOwnerNames} from './slipIdentity.js';
 
 /** OCR parsing is intentionally conservative: uncertain values stay empty for human review. */
@@ -222,6 +222,7 @@ function billRecipient(lines:string[]):string|null {
   const biller=beforeAmount.slice(accountIndex+1);
   const selected:string[]=[];
   for(const line of biller){
+    if(isKPlusPromoNoise(line))continue;
     if(/^(?:\d[\d A-Za-z-]{5,}|(?:เลข|รหัส|อ้างอิง|reference|ref|account|บัญชี|ค่าธรรมเนียม))/iu.test(line))break;
     if(/[\d]/u.test(line)||!/[\p{L}]/u.test(line))break;
     if(line.length>70||/^(?:ธ\.|ธนาคาร|bank|จำนวน|amount|ยอด|บาท|สำเร็จ)/iu.test(line))break;
@@ -305,7 +306,9 @@ export function parseSlipText(rawText:string,layoutLines:string[]=[],ownerNames:
     ?extractSlipParties(layoutLines.map(line=>normalizeSlipOcrText(line).trim()).filter(Boolean),paymentRecipient)
     :null;
   const sender=labelledParties.sender??layoutParties?.sender??null;
-  const recipient=special?special.recipient:(walletTopUp?.recipient||kplus?.recipient||labelledParties.recipient||layoutParties?.recipient||parseRecipient(lines));
+  const parsedRecipient=special?special.recipient:(walletTopUp?.recipient||kplus?.recipient||labelledParties.recipient||layoutParties?.recipient||parseRecipient(lines));
+  // Never let a promotional K PLUS watermark satisfy the mandatory payee field.
+  const recipient=!special&&parsedRecipient&&isKPlusPromoNoise(parsedRecipient)?null:parsedRecipient;
   const inferred=inferSlipDirection(rawText);
   // A complete K PLUS sender-side confirmation is outgoing for its sender.
   // Keep incoming and contradictory OCR evidence conservative.

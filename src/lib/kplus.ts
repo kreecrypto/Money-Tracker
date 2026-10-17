@@ -27,6 +27,14 @@ function textLine(raw: string): string {
     .replace(/^[\s◯○●•▫▸→✓]+/u, '')
     .replace(/\s+/gu, ' ').trim();
 }
+/** Promotions printed beside K PLUS recipient fields are not transaction parties.
+ * Shortcuts Live Text often places "THAILAND" and "2026" on separate rows. */
+export function isKPlusPromoNoise(value:string):boolean {
+  const line=textLine(value).replace(/[.,:：]+$/u,'').trim();
+  return /^(?:THAILAND(?:\s*2026)?|2026)$/iu.test(line)
+    || /^(?:ไทยพร้อมเป็นเจ้าภาพ|การประชุมประจำปี|สภาผู้ว่าการ|กองทุนการเงินระหว่างประเทศ|กลุ่มธนาคารโลก|ธนาคารโลก\s*ปี)/iu.test(line)
+    || /^THAILAND(?:\s*2026)?\s+(?:ไทยพร้อมเป็นเจ้าภาพ|การประชุมประจำปี)/iu.test(line);
+}
 function cleanRecipient(line: string): string {
   return textLine(line).replace(/^(?:ผู้รับ(?:เงิน)?|ถึง|ร้านค้า|recipient|merchant)\s*[:：]\s*/iu, '').trim();
 }
@@ -57,12 +65,13 @@ export function parseKPlusSlip(ocrLines: string[]): KPlusSlip | null {
   for(const line of lines.slice(senderAccountIndex+1)) {
     // Promotional text in the right column sometimes precedes or gets merged
     // with recipient text in Tesseract's full-page reading order.
-    if(/^(?:THAILAND\s*2026|ไทยพร้อมเป็นเจ้าภาพ|การประชุมประจำปี|กองทุนการเงินระหว่างประเทศ)/iu.test(line))continue;
+    if(isKPlusPromoNoise(line))continue;
     if(AMOUNT_LABEL.test(line)||STOP_LABEL.test(line)||DETAIL_LABEL.test(line))break;
     if(MASKED_ACCOUNT.test(line)||(NUMERIC_ID.test(line)&&/\d/u.test(line))||
       /^(?:SCB|KTB|KBANK)$/u.test(line)||!/[\p{L}]/u.test(line))break;
     const name=cleanRecipient(line).replace(/\s+(?:THAILAND\s*2026|ไทยพร้อมเป็นเจ้าภาพ).*$/iu,'').trim();
     if(!name||name.length>90)break;
+    if(isKPlusPromoNoise(name))continue;
     recipientLines.push(name);
     if(recipientLines.length>=3)break;
   }
@@ -98,7 +107,7 @@ export function parseKPlusRecipientRegion(ocrText:string):string|null {
       if(selected.length)break;
       continue;
     }
-    if(/(?:THAILAND\s*2026|ไทยพร้อมเป็นเจ้าภาพ|การประชุมประจำปี|กองทุนการเงินระหว่างประเทศ)/iu.test(line))continue;
+    if(isKPlusPromoNoise(line))continue;
     if(/^(?:โอนเงินสำเร็จ|ชำระเงินสำเร็จ|จ่ายบิลสำเร็จ|(?:วันที่|เวลา|amount|fee|reference|เลขที่รายการ)\b|สแกน|ตรวจสอบสลิป)/iu.test(line))continue;
     if(NUMERIC_ID.test(line)&&/\d/u.test(line))break;
     if(/^\d/u.test(line)||line.length>90||!/[\p{L}]/u.test(line)){
