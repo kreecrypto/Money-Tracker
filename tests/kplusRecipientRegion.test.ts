@@ -1,7 +1,8 @@
 import {describe,expect,it} from 'vitest';
 import {parseKPlusRecipientRegion,parseKPlusSlip} from '../src/lib/kplus';
 import {findKPlusRecipientCrop} from '../src/lib/slipImage';
-import {parseSlipText} from '../src/lib/slip';
+import {parseSlipText,needsSlipOcrRecovery} from '../src/lib/slip';
+import {inspectPhotosOCR} from '../server/iphone/photos';
 
 /**
  * Entirely fabricated names/account IDs. Regressions cover visual structures
@@ -36,6 +37,57 @@ describe('K PLUS recipient-focused OCR',()=>{
       'จำนวน:','30.00 บาท','เลขที่รายการ: TESTRECIP20261017001',
     ];
     expect(parseKPlusSlip(source)?.recipient).toBe('นาย ตัวอย่าง ผู้รับ');
+  });
+
+  it('does not turn split THAILAND / 2026 promotional rows into a payee',()=>{
+    const rows=[
+      'โอนเงินสำเร็จ','17 ต.ค. 69 08:15 น.','นาย ตัวอย่าง ผู้ส่ง',
+      'ธ.กสิกรไทย','xxx-x-x0000-x',
+      'THAILAND','2026','ไทยพร้อมเป็นเจ้าภาพ',
+      'การประชุมประจำปีสภาผู้ว่าการ','กองทุนการเงินระหว่างประเทศและกลุ่ม',
+      'ธนาคารโลก ปี 2569','จำนวน:','30.00 บาท',
+      'เลขที่รายการ: TESTRECIP20261017003'
+    ];
+    expect(parseKPlusSlip(rows)).toMatchObject({recipient:null,direction:null});
+    expect(parseKPlusRecipientRegion(rows.slice(5,11).join('\n'))).toBeNull();
+    const slip=parseSlipText(rows.join('\n'));
+    expect(slip).toMatchObject({
+      recipient:null,amountSatang:3000,date:'2026-10-17',time:'08:15'
+    });
+    expect(needsSlipOcrRecovery(slip)).toBe(true);
+    // The Shortcuts text-only API must hold this as Pending, not Saved.
+    const viaShortcut=inspectPhotosOCR(rows.join('\n'));
+    expect(viaShortcut).toMatchObject({
+      accept:true,recipient:null,amountSatang:3000
+    });
+  });
+
+  it('recovers a real payee after split watermark rows without mixing promotional copy',()=>{
+    const rows=[
+      'โอนเงินสำเร็จ','17 ต.ค. 69 08:13 น.','นาย ตัวอย่าง ผู้ส่ง',
+      'ธ.กสิกรไทย','xxx-x-x0000-x','THAILAND','2026',
+      'ไทยพร้อมเป็นเจ้าภาพ','การประชุมประจำปีสภาผู้ว่าการ',
+      'นาย ผู้รับ ตัวอย่าง','รหัสพร้อมเพย์','xxx-xxx-1234',
+      'จำนวน:','220.00 บาท','เลขที่รายการ: TESTRECIP20261017004'
+    ];
+    expect(parseKPlusSlip(rows)?.recipient).toBe('นาย ผู้รับ ตัวอย่าง');
+    expect(parseKPlusRecipientRegion(rows.slice(5,12).join('\n'))).toBe('นาย ผู้รับ ตัวอย่าง');
+    expect(parseSlipText(rows.join('\n'))).toMatchObject({
+      recipient:'นาย ผู้รับ ตัวอย่าง',amountSatang:22000,direction:'expense'
+    });
+  });
+
+  it('refuses a promo-only K PLUS biller instead of auto-saving THAILAND',()=>{
+    const rows=[
+      'จ่ายบิลสำเร็จ','17 ต.ค. 69 11:13 น.','นาย ตัวอย่าง ผู้ส่ง',
+      'ธ.กสิกรไทย','xxx-x-x0000-x','THAILAND','2026',
+      'ไทยพร้อมเป็นเจ้าภาพ','จำนวน:','157.25 บาท',
+      'เลขที่รายการ: TESTRECIP20261017005'
+    ];
+    const slip=parseSlipText(rows.join('\n'));
+    expect(slip.recipient).toBeNull();
+    expect(slip.amountSatang).toBe(15725);
+    expect(needsSlipOcrRecovery(slip)).toBe(true);
   });
 
   it('falls back to spatial K PLUS rows when unlabelled recipient disappears from raw OCR order',()=>{
