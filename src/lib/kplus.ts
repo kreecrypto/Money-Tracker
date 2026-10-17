@@ -110,7 +110,6 @@ export function parseKPlusRecipientRegion(ocrText:string):string|null {
     if(isKPlusPromoNoise(line))continue;
     if(/^(?:โอนเงินสำเร็จ|ชำระเงินสำเร็จ|จ่ายบิลสำเร็จ|(?:วันที่|เวลา|amount|fee|reference|เลขที่รายการ)\b|สแกน|ตรวจสอบสลิป)/iu.test(line))continue;
     if(NUMERIC_ID.test(line)&&/\d/u.test(line))break;
-    if(isKPlusPromoNoise(line))continue;
     if(/^\d/u.test(line)||line.length>90||!/[\p{L}]/u.test(line)){
       if(selected.length)break;
       continue;
