@@ -305,7 +305,7 @@ button.mt-home-month-picker {
 
 /* 2026-10-17: app-first content density, legibility and progressive disclosure */
 .mt-home-screen {display:flex;flex-direction:column;gap:16px}
-.mt-home-month-picker {font-size:12px}
+.mt-home-month-picker {font-size:12px;min-height:44px!important;height:44px!important;padding-inline:12px}
 .mt-home-total-label,.mt-home-split-head {font-size:12px}
 .mt-home-split>strong {font-size:clamp(15px,4vw,18px)}
 .mt-home-screen .mt-home-upload small {font-size:11px;line-height:1.4}
