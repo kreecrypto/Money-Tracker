@@ -7,7 +7,7 @@
  --ft-shadow:0 8px 30px rgba(35,84,66,.055);
 }
 html{-webkit-text-size-adjust:100%;text-size-adjust:100%;background:var(--ft-canvas)}
-body{background:var(--ft-canvas);color:var(--ft-ink);font-family:Inter,"Noto Sans Thai",-apple-system,BlinkMacSystemFont,"Segoe UI",Tahoma,sans-serif}
+body{background:var(--ft-canvas);color:var(--ft-ink);font-family:"Noto Sans Thai",-apple-system,BlinkMacSystemFont,"Segoe UI",Tahoma,sans-serif}
 button,select,input,textarea{-webkit-tap-highlight-color:transparent}
 button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible{outline:3px solid #59b490;outline-offset:2px}
 .app-shell{background:var(--ft-canvas)}
