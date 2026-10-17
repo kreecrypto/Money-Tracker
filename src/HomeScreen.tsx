@@ -2,7 +2,7 @@ import {useEffect,useMemo,useRef,useState} from 'react';
 import {createPortal} from 'react-dom';
 import {
   ArrowDownLeft, ArrowRight, ArrowUpRight, BarChart3, Bell, Camera,
-  ChevronDown, CircleUserRound, List, Settings2, Sprout, Target,
+  ChevronDown, CircleUserRound, Sprout,
   UtensilsCrossed, ShoppingBag, TrainFront, HandCoins, Ellipsis, Wallet,
 } from 'lucide-react';
 import {baht, METHODS, type Transaction} from './lib/finance';
@@ -17,9 +17,6 @@ type Props={
   onMonthChange:(month:string)=>void;
   onUpload:()=>void;
   onTransactions:()=>void;
-  onReports:()=>void;
-  onBudget:()=>void;
-  onSettings:()=>void;
 };
 
 export function HomeTopbar({pendingCount,onNotifications,onSettings}:{
@@ -36,8 +33,6 @@ export function HomeTopbar({pendingCount,onNotifications,onSettings}:{
         <button type="button" className="mt-home-avatar" aria-label="ตั้งค่าของฉัน" onClick={onSettings}><CircleUserRound size={23}/></button>
       </div>
     </div>
-    <p className="mt-home-hello">สวัสดี ☀️</p>
-    <p className="mt-home-subtitle">มาดูสุขภาพการเงินของคุณกันเลย</p>
   </div>;
 }
 
@@ -136,15 +131,9 @@ function TransactionDetail({value,onClose}:{
 
 export default function HomeScreen({
   month,monthLabel,net,income,expense,recent,
-  onMonthChange,onUpload,onTransactions,onReports,onBudget,onSettings
+  onMonthChange,onUpload,onTransactions
 }:Props){
   const [detail,setDetail]=useState<Transaction|null>(null);
-  const shortcuts=[
-    {key:'transactions',name:'รายการ',Icon:List,onClick:onTransactions},
-    {key:'reports',name:'รายงาน',Icon:BarChart3,onClick:onReports},
-    {key:'budget',name:'งบประมาณ',Icon:Target,onClick:onBudget},
-    {key:'settings',name:'ตั้งค่า',Icon:Settings2,onClick:onSettings},
-  ];
   return <div className="home-dashboard mt-home-screen" aria-label="หน้าแรก เงินวันนี้">
     <section className="summary-grid mt-home-summary" aria-label="ภาพรวมรายเดือน">
       <div className="hero-card mt-home-balance">
@@ -160,38 +149,27 @@ export default function HomeScreen({
           </svg>
         </div>
         <div className="mt-home-balance-header">
-          <span>ภาพรวมเดือนนี้</span>
+          <span>ภาพรวม</span>
           <MonthChooser month={month} label={monthLabel} onChange={onMonthChange}/>
         </div>
-        <div className="mt-home-total-label">ยอดสุทธิจากรายการ</div>
+        <div className="mt-home-total-label">สุทธิจากรายรับ − รายจ่าย</div>
         <strong className="mt-home-total">฿ {baht(net)}</strong>
-        <span className="mt-home-net-note">ไม่ใช่ยอดเงินจริงในบัญชีธนาคาร</span>
         <div className="mt-home-balance-splits">
           <div className="mt-home-split">
             <div className="mt-home-split-head"><span className="mt-home-split-icon is-income"><ArrowDownLeft size={15}/></span> รายรับ</div>
             <strong>฿ {baht(income)}</strong>
-            <small>เดือนที่เลือก</small>
           </div>
           <div className="mt-home-split">
             <div className="mt-home-split-head"><span className="mt-home-split-icon is-expense"><ArrowUpRight size={15}/></span> รายจ่าย</div>
             <strong>฿ {baht(expense)}</strong>
-            <small>เดือนที่เลือก</small>
           </div>
         </div>
       </div>
     </section>
     <button className="ref-home-upload mobile-action-scan mt-home-upload" type="button" onClick={onUpload}>
       <span className="mt-home-camera"><Camera size={25} strokeWidth={2.7}/></span>
-      <span><strong>อัปโหลดสลิป</strong><small>เพิ่มรายการจากสลิปธนาคาร</small></span>
+      <span><strong>อัปโหลดสลิป</strong><small>เลือกรูปหรือถ่ายสลิป</small></span>
     </button>
-    <section className="mobile-quick-actions mt-home-shortcuts" aria-label="เมนูลัด">
-      <div className="mt-home-section-heading"><h2>เมนูลัด</h2><span>เลือกเมนูที่ต้องการ</span></div>
-      <div className="mt-home-shortcut-grid">
-        {shortcuts.map(({key,name,Icon,onClick})=><button type="button" className="mt-home-shortcut" key={key} onClick={onClick}>
-          <span><Icon size={22} strokeWidth={2.1}/></span><strong>{name}</strong>
-        </button>)}
-      </div>
-    </section>
     <section className="surface transactions-surface mt-home-recent" aria-label="รายการล่าสุด">
       <div className="mt-home-section-heading"><h2>รายการล่าสุด</h2><button type="button" onClick={onTransactions}>ดูทั้งหมด <ArrowRight size={15}/></button></div>
       {recent.length?
@@ -202,7 +180,7 @@ export default function HomeScreen({
             <b className={tx.type==='income'?'is-income':'is-expense'}>{tx.type==='income'?'+':'−'} ฿ {baht(tx.amountSatang)}</b>
           </button>)}
         </div>
-       :<div className="mt-home-empty"><Wallet size={22}/><p>ยังไม่มีรายการในเดือนนี้</p><button type="button" onClick={onUpload}>เริ่มต้นด้วยสลิปใบแรก</button></div>}
+       :<div className="mt-home-empty"><Wallet size={22}/><p>ยังไม่มีรายการในเดือนนี้</p></div>}
     </section>
     {detail&&<TransactionDetail value={detail} onClose={()=>setDetail(null)}/>}
   </div>;
