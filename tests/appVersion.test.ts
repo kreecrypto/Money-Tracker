@@ -1,9 +1,13 @@
+import {readFileSync} from 'node:fs';
 import {describe,expect,it} from 'vitest';
-import {APP_BUILD_SHA,APP_VERSION,bundleFromHtml,hasNewBundle} from '../src/lib/appVersion';
+import {APP_BUILD_SHA,APP_DISPLAY_VERSION,APP_VERSION,releaseVersionLabel,bundleFromHtml,hasNewBundle} from '../src/lib/appVersion';
 
 describe('release version and PWA update safety',()=>{
   it('shows an app version and injected build identifier',()=>{
-    expect(APP_VERSION).toBe('0.6.0');
+    const {version}=JSON.parse(readFileSync(new URL('../package.json',import.meta.url),'utf8')) as {version:string};
+    expect(APP_VERSION).toBe(version);
+    expect(APP_DISPLAY_VERSION).toBe(`${version}+${APP_BUILD_SHA}`);
+    expect(releaseVersionLabel('0.6.1','abc12345')).toBe('0.6.1+abc12345');
     expect(APP_BUILD_SHA.length).toBeGreaterThan(0);
   });
   it('parses the current Vite bundle safely',()=>{
