@@ -8,7 +8,7 @@
   --home-mint:#ebf8f0;
 }
 .mt-home-topbar, .mt-home-screen, .mt-home-below {
-  font-family:Inter,"Noto Sans Thai",-apple-system,BlinkMacSystemFont,"Segoe UI",Tahoma,sans-serif;
+  font-family:"Noto Sans Thai",-apple-system,BlinkMacSystemFont,"Segoe UI",Tahoma,sans-serif;
 }
 .topbar.home-v2-topbar {
   background:#fff;
