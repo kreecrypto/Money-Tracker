@@ -53,8 +53,8 @@ try {
     if(width<=660){
       const mobileHome=await page.evaluate(()=>{
         const el=name=>document.querySelector(name)?.getBoundingClientRect();
-        const hero=el('.mt-home-balance'),cta=el('.mt-home-upload'),quick=el('.mt-home-shortcuts'),recent=el('.mt-home-recent'),nav=el('.mobile-bottom-nav');
-        return {correctHierarchy:!!(hero&&cta&&quick&&recent&&hero.top<cta.top&&cta.top<quick.top&&quick.top<recent.top),quickActionsVisible:!!(quick&&quick.width>0),bottomNavVisible:!!(nav&&nav.width===innerWidth)};
+        const hero=el('.mt-home-balance'),cta=el('.mt-home-upload'),recent=el('.mt-home-recent'),nav=el('.mobile-bottom-nav');
+        return {correctHierarchy:!!(hero&&cta&&recent&&hero.top<cta.top&&cta.top<recent.top),noDuplicateActions:document.querySelectorAll('.mt-home-shortcut-grid button').length===0,bottomNavVisible:!!(nav&&nav.width===innerWidth)};
       });
       await page.locator('.mobile-action-scan').click();
       const openedOCR=await page.locator('.modal .slip-panel').isVisible();
@@ -97,7 +97,7 @@ try {
         await tabs.nth(0).click();
         const overview=await page.locator('#report-spending').isVisible()
           && await page.locator('#report-budget').isVisible()
-          && await page.locator('#report-trends').isVisible();
+          && await page.locator('#report-trends').count()===0;
         const noOverlay=width>660 || await page.locator('.mobile-fab').isHidden();
         record('report-view-switch',name,{count,trendOnly,budgetOnly,categoryOnly,overview,noOverlay,pageErrors:errors});
       }
@@ -144,10 +144,10 @@ try {
     const add=page.locator(width<=660?'.mobile-fab':'.top-add');
     await add.click({timeout:3500});
     const slipDefault=await page.locator('.modal .slip-panel').isVisible();
-    const uploadPrimary=await page.getByRole('button',{name:'เลือกรูปจาก iPhone'}).isVisible();
+    const uploadPrimary=await page.getByRole('button',{name:'เลือกรูป',exact:true}).isVisible();
     const autoSaveNext=await page.getByText('2 อ่านข้อมูลจากสลิป').isVisible() && await page.getByText('3 บันทึกหรือรอตรวจ').isVisible();
     const multiSelectable=await page.locator('input[aria-label="เลือกรูปสลิปหลายรูป"]').evaluate(el=>el instanceof HTMLInputElement&&el.multiple);
-    const batchLimitVisible=await page.getByText(/สูงสุด 20 รูป\/ครั้ง/).isVisible();
+    const batchLimitVisible=await page.getByText(/สูงสุด 20 รูป/).isVisible();
     const reviewButtonCount=await page.getByRole('button',{name:/ตรวจทานและบันทึก/}).count();
     record('slip-first-default',name,{slipDefault,uploadPrimary,autoSaveNext,multiSelectable,batchLimitVisible,reviewButtonCount,pageErrors:errors});
     await scan(page,'slip-first-entry',name);
@@ -231,12 +231,12 @@ try {
     ||(x.view==='pending-queue-smoke'&&(!x.homeBadge||x.pendingBefore!==1||x.pendingAfter!==0||!x.savedVisible||x.pageErrors?.length))
     ||(x.view==='restore-smoke'&&(!x.initiallyDisabled||!x.enabledAfterAcknowledgement||!x.closed||x.pageErrors?.length))
     ||(x.view==='local-reset-smoke'&&(!x.initiallyDisabled||!x.enabledAfterAcknowledgement||!x.dialogClosed||x.wiped?.transactions!==0||x.wiped?.pending!==0||x.wiped?.paired||x.pageErrors?.length))
-    ||(x.view==='mobile-home-actions'&&(!x.correctHierarchy||x.quickActionCount!==4||!x.quickActionsVisible||!x.bottomNavVisible||!x.openedOCR||x.pageErrors?.length))
+    ||(x.view==='mobile-home-actions'&&(!x.correctHierarchy||x.quickActionCount!==0||!x.noDuplicateActions||!x.bottomNavVisible||!x.openedOCR||x.pageErrors?.length))
     ||(x.view==='report-view-switch'&&(x.count!==4||!x.trendOnly||!x.budgetOnly||!x.categoryOnly||!x.overview||!x.noOverlay||x.pageErrors?.length))
     ||(x.view==='competitive-ledger-smoke'&&(!x.ledgerAvailable||!x.resetVisible||!x.searchReset||x.pageErrors?.length))
   ).map(x=>({viewport:x.viewport,view:x.view,overflowPx:x.overflowPx,axe:x.axe?.violations?.map(v=>v.id),savedVisible:x.savedVisible,restore:[x.initiallyDisabled,x.enabledAfterAcknowledgement,x.closed]}));
   if(critical.length){console.error('UX_ACCEPTANCE_FAIL',JSON.stringify(critical));process.exitCode=1;}
-  else console.log('UX_ACCEPTANCE_PASS: 6 viewport, mobile quick OCR, slip-first, manual fallback, save, restore, responsive and WCAG scans');
+  else console.log('UX_ACCEPTANCE_PASS: 6 viewport, minimal home, slip-first, manual fallback, save, restore, responsive and WCAG scans');
 } catch (err) {
   console.error('UX AUDIT FAILURE',err);
   process.exitCode=1;
