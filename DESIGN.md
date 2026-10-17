@@ -23,7 +23,7 @@ Use CSS tokens and the current palette as authoritative; the source has older co
 White text belongs only on sufficiently dark green. Secondary copy must maintain WCAG AA contrast; do not mute values needed to take action. Positive/negative money uses both signs and colors, never color alone.
 
 ## Typography
-- Thai UI first: rely on the installed Thai-capable platform fallback stack while planning a measured Thai typography consolidation; the existing code currently references `Inter`, `Noto Sans Thai` and OS fallbacks.
+- Thai UI first: rely on the installed Thai-capable platform fallback stack while planning a measured Thai typography consolidation; the UI now prefers `Noto Sans Thai` with Thai-capable OS fallbacks; web-font loading can be evaluated separately for performance.
 - Money uses tabular numerals; keep signs, currency symbol and amount together when possible, but allow wrapping for unusually long values on 320px screens.
 - Home monthly amount: `clamp(26px, 7.1vw, 33px)`; main recent amounts: 14px; recent descriptions: 14px; metadata: 12px; upload CTA: 14px.
 - Body reading size should generally be at least 13–14px; avoid 9–11px for important financial information.
