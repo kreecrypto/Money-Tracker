@@ -137,7 +137,8 @@ export default function HomeScreen({
 }:Props){
   const [detail,setDetail]=useState<Transaction|null>(null);
   const detailTriggerRef=useRef<HTMLButtonElement|null>(null);
-  const closeDetail=()=>{setDetail(null);detailTriggerRef.current?.focus();};
+  useEffect(()=>{if(!detail)detailTriggerRef.current?.focus();},[detail]);
+  const closeDetail=()=>setDetail(null);
   return <div className="home-dashboard mt-home-screen" aria-label="หน้าแรก เงินวันนี้">
     <section className="summary-grid mt-home-summary" aria-label="ภาพรวมรายเดือน">
       <div className="hero-card mt-home-balance">
