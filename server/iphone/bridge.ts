@@ -68,6 +68,13 @@ export async function saveDraft(row:Pick<IPhoneDraft,
     {...fields,status,reviewed_at:status==='confirmed'?new Date().toISOString():null},'resolution=ignore-duplicates,return=representation');
   return data[0]||null;
 }
+/** Update only a confirmed entry's recipient. Never touch amount, type, date or identity.
+ * The review token scopes the update to exactly one owner's private ledger. */
+export async function correctConfirmedRecipient(id:string,recipient:string|null):Promise<boolean>{
+  const rows=await db(table+'?id=eq.'+esc(id)+'&owner_key=eq.'+esc(ownerKey())+
+    '&status=eq.confirmed','PATCH',{recipient});
+  return rows.length>0;
+}
 export async function pendingDrafts(){
   return await db(table+'?owner_key=eq.'+esc(ownerKey())+
     '&status=eq.pending&select=id,amount_satang,type,transaction_date,category,note,method,source_label,created_at,transaction_time,recipient&order=created_at.desc&limit=50','GET');
