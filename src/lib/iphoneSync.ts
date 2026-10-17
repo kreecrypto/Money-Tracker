@@ -48,6 +48,15 @@ async function call(path:string,method:'GET'|'POST',data?:object){
   if(!r.ok)throw new Error(r.status===409?'รายการนี้ถูกจัดการไปแล้ว':'ไม่สามารถเชื่อมต่อ iPhone Inbox ได้');
   return await r.json() as Record<string,unknown>;
 }
+/** Only recipient can be corrected on confirmed iPhone transactions.
+ * All financial fields stay immutable on the server through this action. */
+export async function iphoneCorrectRecipient(id:string,recipient:string|null):Promise<void>{
+  const uuid=id.startsWith('iphone-')?id.slice('iphone-'.length):'';
+  if(!/^[a-f\d]{8}-[a-f\d]{4}-[a-f\d]{4}-[a-f\d]{4}-[a-f\d]{12}$/i.test(uuid))
+    throw new Error('รหัสรายการ iPhone ไม่ถูกต้อง');
+  await call('/api/iphone/ledger','POST',{id:uuid,recipient});
+}
+
 export async function iphoneDrafts():Promise<IPhoneDraft[]>{
   const r=await call('/api/iphone/drafts','GET');
   return Array.isArray(r.drafts)?(r.drafts as IPhoneDraft[]):[];
@@ -67,22 +76,40 @@ function seen(){
     return new Set<string>(Array.isArray(v)?v.filter((x):x is string=>typeof x==='string'&&x.startsWith('iphone-')):[]);
   }catch{return new Set<string>();}
 }
-export async function iphoneSync():Promise<{imported:number;received:number;invalid:number}>{
+export async function iphoneSync():Promise<{imported:number;repaired:number;received:number;invalid:number}>{
   const r=await call('/api/iphone/ledger','GET');
   if(!Array.isArray(r.transactions))throw new Error('ข้อมูลจาก iPhone ไม่ถูกต้อง');
   const rows=r.transactions.filter(isValidTransaction) as Transaction[];
   // Never silently treat rejected cloud rows as a successful import.
   // Keep valid records flowing while surfacing malformed rows to the UI.
   const invalid=r.transactions.length-rows.length;
-  const local=new Set((await loadTransactions()).map(x=>x.id));
+  const existing=await loadTransactions();
+  const local=new Map(existing.map(x=>[x.id,x]));
   const seenItems=seen();
   let imported=0;
+  let repaired=0;
   for(const row of rows){
     // Preserve deliberate local deletions; only an explicit repair resets this history.
-    if(!row.id.startsWith('iphone-')||seenItems.has(row.id)||local.has(row.id))continue;
+    if(!row.id.startsWith('iphone-'))continue;
+    const previous=local.get(row.id);
+    // Reconcile only the known corrupted OCR watermark. Preserve any recipient
+    // that the user already corrected locally, and retain all financial fields.
+    if(previous){
+      if(/^THAILAND(?:\\s+2026)?$/i.test(previous.recipient?.trim()||'')&&
+        previous.recipient!==row.recipient){
+        const repairedRow={...previous};
+        if(row.recipient)repairedRow.recipient=row.recipient;
+        else delete repairedRow.recipient;
+        await saveTransaction(repairedRow);
+        local.set(row.id,repairedRow);
+        repaired++;
+      }
+      continue;
+    }
+    if(seenItems.has(row.id))continue; // preserve intentionally deleted entries
     await saveTransaction(row);
-    seenItems.add(row.id);local.add(row.id);imported++;
+    seenItems.add(row.id);local.set(row.id,row);imported++;
     localStorage.setItem(SEEN_KEY,JSON.stringify([...seenItems].slice(-3000)));
   }
-  return {imported,received:r.transactions.length,invalid};
+  return {imported,repaired,received:r.transactions.length,invalid};
 }
