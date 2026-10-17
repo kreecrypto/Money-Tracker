@@ -55,10 +55,13 @@ export function parseKPlusSlip(ocrLines: string[]): KPlusSlip | null {
   if(senderAccountIndex<0)return null;
   const recipientLines:string[]=[];
   for(const line of lines.slice(senderAccountIndex+1)) {
+    // Promotional text in the right column sometimes precedes or gets merged
+    // with recipient text in Tesseract's full-page reading order.
+    if(/^(?:THAILAND\s*2026|ไทยพร้อมเป็นเจ้าภาพ|การประชุมประจำปี|กองทุนการเงินระหว่างประเทศ)/iu.test(line))continue;
     if(AMOUNT_LABEL.test(line)||STOP_LABEL.test(line)||DETAIL_LABEL.test(line))break;
     if(MASKED_ACCOUNT.test(line)||(NUMERIC_ID.test(line)&&/\d/u.test(line))||
       /^(?:SCB|KTB|KBANK)$/u.test(line)||!/[\p{L}]/u.test(line))break;
-    const name=cleanRecipient(line);
+    const name=cleanRecipient(line).replace(/\s+(?:THAILAND\s*2026|ไทยพร้อมเป็นเจ้าภาพ).*$/iu,'').trim();
     if(!name||name.length>90)break;
     recipientLines.push(name);
     if(recipientLines.length>=3)break;
