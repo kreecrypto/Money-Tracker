@@ -76,7 +76,7 @@ function seen(){
     return new Set<string>(Array.isArray(v)?v.filter((x):x is string=>typeof x==='string'&&x.startsWith('iphone-')):[]);
   }catch{return new Set<string>();}
 }
-export async function iphoneSync():Promise<{imported:number;repaired:number;received:number;invalid:number}>{
+export async function iphoneSync():Promise<{imported:number;repaired?:number;received:number;invalid:number}>{
   const r=await call('/api/iphone/ledger','GET');
   if(!Array.isArray(r.transactions))throw new Error('ข้อมูลจาก iPhone ไม่ถูกต้อง');
   const rows=r.transactions.filter(isValidTransaction) as Transaction[];
@@ -111,5 +111,5 @@ export async function iphoneSync():Promise<{imported:number;repaired:number;rece
     seenItems.add(row.id);local.set(row.id,row);imported++;
     localStorage.setItem(SEEN_KEY,JSON.stringify([...seenItems].slice(-3000)));
   }
-  return {imported,repaired,received:r.transactions.length,invalid};
+  return {imported,...(repaired>0?{repaired}:{}),received:r.transactions.length,invalid};
 }
