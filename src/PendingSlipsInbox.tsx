@@ -1,5 +1,5 @@
 import {useState,type FormEvent} from 'react';
-import {AlertTriangle,ArchiveX,Check,CheckCircle2,ChevronDown,ChevronUp,Clock3,Save,Wallet} from 'lucide-react';
+import {AlertTriangle,ArchiveX,Check,CheckCircle2,ChevronDown,ChevronUp,Save,Wallet} from 'lucide-react';
 import {EXPENSE_CATEGORIES,INCOME_CATEGORIES,baht,toSatang,type EntryType,type Method} from './lib/finance';
 import type {PendingSlip} from './lib/pendingSlips';
 import {isTrueMoneyBankTopUp} from './lib/slipReview';
@@ -122,19 +122,17 @@ function PendingCard({item,onSave,onKeep,onDiscard}:{
 export default function PendingSlipsInbox({items,onSave,onKeep,onDiscard,onAdd}:Props){
   return <section className="surface pending-inbox" aria-label="รายการสลิปที่รอตรวจ">
     <div className="pending-inbox-head">
-      <div><span className="pending-inbox-kicker"><Clock3 size={17}/> อ่านสลิปในเครื่อง</span>
-        <h3>รายการรอตรวจ {items.length>0?'('+items.length+')':''}</h3>
-        <p>ปิดแอปแล้วกลับมาแก้ไขภายหลังได้ · ยังไม่รวมในยอดรายรับรายจ่าย · ต้องใช้รูปต้นฉบับจาก Photos หากต้องเทียบยอด</p>
+      <div><h3>รอตรวจ {items.length>0?'('+items.length+')':''}</h3>{items.length>0&&<p>รายการเหล่านี้ยังไม่รวมในยอดเงิน</p>}
       </div>
     </div>
     {items.length===0?<div className="pending-inbox-empty">
       <CheckCircle2 size={32}/>
       <strong>ไม่มีสลิปค้างตรวจ</strong>
-      <p>สลิปที่อ่านข้อมูลไม่ครบจะปรากฏที่นี่ โดยยังไม่รวมในยอดรายรับรายจ่าย</p>
+      
       <button className="btn btn-primary" onClick={onAdd}><Wallet size={16}/> เพิ่มสลิป</button>
     </div>:<div className="pending-inbox-list">{items.map(item=>
       <PendingCard key={item.id} item={item} onSave={onSave} onKeep={onKeep} onDiscard={onDiscard}/>
     )}</div>}
-    <p className="pending-privacy"><AlertTriangle size={15}/> เก็บเฉพาะข้อมูลรายการไว้ในเบราว์เซอร์เครื่องนี้ ไม่เก็บภาพสลิป กรุณาเก็บภาพต้นฉบับใน Photos หากเปลี่ยนเครื่องหรือล้างข้อมูลเว็บไซต์ รายการรอตรวจอาจหายได้</p>
+    {items.length>0&&<p className="pending-privacy"><AlertTriangle size={15}/> รายการรอตรวจอยู่ในเครื่องนี้ ไม่เก็บภาพสลิป กรุณาเก็บรูปต้นฉบับไว้ เพราะข้อมูลอาจหายเมื่อล้างข้อมูลเบราว์เซอร์</p>}
   </section>;
 }
