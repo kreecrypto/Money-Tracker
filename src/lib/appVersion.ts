@@ -1,10 +1,17 @@
 /** Vite replaces the constants during each deployment build. */
+declare const __MONEY_APP_VERSION__:string;
 declare const __MONEY_BUILD_SHA__:string;
 declare const __MONEY_BUILT_AT__:string;
 
-export const APP_VERSION='0.6.0';
+export const APP_VERSION=__MONEY_APP_VERSION__;
 export const APP_BUILD_SHA=__MONEY_BUILD_SHA__;
 export const APP_BUILT_AT=__MONEY_BUILT_AT__;
+
+/** Semantic release comes from package.json; the short Git SHA changes on every deployment. */
+export function releaseVersionLabel(version:string,buildSha:string):string {
+  return `${version}+${buildSha||'local'}`;
+}
+export const APP_DISPLAY_VERSION=releaseVersionLabel(APP_VERSION,APP_BUILD_SHA);
 
 export function bundleFromHtml(html:string):string|null {
   return html.match(/<script\b[^>]*\bsrc=["'](\/assets\/index-[^"'?#]+\.js)["']/i)?.[1]??null;
