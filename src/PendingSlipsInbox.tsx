@@ -1,5 +1,5 @@
 import {useState,type FormEvent} from 'react';
-import {AlertTriangle,ArchiveX,Check,CheckCircle2,ChevronDown,ChevronUp,Clock3,Save,Wallet} from 'lucide-react';
+import {AlertTriangle,ArchiveX,Check,CheckCircle2,ChevronDown,ChevronUp,Save,Wallet} from 'lucide-react';
 import {EXPENSE_CATEGORIES,INCOME_CATEGORIES,baht,toSatang,type EntryType,type Method} from './lib/finance';
 import type {PendingSlip} from './lib/pendingSlips';
 import {isTrueMoneyBankTopUp} from './lib/slipReview';
