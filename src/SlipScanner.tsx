@@ -438,7 +438,7 @@ export default function SlipScanner({onApply,onComplete,onBusyChange,onUndoBatch
       <strong>{complete?'เพิ่มรูปอีกชุด':'เลือกรูปสลิป'}</strong>
       <span>เลือกรูปได้สูงสุด 20 รูป</span>
       <div className="slip-actions"><button type="button" className="btn btn-primary slip-pick" disabled={undoing||needsAttention.length>0} onClick={()=>galleryRef.current?.click()}><Upload size={18}/> เลือกรูป</button><button type="button" className="btn btn-secondary" disabled={undoing||needsAttention.length>0} onClick={()=>cameraRef.current?.click()}><Camera size={18}/> ถ่ายรูป</button></div><details className="slip-more-options"><summary>นำเข้ารูปด้วยวิธีอื่น</summary><button type="button" className="btn btn-secondary" disabled={undoing||needsAttention.length>0} onClick={()=>void pasteFromShortcuts()}><ClipboardPaste size={18}/> วางรูปที่คัดลอก</button><small>รองรับ JPG, PNG, WebP, HEIC ขนาดไม่เกิน 10 MB ต่อรูป</small></details>
-      {needsAttention.length>0?<p className="slip-awaiting-review" role="status">มี {needsAttention.length} รูปที่ยังไม่รวมในยอดรายรับ–รายจ่าย กรุณาตรวจข้อมูลด้านล่างหรือกลับมาตรวจจากหน้า “รายการ”</p>:<span></span>}
+      {needsAttention.length>0&&<p className="slip-awaiting-review" role="status">รอตรวจ {needsAttention.length} รายการ · ยังไม่รวมในยอดเงิน</p>}
       {clipboardError&&<p className="slip-warning" role="alert">{clipboardError}</p>}
     </div>}
     <input ref={galleryRef} aria-label="เลือกรูปสลิปหลายรูป" multiple type="file" className="visually-hidden" accept="image/png,image/jpeg,image/webp,image/heic,image/heif,.heic,.heif" onChange={e=>void scan(e)}/>
