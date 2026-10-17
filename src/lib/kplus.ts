@@ -55,10 +55,13 @@ export function parseKPlusSlip(ocrLines: string[]): KPlusSlip | null {
   if(senderAccountIndex<0)return null;
   const recipientLines:string[]=[];
   for(const line of lines.slice(senderAccountIndex+1)) {
+    // Promotional text in the right column sometimes precedes or gets merged
+    // with recipient text in Tesseract's full-page reading order.
+    if(/^(?:THAILAND\s*2026|ไทยพร้อมเป็นเจ้าภาพ|การประชุมประจำปี|กองทุนการเงินระหว่างประเทศ)/iu.test(line))continue;
     if(AMOUNT_LABEL.test(line)||STOP_LABEL.test(line)||DETAIL_LABEL.test(line))break;
     if(MASKED_ACCOUNT.test(line)||(NUMERIC_ID.test(line)&&/\d/u.test(line))||
       /^(?:SCB|KTB|KBANK)$/u.test(line)||!/[\p{L}]/u.test(line))break;
-    const name=cleanRecipient(line);
+    const name=cleanRecipient(line).replace(/\s+(?:THAILAND\s*2026|ไทยพร้อมเป็นเจ้าภาพ).*$/iu,'').trim();
     if(!name||name.length>90)break;
     recipientLines.push(name);
     if(recipientLines.length>=3)break;
@@ -74,6 +77,39 @@ export function parseKPlusSlip(ocrLines: string[]): KPlusSlip | null {
       ?'สลิป K PLUS ระบุบัญชีผู้โอนและผู้รับชัดเจน (ถือเป็นรายจ่ายของผู้โอน)'
       :'สลิป K PLUS ยังระบุบัญชีผู้โอนหรือผู้รับไม่ครบ กรุณาตรวจสอบ',
   };
+}
+
+/**
+ * Read a recipient from a tightly bounded K PLUS beneficiary image region.
+ * Unlike whole-page OCR, the crop has already been anchored between the
+ * sender's masked account and the payment heading. Never inspect payer names.
+ * Skip the promotional watermark, bank sublabels and payment identifiers.
+ */
+export function parseKPlusRecipientRegion(ocrText:string):string|null {
+  const rows=ocrText.split(/\r?\n/u).map(textLine).filter(Boolean);
+  const selected:string[]=[];
+  for(const original of rows.slice(0,18)){
+    let line=cleanRecipient(original).replace(
+      /\s+(?:THAILAND\s*2026|ไทยพร้อมเป็นเจ้าภาพ|สแกน\s*ตรวจสอบสลิป).*$/iu,''
+    ).trim();
+    if(!line)continue;
+    if(AMOUNT_LABEL.test(line)||STOP_LABEL.test(line))break;
+    if(DETAIL_LABEL.test(line)||MASKED_ACCOUNT.test(line)){
+      if(selected.length)break;
+      continue;
+    }
+    if(/(?:THAILAND\s*2026|ไทยพร้อมเป็นเจ้าภาพ|การประชุมประจำปี|กองทุนการเงินระหว่างประเทศ)/iu.test(line))continue;
+    if(/^(?:โอนเงินสำเร็จ|ชำระเงินสำเร็จ|จ่ายบิลสำเร็จ|(?:วันที่|เวลา|amount|fee|reference|เลขที่รายการ)\b|สแกน|ตรวจสอบสลิป)/iu.test(line))continue;
+    if(NUMERIC_ID.test(line)&&/\d/u.test(line))break;
+    if(/^\d/u.test(line)||line.length>90||!/[\p{L}]/u.test(line)){
+      if(selected.length)break;
+      continue;
+    }
+    selected.push(line);
+    if(selected.length>=3)break;
+  }
+  const name=selected.join(' ').replace(/\s+/gu,' ').trim();
+  return name.length>=3&&name.length<=160?name:null;
 }
 
 /** A verified K PLUS "เติมเงินสำเร็จ" is an expense in Money Tracker's

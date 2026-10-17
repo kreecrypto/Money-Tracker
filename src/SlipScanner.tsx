@@ -1,9 +1,10 @@
 import {useEffect,useRef,useState,type ChangeEvent} from 'react';
 import {Camera,CheckCircle2,FileImage,ScanLine,ShieldCheck,Upload,Square,Undo2,AlertTriangle,Check,LoaderCircle,ClipboardPaste,CalendarDays,Clock3,Wallet,UserRound,Tag} from 'lucide-react';
 import {parseSlipText,mergeSlipOcrReadings,needsSlipOcrRecovery,describeMissingSlipAmount,type SlipFields} from './lib/slip';
-import {isKPlusPaymentForOcrRecovery} from './lib/kplus';
-import {prepareSlipRecoveryImage,prepareSlipOcrFile,findKPlusAmountCrop,prepareKPlusAmountCrop} from './lib/slipImage';
+import {isKPlusPaymentForOcrRecovery,parseKPlusRecipientRegion} from './lib/kplus';
+import {prepareSlipRecoveryImage,prepareSlipOcrFile,findKPlusAmountCrop,prepareKPlusAmountCrop,findKPlusRecipientCrop,prepareKPlusRecipientCrop} from './lib/slipImage';
 import {isLowOcrConfidence,requiresLowConfidenceReview} from './lib/ocrConfidence';
+import {classifyByAccountNames} from './lib/slipIdentity';
 import {withOcrDeadline,OCR_MODEL_TIMEOUT_MS,OCR_PASS_TIMEOUT_MS,OcrDeadlineError} from './lib/ocrDeadline';
 import {clipboardSlipFiles} from './lib/shortcutClipboard';
 import {receiptLayoutLines,receiptReconciliationError} from './lib/receiptIntelligence';
@@ -218,6 +219,40 @@ export default function SlipScanner({onApply,onComplete,onBusyChange,onUndoBatch
                         !isLowOcrConfidence(focused.data.confidence)){
                         reading={...reading,amountSatang:parsed.amountSatang,
                           warnings:reading.warnings.filter(w=>!w.includes('อ่านจำนวนเงินไม่ได้'))};
+                      }
+                    }
+                  }
+                  // Targeted Thai/English beneficiary OCR is needed only if both
+                  // independent full-page passes failed to read the recipient.
+                  // The sender account and payment label must bound the region.
+                  // A conflicting name is never overwritten by focused OCR.
+                  if(isKplus&&firstReading.recipient===null&&recoveredReading.recipient===null&&
+                    reading.recipient===null&&!reading.warnings.some(w=>w.includes('ขัดแย้ง')||w.includes('ต่างกัน'))){
+                    const recipientRegion=findKPlusRecipientCrop(retry.data.blocks,enhanced.width,enhanced.height);
+                    if(recipientRegion){
+                      const crop=prepareKPlusRecipientCrop(enhanced,recipientRegion);
+                      await worker.setParameters({tessedit_pageseg_mode:PSM.SINGLE_BLOCK});
+                      const focused=await withOcrDeadline(
+                        worker.recognize(crop,{}, {text:true,blocks:true}),
+                        OCR_PASS_TIMEOUT_MS,'อ่านชื่อผู้รับเฉพาะจุด '
+                      );
+                      const payee=parseKPlusRecipientRegion(focused.data.text);
+                      if(payee&&!isLowOcrConfidence(focused.data.confidence)){
+                        const identity=ownerNames.length
+                          ?classifyByAccountNames({sender:reading.sender??null,recipient:payee},ownerNames)
+                          :null;
+                        const direction=identity?identity.direction:(reading.direction??'expense');
+                        const reason=identity?identity.directionReason:
+                          (reading.directionReason.includes('ทั้งเงินเข้าและเงินออก')
+                            ?reading.directionReason:'สลิป K PLUS ระบุบัญชีผู้โอนและผู้รับชัดเจน (รายจ่ายของผู้โอน)');
+                        const receipt=reading.amountSatang!==null?{
+                          source:'kplus' as const,items:[],itemsComplete:true,
+                          paidSatang:reading.amountSatang,
+                          ...(reading.receipt?.receiptId?{receiptId:reading.receipt.receiptId}:{}),
+                          storeName:payee,
+                        }:reading.receipt;
+                        reading={...reading,recipient:payee,direction,directionReason:reason,receipt,
+                          warnings:reading.warnings.filter(w=>!w.includes('อ่านชื่อผู้รับไม่ได้'))};
                       }
                     }
                   }
