@@ -95,7 +95,7 @@ export async function iphoneSync():Promise<{imported:number;repaired:number;rece
     // Reconcile only the known corrupted OCR watermark. Preserve any recipient
     // that the user already corrected locally, and retain all financial fields.
     if(previous){
-      if(/^THAILAND(?:\\s+2026)?$/i.test(previous.recipient?.trim()||'')&&
+      if(/^THAILAND(?:\s+2026)?$/i.test(previous.recipient?.trim()||'')&&
         previous.recipient!==row.recipient){
         const repairedRow={...previous};
         if(row.recipient)repairedRow.recipient=row.recipient;
