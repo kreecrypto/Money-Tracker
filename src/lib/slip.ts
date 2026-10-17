@@ -308,7 +308,7 @@ export function parseSlipText(rawText:string,layoutLines:string[]=[],ownerNames:
   const sender=labelledParties.sender??layoutParties?.sender??null;
   const parsedRecipient=special?special.recipient:(walletTopUp?.recipient||kplus?.recipient||labelledParties.recipient||layoutParties?.recipient||parseRecipient(lines));
   // Never let a promotional K PLUS watermark satisfy the mandatory payee field.
-  const recipient=parsedRecipient&&!isKPlusPromoNoise(parsedRecipient)?parsedRecipient:null;
+  const recipient=!special&&parsedRecipient&&isKPlusPromoNoise(parsedRecipient)?null:parsedRecipient;
   const inferred=inferSlipDirection(rawText);
   // A complete K PLUS sender-side confirmation is outgoing for its sender.
   // Keep incoming and contradictory OCR evidence conservative.
