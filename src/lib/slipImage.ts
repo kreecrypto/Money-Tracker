@@ -198,9 +198,11 @@ export function findKPlusRecipientCrop(blocks:unknown,width:number,height:number
       }
     }
   }
-  // Multiple account/heading candidates could target the recipient's bank or
-  // fee block; never guess which region contains the actual beneficiary.
-  if(accounts.length!==1||amounts.length!==1)return null;
+  // K PLUS-to-K PLUS transfers show a SECOND masked account below the
+  // recipient. The uppermost account is the sender; reject near-tied anchors.
+  accounts.sort((a,b)=>a.y0-b.y0);
+  if(!accounts.length||amounts.length!==1)return null;
+  if(accounts.length>1&&accounts[1].y0-accounts[0].y0<height*0.045)return null;
   const account=accounts[0],amount=amounts[0];
   const y=Math.ceil(account.y1+height*0.012);
   const bottom=Math.floor(amount.y0-height*0.015);
