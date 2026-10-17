@@ -301,3 +301,37 @@ button.mt-home-month-picker {
 @media(prefers-reduced-motion:reduce) {
   .mt-home-month-popover,.mt-home-detail{scroll-behavior:auto;}
 }
+
+
+/* 2026-10-17: app-first content density, legibility and progressive disclosure */
+.mt-home-screen {display:flex;flex-direction:column;gap:16px}
+.mt-home-month-picker {font-size:12px}
+.mt-home-total-label,.mt-home-split-head {font-size:12px}
+.mt-home-split>strong {font-size:clamp(15px,4vw,18px)}
+.mt-home-screen .mt-home-upload small {font-size:11px;line-height:1.4}
+.mt-home-section-heading h2 {font-size:16px}
+.mt-home-section-heading button {font-size:12px;min-height:44px}
+.mt-home-transaction {min-height:58px}
+.mt-home-transaction-text strong,.mt-home-transaction>b {font-size:13px}
+.mt-home-transaction-text small {font-size:11px}
+.mt-home-empty {padding:24px 12px}
+.mt-home-empty p {font-size:13px}
+.view-topline.view-topline-compact {justify-content:flex-end;margin-bottom:18px}
+.view-topline.view-topline-compact .month-picker {margin-left:auto}
+.settings-connections {grid-column:1/-1;border:1px solid #e7eeea;border-radius:15px;background:#fff;overflow:hidden}
+.settings-connections>summary {display:flex;align-items:center;justify-content:space-between;min-height:54px;padding:14px 21px;cursor:pointer;font-weight:750;font-size:14px;color:#203d30;list-style:none}
+.settings-connections>summary::-webkit-details-marker {display:none}
+.settings-connections>summary:after {content:'⌄';font-size:20px;color:#687e70;line-height:1}
+.settings-connections[open]>summary:after {transform:rotate(180deg)}
+.settings-connections-content {display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px;padding:0 16px 18px}
+.settings-connections-content>.settings-card {min-width:0}
+.app-technical-details {margin-top:6px;font-size:12px}
+.app-technical-details summary {color:#60756b;cursor:pointer;min-height:44px;display:flex;align-items:center}
+.slip-more-options {width:100%;text-align:left;margin-top:8px}
+.slip-more-options summary {color:#60756b;font-size:12px;cursor:pointer;min-height:40px;display:flex;align-items:center}
+.slip-more-options .btn {display:flex;margin:0 0 7px}
+.slip-more-options small {display:block;color:#63786c;font-size:11px;line-height:1.5}
+@media(max-width:660px){
+  .mt-home-screen {gap:14px!important}
+  .settings-connections-content {grid-template-columns:minmax(0,1fr);gap:12px;padding:0 12px 12px}
+}
