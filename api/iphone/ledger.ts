@@ -7,7 +7,7 @@ export async function POST(request:Request){
   const headers=appCors(request);
   if(!headers)return json({error:'ORIGIN_DENIED'},403);
   const grant=auth(request,'review');
-  if(grant!=='ok)return json({error:grant==='unconfigured'?'NOT_CONFIGURED':'UNAUTHORIZED'},
+  if(grant!=='ok')return json({error:grant==='unconfigured'?'NOT_CONFIGURED':'UNAUTHORIZED'},
     grant==='unconfigured'?503:401,headers);
   let input:unknown;
   try {
