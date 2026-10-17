@@ -8,7 +8,7 @@
   --home-mint:#ebf8f0;
 }
 .mt-home-topbar, .mt-home-screen, .mt-home-below {
-  font-family:Inter,"Noto Sans Thai",-apple-system,BlinkMacSystemFont,"Segoe UI",Tahoma,sans-serif;
+  font-family:"Noto Sans Thai",-apple-system,BlinkMacSystemFont,"Segoe UI",Tahoma,sans-serif;
 }
 .topbar.home-v2-topbar {
   background:#fff;
@@ -44,12 +44,12 @@
 .mt-home-screen .mt-home-balance {
   isolation:isolate; position:relative; display:block; overflow:hidden;
   min-height:0; padding:16px 14px 13px;
-  color:#fff; background:linear-gradient(113deg,#12844d 5%,#25a162 62%,#b3e5ae 100%);
+  color:#fff; background:linear-gradient(113deg,#0c6040 5%,#126e49 62%,#187752 100%);
   border:0; border-radius:16px; box-shadow:0 6px 13px #1387521a;
 }
 .mt-home-balance-decoration {
   position:absolute;right:-12px;bottom:48px;width:101px;height:109px;
-  opacity:.82;z-index:-1;pointer-events:none;
+  opacity:.32;z-index:-1;pointer-events:none;
 }
 .mt-home-balance-decoration svg {width:100%;height:100%;}
 .mt-home-balance-header {
@@ -60,7 +60,7 @@
 .mt-home-month-picker {
   position:relative; flex:none; display:flex; align-items:center; justify-content:center;
   border-radius:9px; height:30px; padding:0 9px;
-  background:#f7fff9; color:#167144; font-size:10px;font-weight:750;
+  background:#f7fff9; color:#125a38; font-size:12px;font-weight:750;
   box-shadow:0 2px 8px #1359320c;
 }
 .mt-home-month-picker>span {display:flex;align-items:center;gap:2px;white-space:nowrap;}
@@ -69,7 +69,7 @@
   cursor:pointer;z-index:2;appearance:none;font-size:16px;
 }
 .mt-home-total-label {font-size:11px;line-height:1.3;font-weight:570;opacity:.96;}
-.mt-home-total {display:block;font-size:clamp(26px,7.1vw,33px);line-height:1.2;font-weight:830;letter-spacing:-.8px;margin:5px 0 0;font-variant-numeric:tabular-nums;}
+.mt-home-total {display:block;font-size:clamp(26px,7.1vw,33px);line-height:1.2;font-weight:830;letter-spacing:-.8px;margin:5px 0 0;font-variant-numeric:tabular-nums;overflow-wrap:anywhere;}
 .mt-home-net-note {display:block;font-size:9px;line-height:1.3;color:#e1fae8;min-height:14px;margin:1px 0 10px;}
 .mt-home-balance-splits {display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;}
 .mt-home-split {
@@ -81,7 +81,7 @@
 .mt-home-split-icon {width:21px;height:21px;display:grid;place-items:center;border-radius:7px;color:#fff;}
 .mt-home-split-icon.is-income {background:#35bc72;}
 .mt-home-split-icon.is-expense {background:#fa6176;}
-.mt-home-split>strong {display:block;font-size:clamp(13px,3.85vw,17px);line-height:1.35;letter-spacing:-.3px;white-space:nowrap;font-variant-numeric:tabular-nums;}
+.mt-home-split>strong {display:block;font-size:clamp(13px,3.85vw,17px);line-height:1.35;letter-spacing:-.3px;overflow-wrap:anywhere;font-variant-numeric:tabular-nums;}
 .mt-home-split>small {font-size:9px;color:#608b75;line-height:1.25;}
 .mt-home-split:last-child>small {color:#bd6b76;}
 .mt-home-screen .mt-home-upload {
@@ -183,7 +183,7 @@
   .mt-home-screen>.mobile-quick-actions,
   .mt-home-screen>.transactions-surface{order:initial!important;margin:0!important;}
   .mt-home-screen>.summary-grid .mt-home-balance {
-    background:linear-gradient(113deg,#12844d 5%,#25a162 62%,#b3e5ae 100%)!important;
+    background:linear-gradient(113deg,#0c6040 5%,#126e49 62%,#187752 100%)!important;
     min-height:0!important;padding:16px 14px 13px!important;
     border-radius:16px!important;
   }
@@ -308,12 +308,12 @@ button.mt-home-month-picker {
 .mt-home-month-picker {font-size:12px;min-height:44px!important;height:44px!important;padding-inline:12px}
 .mt-home-total-label,.mt-home-split-head {font-size:12px}
 .mt-home-split>strong {font-size:clamp(15px,4vw,18px)}
-.mt-home-screen .mt-home-upload small {font-size:11px;line-height:1.4}
+.mt-home-screen .mt-home-upload small {font-size:12px;line-height:1.4}
 .mt-home-section-heading h2 {font-size:16px}
 .mt-home-section-heading button {font-size:12px;min-height:44px}
 .mt-home-transaction {min-height:58px}
 .mt-home-transaction-text strong,.mt-home-transaction>b {font-size:13px}
-.mt-home-transaction-text small {font-size:11px}
+.mt-home-transaction-text small {font-size:12px}
 .mt-home-empty {padding:24px 12px}
 .mt-home-empty p {font-size:13px}
 .view-topline.view-topline-compact {justify-content:flex-end;margin-bottom:18px}
@@ -334,4 +334,26 @@ button.mt-home-month-picker {
 @media(max-width:660px){
   .mt-home-screen {gap:14px!important}
   .settings-connections-content {grid-template-columns:minmax(0,1fr);gap:12px;padding:0 12px 12px}
+}
+
+/* Impeccable Operate polish: user data first, contrast and iPhone-safe scaling. */
+.mt-home-screen .mt-home-balance {background:linear-gradient(120deg,#0c6040,#126e49 63%,#187752);}
+.mt-home-total-label {font-size:13px;opacity:1;}
+.mt-home-balance-header>span {font-size:13px;}
+.mt-home-split-head {color:#365b49;}
+.mt-home-split>strong {color:#102c20;}
+.mt-home-transaction-text strong {font-size:14px;}
+.mt-home-transaction>b {max-width:52%;min-width:0;text-align:right;white-space:normal;overflow-wrap:anywhere;font-size:14px;}
+.mt-home-transaction-text small {color:#586a60;}
+.mt-home-month-popover [role="option"] {min-height:44px;}
+.mt-home-upload:active,.mt-home-transaction:active {filter:brightness(.97);}
+@media(max-width:360px) {
+  .mt-home-screen .mt-home-balance {padding:16px 12px!important;}
+  .mt-home-screen .mt-home-balance .mt-home-total {font-size:clamp(25px,8vw,31px)!important;}
+  .mt-home-balance-header>span {font-size:12px;}
+  .mt-home-month-picker {font-size:12px;}
+  .mt-home-transaction>b {max-width:50%;font-size:13px;}
+}
+@media(prefers-reduced-motion:reduce) {
+  .mt-home-upload,.mt-home-transaction {transition:none!important;}
 }

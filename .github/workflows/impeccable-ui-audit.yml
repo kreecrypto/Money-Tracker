@@ -1,0 +1,50 @@
+name: Impeccable UI Design Audit
+
+on:
+  pull_request:
+    paths:
+      - 'src/**'
+      - 'DESIGN.md'
+      - 'PRODUCT.md'
+      - '.github/workflows/impeccable-ui-audit.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  design-review:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout source
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Use Node 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Run Impeccable detector (advisory baseline)
+        shell: bash
+        run: |
+          set +e
+          npx --yes impeccable detect --no-design-system --json src/ > impeccable-findings.json
+          code=$?
+          set -e
+          if [ "$code" -eq 1 ]; then
+            echo "Impeccable CLI failed to run."
+            cat impeccable-findings.json
+            exit 1
+          fi
+          if [ "$code" -eq 2 ]; then
+            echo "::notice::Impeccable found legacy design warnings. See report artifact; this is advisory while baselining the existing app."
+          fi
+          if [ "$code" -ne 0 ] && [ "$code" -ne 2 ]; then exit "$code"; fi
+      - name: Upload detector report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: impeccable-design-findings
+          path: impeccable-findings.json
+          if-no-files-found: ignore
