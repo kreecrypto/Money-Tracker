@@ -12,7 +12,7 @@ import ResetDataDialog from './ResetDataDialog';
 import {eraseLocalMoneyTrackerData} from './lib/localDataReset';
 import LineSyncSettings from './LineSyncSettings';
 import IPhoneShortcutSettings from './IPhoneShortcutSettings';
-import {iphoneConfigured,iphoneConnected,iphoneDrafts,iphoneSync,resetIphoneImportHistory} from './lib/iphoneSync';
+import {iphoneConfigured,iphoneConnected,iphoneDrafts,iphoneSync,iphoneCorrectRecipient,resetIphoneImportHistory} from './lib/iphoneSync';
 import {lineLinked,syncLineInbox} from './lib/lineSync';
 import type {SlipFields} from './lib/slip';
 import {prepareAutoSlip} from './lib/slipAutoSave';
@@ -75,7 +75,7 @@ function TransactionRow({entry,onEdit,onDelete}:{entry:Transaction;onEdit:(t:Tra
   },[actionsOpen]);
   return <div className="transaction-with-receipt"><div className="transaction-row">
     <CategoryGlyph category={entry.category} type={entry.type}/>
-    <div className="transaction-copy"><strong>{entry.recipient||entry.note||entry.category}</strong><span>{entry.category}{entry.sender?` · จาก ${entry.sender}`:''}{entry.note&&entry.recipient?` · ${entry.note}`:""} <i>·</i> {METHODS[entry.method]}</span></div>
+    <div className="transaction-copy"><strong>{entry.id.startsWith('iphone-')&&!entry.recipient?'รอตรวจชื่อผู้รับ':entry.recipient||entry.note||entry.category}</strong><span>{entry.category}{entry.sender?` · จาก ${entry.sender}`:''}{entry.note&&entry.recipient?` · ${entry.note}`:""} <i>·</i> {METHODS[entry.method]}</span></div>
     <div className="transaction-end"><b className={entry.type==='income'?'positive':'negative'}>{entry.type==='income'?'+':'−'}฿{baht(entry.amountSatang)}</b><span>{dateText(entry.date)}{entry.time?` · ${entry.time} น.`:""}</span></div>
     <div className="transaction-actions"><button aria-label={`แก้ไข ${entry.note||entry.category}`} title="แก้ไข" className="icon-btn" onClick={()=>onEdit(entry)}><Pencil size={17}/></button><button aria-label={`ลบ ${entry.note||entry.category}`} title="ลบ" className="icon-btn danger" onClick={()=>onDelete(entry)}><Trash2 size={17}/></button></div>
     <div className="mobile-row-actions" ref={actionsRef}><button className="icon-btn mobile-row-more" title="จัดการรายการ" aria-label={`จัดการ ${entry.note||entry.category}`} aria-expanded={actionsOpen} onClick={()=>setActionsOpen(!actionsOpen)}><MoreHorizontal size={21}/></button>
@@ -285,7 +285,19 @@ export default function App(){
   const openReview=()=>{setInboxTab(true);setSlipInboxTab(false);setView('transactions');};
   const openPendingSlips=()=>{setInboxTab(false);setSlipInboxTab(true);setView('transactions');};
   const openAdd=()=>{setScanOnOpen(true);setEditing(null);setModalOpen(true)};
-  const onSave=async(t:Transaction)=>{await saveTransaction(t);await reload();setToast(editing?'แก้ไขรายการเรียบร้อย':`บันทึก${t.type==='income'?'รายรับ':'รายจ่าย'} ฿${baht(t.amountSatang)} สำเร็จ`);};
+  const onSave=async(t:Transaction)=>{
+    // Never silently keep a repaired iPhone payee only in IndexedDB:
+    // update the same confirmed cloud entry when the review connection is available.
+    const importedEdit=editing?.id.startsWith('iphone-')&&t.id===editing.id;
+    const recipientChanged=Boolean(importedEdit&&(editing?.recipient||'')!==(t.recipient||''));
+    if(recipientChanged&&iphoneConnected()&&iphoneConfigured())
+      await iphoneCorrectRecipient(t.id,t.recipient?.trim()||null);
+    await saveTransaction(t);
+    await reload();
+    setToast(recipientChanged&&!iphoneConnected()
+      ?'บันทึกในเครื่องแล้ว · ยังไม่ได้เชื่อม iPhone Cloud เพื่อแก้ชื่อใน API'
+      :editing?'แก้ไขรายการเรียบร้อย':`บันทึก${t.type==='income'?'รายรับ':'รายจ่าย'} ฿${baht(t.amountSatang)} สำเร็จ`);
+  };
   const onSaveImported=async(t:Transaction)=>{
     await saveTransaction(t);
     // A corrected re-upload of the exact same photo can now be saved. Clear
