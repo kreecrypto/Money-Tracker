@@ -289,7 +289,7 @@ export default function App(){
     // Never silently keep a repaired iPhone payee only in IndexedDB:
     // update the same confirmed cloud entry when the review connection is available.
     const importedEdit=editing?.id.startsWith('iphone-')&&t.id===editing.id;
-    const recipientChanged=importedEdit&&(editing.recipient||'')!==(t.recipient||'');
+    const recipientChanged=Boolean(importedEdit&&(editing?.recipient||'')!==(t.recipient||''));
     if(recipientChanged&&iphoneConnected()&&iphoneConfigured())
       await iphoneCorrectRecipient(t.id,t.recipient?.trim()||null);
     await saveTransaction(t);
