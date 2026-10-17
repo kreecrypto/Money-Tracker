@@ -1,7 +1,7 @@
 import {useEffect,useMemo,useRef,useState} from 'react';
 import {createPortal} from 'react-dom';
 import {
-  ArrowDownLeft, ArrowRight, ArrowUpRight, BarChart3, Bell, Camera,
+  ArrowDownLeft, ArrowRight, ArrowUpRight, Bell, Camera,
   ChevronDown, CircleUserRound, Sprout,
   UtensilsCrossed, ShoppingBag, TrainFront, HandCoins, Ellipsis, Wallet,
 } from 'lucide-react';
