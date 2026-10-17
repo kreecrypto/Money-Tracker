@@ -269,7 +269,12 @@ export function parseSlipText(rawText:string,layoutLines:string[]=[],ownerNames:
     .map(x=>x.replace(/^[0◯○•●@]\s+(?=[A-Z])/u,'').trim())
     .filter(Boolean);
   const special=parseSpecialReceipt(lines);
-  const kplus=special?null:parseKPlusSlip(lines);
+  const textKplus=special?null:parseKPlusSlip(lines);
+  // Tesseract's plain-text stream can interleave the bank watermark and QR;
+  // its word geometry may still reconstruct the sender-to-beneficiary order.
+  const layoutKplus=special||textKplus?.recipient||!layoutLines.length?null:
+    parseKPlusSlip(layoutLines.map(line=>normalizeSlipOcrText(line).trim()).filter(Boolean));
+  const kplus=textKplus?.recipient?textKplus:(layoutKplus?.recipient?layoutKplus:textKplus);
   const walletTopUp=special?null:parseKPlusTopUp(lines);
   // A confirmed bill or wallet payment requires the actual tender/paid amount,
   // never the gross item subtotal or discount.
