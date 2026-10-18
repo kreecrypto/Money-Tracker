@@ -202,7 +202,7 @@
 @media(max-width:360px){
   .mt-home-balance-header {gap:5px;}
   .mt-home-balance-header>span {font-size:11px;}
-  .mt-home-month-picker {padding-inline:6px;font-size:9px;}
+  .mt-home-month-picker {padding-inline:6px;font-size:12px;}
   .mt-home-screen .mt-home-balance {padding:14px 11px!important;}
   .mt-home-split {padding:8px 7px 7px;}
   .mt-home-split>strong {font-size:13px;}
@@ -357,3 +357,6 @@ button.mt-home-month-picker {
 @media(prefers-reduced-motion:reduce) {
   .mt-home-upload,.mt-home-transaction {transition:none!important;}
 }
+
+/* Impeccable: keep supplemental OCR evidence legible without another card. */
+.slip-ocr-party-hint {margin:0;font-size:13px;line-height:1.5;color:#435b4c;overflow-wrap:anywhere;}
