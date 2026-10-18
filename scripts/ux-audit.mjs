@@ -131,6 +131,13 @@ try {
       await page.getByRole('button',{name:/รอตรวจจากสลิป/}).click();
       const pendingBefore=await page.locator('.pending-slip-card').count();
       await page.getByRole('button',{name:'ตรวจและแก้ไข'}).click();
+      const pendingReviewChrome=await page.evaluate(()=>{
+        const visible=(selector)=>Array.from(document.querySelectorAll(selector)).some(el=>{
+          const r=el.getBoundingClientRect(),style=getComputedStyle(el);
+          return r.width>0&&r.height>0&&style.display!=='none'&&style.visibility!=='hidden';
+        });
+        return {fabHidden:!visible('.mobile-fab'),bottomNavHidden:!visible('.mobile-bottom-nav')};
+      });
       await scan(page,'pending-slip-review-form',name);
       await page.locator('.pending-slip-form select').first().selectOption('expense');
       await page.getByRole('button',{name:'บันทึกรายการนี้'}).click();
@@ -138,8 +145,9 @@ try {
       const pendingAfter=await page.locator('.pending-slip-card').count();
       await page.getByRole('button',{name:'บันทึกแล้ว'}).click();
       const savedVisible=await page.getByText('ร้านค้าตัวอย่าง').count()>0;
-      record('pending-queue-smoke',name,{homeBadge,pendingBefore,pendingAfter,savedVisible,pageErrors:errors});
-      await page.locator('.mobile-bottom-nav button').nth(3).click();
+      record('pending-queue-smoke',name,{homeBadge,pendingBefore,pendingAfter,savedVisible,
+        ...pendingReviewChrome,pageErrors:errors});
+      await page.locator('.mobile-bottom-nav button').nth(1).click();
     }
     const add=page.locator(width<=660?'.mobile-fab':'.top-add');
     await add.click({timeout:3500});
@@ -148,8 +156,16 @@ try {
     const autoSaveNext=await page.getByText('2 อ่านข้อมูลจากสลิป').isVisible() && await page.getByText('3 บันทึกหรือรอตรวจ').isVisible();
     const multiSelectable=await page.locator('input[aria-label="เลือกรูปสลิปหลายรูป"]').evaluate(el=>el instanceof HTMLInputElement&&el.multiple);
     const batchLimitVisible=await page.getByText(/สูงสุด 20 รูป/).isVisible();
+    const uploadControls=await page.evaluate(()=>{
+      const buttons=Array.from(document.querySelectorAll('.slip-upload-box .slip-actions .btn'));
+      return buttons.map(el=>{
+        const r=el.getBoundingClientRect();
+        return {width:Math.round(r.width),height:Math.round(r.height),bottom:Math.round(r.bottom)};
+      });
+    });
+    const compactUploadButtons=uploadControls.length===2&&uploadControls.every(b=>b.height>=44&&b.height<=58);
     const reviewButtonCount=await page.getByRole('button',{name:/ตรวจทานและบันทึก/}).count();
-    record('slip-first-default',name,{slipDefault,uploadPrimary,autoSaveNext,multiSelectable,batchLimitVisible,reviewButtonCount,pageErrors:errors});
+    record('slip-first-default',name,{slipDefault,uploadPrimary,autoSaveNext,multiSelectable,batchLimitVisible,compactUploadButtons,uploadControls,reviewButtonCount,pageErrors:errors});
     await scan(page,'slip-first-entry',name);
     await page.getByRole('button',{name:'กรอกเอง',exact:true}).click();
     const manualAvailable=await page.locator('#amount').isVisible();
@@ -225,7 +241,7 @@ try {
   const critical=findings.filter(x=>x.view==='navigation-obstruction'
     ||x.overflowPx>0
     ||(x.axe?.violations?.length||0)>0
-    ||(x.view==='slip-first-default'&&(!x.slipDefault||!x.uploadPrimary||!x.autoSaveNext||!x.multiSelectable||!x.batchLimitVisible||x.reviewButtonCount>0||x.pageErrors?.length))
+    ||(x.view==='slip-first-default'&&(!x.slipDefault||!x.uploadPrimary||!x.autoSaveNext||!x.multiSelectable||!x.batchLimitVisible||!x.compactUploadButtons||x.reviewButtonCount>0||x.pageErrors?.length))
     ||(x.view==='manual-entry-alternative'&&(!x.manualAvailable||x.pageErrors?.length))
     ||(x.view==='save-smoke'&&(!x.savedVisible||!x.groupedDateVisible||x.pageErrors?.length))
     ||(x.view==='pending-queue-smoke'&&(!x.homeBadge||x.pendingBefore!==1||x.pendingAfter!==0||!x.savedVisible||x.pageErrors?.length))
