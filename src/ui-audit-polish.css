@@ -126,6 +126,13 @@
   border-radius: 12px;background: #f6faf7;
   color: #435c4d;font-size: 14px;line-height: 1.65;text-align: center;
 }
+/* Report panels must fit their real content, not reserve empty 280–305px cards. */
+#report-trends { align-items: start; }
+#report-trends .chart-surface,#report-trends .category-surface {
+  min-height: 0 !important;
+  height: auto;
+  align-self: start;
+}
 /* Reports: discoverable values even on touch devices (not hover-only bars). */
 .chart-surface .bars-chart { position: relative; }
 .chart-surface .trend-axis-max {
