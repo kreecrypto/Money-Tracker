@@ -209,6 +209,10 @@
   .settings-grid > .reading-preference-card { grid-column:1/-1; }
   .reference-settings-index { grid-template-columns:repeat(12,minmax(0,1fr)); }
   .reference-settings-index > .reference-settings-link { grid-column:span 6; }
+  .ref-ocr-modal .slip-upload-box .slip-actions {
+    grid-template-columns:repeat(12,minmax(0,1fr));
+  }
+  .ref-ocr-modal .slip-upload-box .slip-actions > .btn { grid-column:span 6; }
 }
 @media(prefers-reduced-motion:reduce) {
   .main-content *, .mt-home-screen * { scroll-behavior:auto; }
