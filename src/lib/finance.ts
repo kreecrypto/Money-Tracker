@@ -50,6 +50,16 @@ export const CATEGORY_ICONS: Record<string,string> = {
   'สุขภาพ':'💊','บันเทิง':'🎬','การศึกษา':'📚','ผ่อนชำระ/หนี้':'💳','อื่น ๆ':'✨',
   'เงินเดือน':'💼','งานเสริม':'🧑‍💻','โบนัส':'🎁','ดอกเบี้ย/ลงทุน':'📈','เงินคืน':'↩️'
 };
+/** For incoming transfers, show the payer when OCR has identified them.
+ * recipient always remains the payee printed on the slip, including incoming slips.
+ * This is a display-only choice and must not rewrite slip/account identities.
+ */
+export function transactionDisplayName(
+  t: Pick<Transaction,'type'|'sender'|'recipient'|'note'|'category'>
+): string {
+  const primary=t.type==='income'?t.sender?.trim():t.recipient?.trim();
+  return primary||t.recipient?.trim()||t.sender?.trim()||t.note?.trim()||t.category;
+}
 export const formatter = new Intl.NumberFormat('th-TH', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 export const baht = (satang:number) => formatter.format(satang/100);
 export const todayLocal = (date = new Date()) => [date.getFullYear(),String(date.getMonth()+1).padStart(2,'0'),String(date.getDate()).padStart(2,'0')].join('-');

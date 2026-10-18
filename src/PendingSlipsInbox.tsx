@@ -87,7 +87,7 @@ function PendingCard({item,onSave,onKeep,onDiscard}:{
         </label>
         <label>วันที่ทำรายการ<input type="date" value={draft.date||''} onChange={e=>patch({date:e.target.value||null})}/></label>
         <label>เวลาทำรายการ<input type="time" value={draft.time||''} onChange={e=>patch({time:e.target.value||null})}/></label>
-        <label className="slip-attention-wide">ผู้รับเงิน / ร้านค้า
+        <label className="slip-attention-wide">ชื่อผู้รับตามสลิป / ร้านค้า
           <input maxLength={160} value={draft.recipient||''} onChange={e=>patch({recipient:e.target.value})}/>
         </label>
         {draft.direction&&<label>หมวดหมู่

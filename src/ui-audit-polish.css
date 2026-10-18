@@ -1,0 +1,175 @@
+/* PR #61 UI audit remediation — intentionally scoped to current app components.
+ * Loaded last after legacy CSS until a separate, regression-tested cascade migration.
+ * Financial semantics / OCR storage / page information architecture are unchanged.
+ */
+:root {
+  --mt-control-height: 48px;
+  --mt-copy-size: 14px;
+  --mt-meta-size: 12px;
+  --mt-border: #e5efeb;
+}
+
+/* Scan sheet: never allow legacy flex:1 to turn upload buttons into huge panels. */
+.ref-ocr-modal .slip-upload-box {
+  min-height: 0 !important;
+  height: auto !important;
+  padding: 18px 14px !important;
+  gap: 8px;
+}
+.ref-ocr-modal .slip-upload-box .slip-upload-icon {
+  width: 52px !important;
+  height: 52px !important;
+  border-radius: 14px;
+}
+.ref-ocr-modal .slip-upload-box .slip-actions {
+  display: grid !important;
+  grid-template-columns: repeat(2,minmax(0,1fr));
+  width: 100%;
+  gap: 8px !important;
+  margin-top: 8px;
+  flex-direction: row !important;
+}
+.ref-ocr-modal .slip-upload-box .slip-actions .btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: none !important;
+  flex-basis: auto !important;
+  flex-grow: 0 !important;
+  flex-shrink: 0 !important;
+  width: 100% !important;
+  min-width: 0 !important;
+  max-width: none !important;
+  min-height: 52px !important;
+  height: 52px !important;
+  max-height: 52px !important;
+  padding: 8px 5px !important;
+  font-size: 14px !important;
+  line-height: 1.3;
+  white-space: nowrap !important;
+}
+.ref-ocr-modal .slip-upload-box > span { font-size: 12px;line-height: 1.5; }
+.ref-ocr-modal .slip-hint, .ref-ocr-modal .slip-more-options small {
+  font-size: 12px;line-height: 1.6;
+}
+.ref-ocr-modal .slip-flow span { font-size: 12px;line-height: 1.4; }
+@media(max-width:360px) {
+  .ref-ocr-modal .slip-upload-box { padding: 14px 11px !important; }
+  .ref-ocr-modal .slip-upload-box .slip-actions {
+    display: grid !important;
+    grid-template-columns: repeat(2,minmax(0,1fr));
+    flex-direction: row !important;
+  }
+  .ref-ocr-modal .slip-upload-box .slip-actions .btn {
+    height: 50px !important;
+    min-height: 50px !important;
+    max-height: 50px !important;
+    font-size: 13px !important;
+  }
+}
+
+/* Ledger: restore readable, two-line counterparty metadata, without clipping money. */
+.transaction-page .transaction-copy { min-width: 0;flex: 1 1 auto; }
+.transaction-page .transaction-copy strong {
+  font-size: 14px !important;line-height: 1.45 !important;
+  overflow-wrap: anywhere;white-space: normal;
+}
+.transaction-page .transaction-copy span {
+  display: -webkit-box;overflow: hidden;-webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;white-space: normal;
+  font-size: 12px !important;line-height: 1.5 !important;
+  color: #586a60 !important;
+}
+.transaction-page .transaction-end { min-width: 0;max-width: 44%; }
+.transaction-page .transaction-end b {
+  font-size: 14px !important;
+  font-variant-numeric: tabular-nums;
+  white-space: normal;overflow-wrap: anywhere;text-align: right;
+}
+.transaction-page .transaction-end span { font-size: 12px !important;line-height: 1.45; }
+.transaction-page .mobile-row-more { width: 44px;min-width: 44px;height: 44px; }
+
+/* Restore reading comfort throughout settings and correction states. */
+.settings-grid { gap: 14px; }
+.settings-card { border-color: var(--mt-border); }
+.settings-card h3 { font-size: 16px;line-height: 1.45; }
+.settings-card p,.settings-card > p,.settings-card .hint,.settings-card small,
+.settings-card .field-label,.settings-card label,
+.settings-connections-content p,.settings-connections-content small {
+  font-size: 13px;line-height: 1.65;
+}
+.settings-card .app-meta,.settings-card .app-meta span,.settings-card .app-meta strong,
+.settings-card .settings-actions .btn,.settings-connections > summary {
+  font-size: 14px;line-height: 1.55;
+}
+.pending-slip-card .pending-slip-detail,.pending-slip-card .pending-slip-note,
+.pending-slip-card .pending-slip-main span,.pending-slip-card .pending-slip-form label {
+  font-size: 13px;line-height: 1.6;
+}
+.pending-slip-card .pending-slip-form input,.pending-slip-card .pending-slip-form select {
+  min-height: var(--mt-control-height);
+}
+.mt-home-advisory p { font-size: 12px;line-height: 1.55; }
+
+/* A single icon family for report categories — no letter-based placeholders. */
+.report-cat-emoji,.category-icon { background: #edf5ef; }
+.report-cat-emoji .money-category-icon,.category-icon .money-category-icon {
+  display: grid;place-items: center;
+  width: 32px;height: 32px;min-width: 32px;border-radius: 10px;
+}
+.report-cat-emoji .money-category-icon svg,.category-icon .money-category-icon svg {
+  width: 18px;height: 18px;
+}
+
+.report-trend-empty {
+  padding: 26px 14px;margin-top: 12px;
+  border-radius: 12px;background: #f6faf7;
+  color: #435c4d;font-size: 14px;line-height: 1.65;text-align: center;
+}
+/* Report panels must fit their real content, not reserve empty 280–305px cards. */
+#report-trends { align-items: start; }
+#report-trends .chart-surface,#report-trends .category-surface {
+  min-height: 0 !important;
+  height: auto;
+  align-self: start;
+}
+/* Reports: discoverable values even on touch devices (not hover-only bars). */
+.chart-surface .bars-chart { position: relative; }
+.chart-surface .trend-axis-max {
+  position: absolute;right: 2px;top: 0;
+  font-size: 11px;color: #53685e;
+  background: #fff;padding: 0 2px;
+}
+.chart-surface .report-trend-breakdown { margin-top: 14px;border-top: 1px solid var(--mt-border); }
+.report-trend-breakdown > summary {
+  display: flex;min-height: 44px;align-items: center;
+  font-size: 13px;font-weight: 700;color: #176449;
+  cursor: pointer;
+}
+.report-trend-breakdown > summary:focus-visible { outline: 3px solid #136c48;outline-offset: 3px; }
+.report-trend-table-scroll { width:100%;max-width:100%;overflow-x:auto;-webkit-overflow-scrolling:touch; }
+.report-trend-table {
+  width: 100%;min-width: 250px;border-collapse: collapse;
+  font-size: 12px;line-height: 1.55;font-variant-numeric: tabular-nums;
+}
+.report-trend-table th,.report-trend-table td {
+  padding: 9px 5px;border-bottom: 1px solid var(--mt-border);
+  text-align: right;white-space: nowrap;
+}
+.report-trend-table th:first-child { text-align: left; }
+.report-trend-table thead th { color: #385547;font-weight: 750; }
+.report-trend-table tbody th { color: #3f5d4b;font-weight: 600; }
+@media(max-width:660px) {
+  .settings-grid { gap: 12px; }
+  .settings-card { padding: 17px 16px; }
+  .ref-report-tabs button { min-height: 44px;font-size: 12px;line-height: 1.4; }
+  /* Pending correction is a focused form, not a tab-hopping screen. */
+  .app-shell:has(.pending-slip-form) .mobile-bottom-nav,
+  .app-shell:has(.pending-slip-form) .mobile-fab { display: none !important; }
+  .app-shell:has(.pending-slip-form) .main-content {
+    padding-bottom: calc(28px + env(safe-area-inset-bottom,0px));
+  }
+}
+@media(prefers-reduced-motion:reduce) {
+  .report-trend-breakdown * { transition: none !important; }
+}
