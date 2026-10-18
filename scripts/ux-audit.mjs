@@ -149,6 +149,8 @@ try {
         ...pendingReviewChrome,pageErrors:errors});
       await page.locator('.mobile-bottom-nav button').nth(1).click();
     }
+    // The mobile scan shortcut intentionally lives on the Saved ledger only.
+    if(width<=660)await page.locator('.mobile-bottom-nav button').nth(1).click();
     const add=page.locator(width<=660?'.mobile-fab':'.top-add');
     await add.click({timeout:3500});
     const slipDefault=await page.locator('.modal .slip-panel').isVisible();
