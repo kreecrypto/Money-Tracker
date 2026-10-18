@@ -1,0 +1,228 @@
+/* Money Tracker Responsive Grid System — authored after all UI layers.
+ * Grid columns are layout scaffolding, never extra screen decoration.
+ * 320–767: 4 columns; 768–1199: 8; 1200+: 12.
+ * Do not introduce phantom data, change OCR flow, or alter tab navigation.
+ */
+:root {
+  --mt-grid-columns: 4;
+  --mt-grid-margin: 16px;
+  --mt-grid-gutter: 12px;
+  --mt-grid-section-gap: 16px;
+  --mt-grid-radius: 16px;
+}
+.app-body,.main-content,.mt-home-screen,.mt-home-screen>*,
+.transaction-page,.settings-grid,.settings-grid>*,
+.reference-report-summary,.ref-report-tabs,.reference-settings-index,
+.slip-upload-box,.slip-actions,.two-column,.report-panels { min-width:0; }
+.main-content {
+  width:100%;
+  display:grid;
+  grid-template-columns:repeat(var(--mt-grid-columns),minmax(0,1fr));
+  column-gap:var(--mt-grid-gutter);
+  row-gap:0;
+  align-content:start;
+}
+.main-content>* { min-width:0;grid-column:1/-1; }
+
+/* HOME: summary → upload → recent on all viewports. */
+.mt-home-screen {
+  width:100%;
+  display:grid!important;
+  grid-template-columns:repeat(var(--mt-grid-columns),minmax(0,1fr));
+  column-gap:var(--mt-grid-gutter);
+  row-gap:var(--mt-grid-section-gap);
+  align-content:start;
+}
+.mt-home-screen > * {
+  grid-column:1/-1;
+  min-width:0;
+  margin-inline:0;
+}
+.mt-home-screen > .mt-home-summary { width:100%;min-width:0; }
+.mt-home-screen .mt-home-balance-splits {
+  display:grid;
+  grid-template-columns:repeat(4,minmax(0,1fr));
+  gap:8px;
+}
+.mt-home-screen .mt-home-balance-splits > * { grid-column:span 2;min-width:0; }
+.mt-home-screen .mt-home-upload { width:100%;min-width:0; }
+.mt-home-recent,.mt-home-transaction-list { width:100%;min-width:0; }
+.mt-home-below { width:100%;min-width:0; }
+
+/* TRANSACTIONS: search and filters span the full phone; become 5/3 or
+ * 8/4 column regions on larger workspaces. Rows remain flex-based internally,
+ * keeping long Thai counterparties and signed amounts together. */
+.transaction-page { min-width:0; }
+.transaction-page .list-tools {
+  display:grid;
+  grid-template-columns:repeat(4,minmax(0,1fr));
+  gap:10px;
+  align-items:stretch;
+}
+.transaction-page .list-tools > .search-box,
+.transaction-page .list-tools > .filter-tabs { grid-column:1/-1;width:100%;min-width:0; }
+.transaction-page .filter-tabs { display:grid!important;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;overflow:visible; }
+.transaction-page .filter-tabs button { width:100%;min-width:0;min-height:48px!important;white-space:normal; }
+.transaction-page .search-box { min-width:0; }
+.transaction-page .search-box input { min-width:0;width:100%; }
+.transaction-page .transaction-row { width:100%;min-width:0; }
+.transaction-page .transaction-copy { min-width:0;flex:1 1 auto; }
+.transaction-page .transaction-end { min-width:0;max-width:45%; }
+.transaction-page .transaction-end b { overflow-wrap:anywhere;white-space:normal; }
+
+/* REPORTS: metric 2/2, full-width net on phone; chart columns align. */
+.ref-report-tabs { display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:4px; }
+.ref-report-tabs button { min-width:0;min-height:48px; }
+.reference-report-summary {
+  display:grid!important;
+  grid-template-columns:repeat(4,minmax(0,1fr))!important;
+  gap:var(--mt-grid-gutter);
+}
+.reference-report-summary > .metric { grid-column:span 2;min-width:0; }
+.reference-report-summary > .metric.net { grid-column:1/-1; }
+.two-column,.report-panels {
+  display:grid;
+  grid-template-columns:repeat(4,minmax(0,1fr));
+  column-gap:var(--mt-grid-gutter);
+  row-gap:var(--mt-grid-section-gap);
+}
+.two-column > *,.report-panels > * { grid-column:1/-1;min-width:0; }
+.ref-report-spending,.ref-report-budget,.reference-overview-trends { min-width:0; }
+.home-spending-breakdown,.spending-legend,.reference-mini-bars { min-width:0; }
+
+/* UPLOAD: each camera/gallery action occupies half of a 4-col layout.
+ * The scanner is an existing modal, not a page-level reflow. */
+.ref-ocr-modal .slip-upload-box .slip-actions {
+  display:grid!important;
+  grid-template-columns:repeat(4,minmax(0,1fr));
+  gap:8px!important;
+  width:100%;
+  align-items:stretch;
+}
+.ref-ocr-modal .slip-upload-box .slip-actions > .btn {
+  grid-column:span 2;
+  width:100%!important;min-width:0!important;
+  min-height:50px!important;max-height:56px!important;
+  flex:none!important;
+}
+
+/* SETTINGS: all cards stay full-width on phones; two balanced columns
+ * when there is adequate reading width, with a full-width reading control. */
+.settings-grid {
+  display:grid;
+  grid-template-columns:repeat(4,minmax(0,1fr));
+  gap:var(--mt-grid-section-gap) var(--mt-grid-gutter);
+  align-items:start;
+}
+.settings-grid > * { grid-column:1/-1;min-width:0; }
+.settings-grid > .reading-preference-card { grid-column:1/-1; }
+.reference-settings-index {
+  display:grid;
+  grid-template-columns:repeat(4,minmax(0,1fr));
+  gap:0;
+}
+.reference-settings-index > .reference-settings-link {
+  grid-column:1/-1;min-width:0;border-right:0;
+}
+.mobile-bottom-nav { grid-template-columns:repeat(4,minmax(0,1fr)); }
+.mobile-bottom-nav button { min-width:0; }
+
+/* The page margin applies to header + body so cross-screen content aligns.
+ * Avoid a second padding layer on inner cards. */
+@media(max-width:660px) {
+  .main-content {
+    padding-left:max(var(--mt-grid-margin),env(safe-area-inset-left,0px))!important;
+    padding-right:max(var(--mt-grid-margin),env(safe-area-inset-right,0px))!important;
+  }
+  .topbar,.topbar.topbar-home.home-v2-topbar {
+    padding-left:max(var(--mt-grid-margin),env(safe-area-inset-left,0px))!important;
+    padding-right:max(var(--mt-grid-margin),env(safe-area-inset-right,0px))!important;
+  }
+  .mt-home-screen { gap:var(--mt-grid-section-gap)!important; }
+  .mt-home-screen>.summary-grid,
+  .mt-home-screen>.mt-home-upload,
+  .mt-home-screen>.mt-home-recent { grid-column:1/-1; }
+  .ref-ocr-modal .slip-upload-box .slip-actions > .btn {
+    height:52px!important;max-height:52px!important;
+  }
+}
+@media(max-width:360px) {
+  .mt-home-screen .mt-home-balance-splits { gap:7px; }
+  .reference-report-summary { gap:8px; }
+  .reference-report-summary > .metric { min-width:0; }
+  .ref-ocr-modal .slip-upload-box .slip-actions > .btn {
+    height:50px!important;min-height:50px!important;max-height:50px!important;
+  }
+}
+@media(min-width:768px) {
+  :root {
+    --mt-grid-columns:8;
+    --mt-grid-margin:24px;
+    --mt-grid-gutter:16px;
+    --mt-grid-section-gap:20px;
+  }
+  .main-content {
+    padding-inline:var(--mt-grid-margin);
+  }
+  .mt-home-screen { max-width:740px; }
+  .transaction-page .list-tools { grid-template-columns:repeat(8,minmax(0,1fr));gap:var(--mt-grid-gutter); }
+  .transaction-page .list-tools > .search-box { grid-column:span 5; }
+  .transaction-page .list-tools > .filter-tabs { grid-column:span 3; }
+  .reference-report-summary { grid-template-columns:repeat(8,minmax(0,1fr))!important; }
+  .reference-report-summary > .metric { grid-column:span 4; }
+  .reference-report-summary > .metric.net { grid-column:1/-1; }
+  .two-column,.report-panels { grid-template-columns:repeat(8,minmax(0,1fr)); }
+  .two-column > :first-child,.report-panels > :first-child { grid-column:span 5; }
+  .two-column > :nth-child(2),.report-panels > :nth-child(2) { grid-column:span 3; }
+  .settings-grid { grid-template-columns:repeat(8,minmax(0,1fr)); }
+  .settings-grid > * { grid-column:span 4; }
+  .settings-grid > .reading-preference-card { grid-column:1/-1; }
+  .reference-settings-index { grid-template-columns:repeat(8,minmax(0,1fr)); }
+  .reference-settings-index > .reference-settings-link { grid-column:span 4; }
+  .ref-ocr-modal .slip-upload-box .slip-actions {
+    grid-template-columns:repeat(8,minmax(0,1fr));
+  }
+  .ref-ocr-modal .slip-upload-box .slip-actions > .btn { grid-column:span 4; }
+}
+/* 768–930px: the left rail reduces actual usable width. Preserve the
+ * EIGHT-track grid, but let form cards and action groups span all tracks
+ * until each panel is wide enough for full Thai words and controls. */
+@media(min-width:768px) and (max-width:930px) {
+  .settings-grid > * { grid-column:1/-1; }
+  .two-column > *, .report-panels > * { grid-column:1/-1; }
+  .transaction-page .list-tools > .search-box,
+  .transaction-page .list-tools > .filter-tabs { grid-column:1/-1; }
+}
+@media(min-width:1200px) {
+  :root {
+    --mt-grid-columns:12;
+    --mt-grid-margin:32px;
+    --mt-grid-gutter:24px;
+    --mt-grid-section-gap:24px;
+  }
+  .main-content {
+    padding-inline:var(--mt-grid-margin);
+    max-width:1200px;
+  }
+  .transaction-page .list-tools { grid-template-columns:repeat(12,minmax(0,1fr)); }
+  .transaction-page .list-tools > .search-box { grid-column:span 8; }
+  .transaction-page .list-tools > .filter-tabs { grid-column:span 4; }
+  .reference-report-summary { grid-template-columns:repeat(12,minmax(0,1fr))!important; }
+  .reference-report-summary > .metric,
+  .reference-report-summary > .metric.net { grid-column:span 4; }
+  .two-column,.report-panels { grid-template-columns:repeat(12,minmax(0,1fr)); }
+  .two-column > :first-child,.report-panels > :first-child { grid-column:span 7; }
+  .two-column > :nth-child(2),.report-panels > :nth-child(2) { grid-column:span 5; }
+  .settings-grid { grid-template-columns:repeat(12,minmax(0,1fr)); }
+  .settings-grid > * { grid-column:span 6; }
+  .settings-grid > .reading-preference-card { grid-column:1/-1; }
+  .reference-settings-index { grid-template-columns:repeat(12,minmax(0,1fr)); }
+  .reference-settings-index > .reference-settings-link { grid-column:span 6; }
+  .ref-ocr-modal .slip-upload-box .slip-actions {
+    grid-template-columns:repeat(12,minmax(0,1fr));
+  }
+  .ref-ocr-modal .slip-upload-box .slip-actions > .btn { grid-column:span 6; }
+}
+@media(prefers-reduced-motion:reduce) {
+  .main-content *, .mt-home-screen * { scroll-behavior:auto; }
+}

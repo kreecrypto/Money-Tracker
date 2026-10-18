@@ -29,6 +29,23 @@ White text belongs only on sufficiently dark green. Secondary copy must maintain
 - Body reading size should generally be at least 13–14px; avoid 9–11px for important financial information.
 - Prefer clear Thai action labels (e.g. “อัปโหลดสลิป”, “ดูทั้งหมด”, “รอตรวจ”) over mixed English metadata. Do not use uppercase or overly spaced lettering for Thai.
 
+## Universal Minimal Accessibility (2026-10-18)
+- Default text is readable without reducing information: 14px body and 12px only for metadata. Prefer 16px on form fields and longer descriptions. Keep financial amounts prominent and use +/− signs in addition to color.
+- Settings offers a per-device **ขนาดปกติ / ตัวอักษรใหญ่** toggle. The large setting increases important supporting text to 14–16px, section headers to 19px, and preserves the four-tab navigation. Never depend on color or icons alone.
+- Keep all primary buttons at least 48px high. Maintain a predictable Home → Transactions → Reports → Settings journey and a single prominent upload action.
+- Test both reading sizes on 320, 375, 390 and 430px Safari/WebKit, including page reload persistence, 0 horizontal overflow, navigation hit sizes, and slip buttons. Test on a real iPhone before Production.
+- The preference is in localStorage `ngoentoday-reading-size-v1` and is cleared when the user deliberately erases device data. Financial data and OCR logic are unchanged.
+
+## Responsive Grid Contract (2026-10-18)
+- Design is mobile first and non-decorative: **320–767px = 4 columns** (16px page margin, 12px gutter); **768–1199px = 8 columns** (24px margin, 16px gutter); **1200px+ = 12 columns** (32px margin, 24px gutter).
+- The page header and body share one left/right content margin. Child surfaces do not add a separate page gutter. Use `minmax(0,1fr)` on every track and `min-width:0` on financial rows to avoid clipping signed amounts and Thai strings.
+- Home: monthly summary, one primary slip CTA and recent transactions each span the available page; income / expense inside the hero split evenly across two halves.
+- Transactions: search then filter chips stack on narrow phones; use 5/3 tracks on tablet and 8/4 tracks on desktop. Ledger rows retain flexible text + amount to preserve long account names.
+- Reports: monthly metrics occupy 2+2 and net full width on phone, 4+4 and net full width on tablet, 4+4+4 on desktop. Supporting charts use 5/3 or 7/5 split only when wide enough.
+- Upload: camera and gallery buttons each span half of the available scanner width; minimum 48px hit height, no giant flex buttons at 320px.
+- Settings: one-column forms on phone and two balanced regions on wider views. Keep headings, anchors and full-width reading-size controls.
+- QA contract: check `getComputedStyle(...).gridTemplateColumns` and overflow on 320, 375, 390, 430, 768 and 1280px, both normal and large-text modes; include OCR modal and report views. This layout contract does not change data, API or OCR logic.
+
 ## Elevation
 Flat by default. Use thin green-tinted borders and white backgrounds instead of cards inside cards. Only the monthly summary, floating popover and modal may need restrained elevation. Do not add glowing accents, generic gradients, or decorative highlights that compromise readability. Existing brand green gradient is a deliberate exception, kept within AA contrast.
 

@@ -7,6 +7,7 @@ export const LOCAL_DATA_KEYS=[
   'ngoentoday-line-session-v1',
   'ngoentoday-line-seen-v1',
   'ngoentoday-last-backup',
+  'ngoentoday-reading-size-v1',
 ] as const;
 
 /** Deletes Money Tracker data on this device; all remote transactions stay unchanged.
