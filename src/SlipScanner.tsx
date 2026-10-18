@@ -1,5 +1,6 @@
 import {useEffect,useRef,useState,type ChangeEvent} from 'react';
-import {Camera,CheckCircle2,FileImage,ScanLine,ShieldCheck,Upload,Square,Undo2,AlertTriangle,Check,LoaderCircle,ClipboardPaste,CalendarDays,Clock3,Wallet,UserRound,Tag} from 'lucide-react';
+import {Camera,CheckCircle2,ScanLine,ShieldCheck,Upload,Square,Undo2,AlertTriangle,Check,LoaderCircle,ClipboardPaste,CalendarDays,Clock3,Wallet,UserRound,Tag} from 'lucide-react';
+import slipArt from './assets/slip-ready.svg';
 import {parseSlipText,mergeSlipOcrReadings,needsSlipOcrRecovery,describeMissingSlipAmount,type SlipFields} from './lib/slip';
 import {isKPlusPaymentForOcrRecovery,parseKPlusRecipientRegion} from './lib/kplus';
 import {prepareSlipRecoveryImage,prepareSlipOcrFile,findKPlusAmountCrop,prepareKPlusAmountCrop,findKPlusRecipientCrop,prepareKPlusRecipientCrop} from './lib/slipImage';
@@ -434,10 +435,10 @@ export default function SlipScanner({onApply,onComplete,onBusyChange,onUndoBatch
     <div className="slip-head"><div><ScanLine size={18}/><strong>เพิ่มสลิปหรือใบเสร็จ</strong></div></div>
     {!busy&&!complete&&<p className="slip-hint">อ่านข้อมูลและบันทึกอัตโนมัติ หากอ่านไม่ครบจะแจ้งให้ตรวจ</p>}
     {!busy&&(!complete||needsAttention.length===0)&&<div className="slip-upload-box">
-      <div className="slip-upload-icon" aria-hidden="true"><FileImage size={28}/></div>
+      <div className="slip-upload-icon" aria-hidden="true"><img className="reference-slip-art" src={slipArt} alt=""/></div>
       <strong>{complete?'เพิ่มรูปอีกชุด':'เลือกรูปสลิป'}</strong>
       <span>เลือกรูปได้สูงสุด 20 รูป</span>
-      <div className="slip-actions"><button type="button" className="btn btn-primary slip-pick" disabled={undoing||needsAttention.length>0} onClick={()=>galleryRef.current?.click()}><Upload size={18}/> เลือกรูป</button><button type="button" className="btn btn-secondary" disabled={undoing||needsAttention.length>0} onClick={()=>cameraRef.current?.click()}><Camera size={18}/> ถ่ายรูป</button></div><details className="slip-more-options"><summary>นำเข้ารูปด้วยวิธีอื่น</summary><button type="button" className="btn btn-secondary" disabled={undoing||needsAttention.length>0} onClick={()=>void pasteFromShortcuts()}><ClipboardPaste size={18}/> วางรูปที่คัดลอก</button><small>รองรับ JPG, PNG, WebP, HEIC ขนาดไม่เกิน 10 MB ต่อรูป</small></details>
+      <div className="slip-actions"><button type="button" className="btn btn-primary" disabled={undoing||needsAttention.length>0} onClick={()=>cameraRef.current?.click()}><Camera size={18}/> ถ่ายรูป</button><button type="button" className="btn btn-secondary slip-pick" disabled={undoing||needsAttention.length>0} onClick={()=>galleryRef.current?.click()}><Upload size={18}/> เลือกรูป</button></div><details className="slip-more-options"><summary>นำเข้ารูปด้วยวิธีอื่น</summary><button type="button" className="btn btn-secondary" disabled={undoing||needsAttention.length>0} onClick={()=>void pasteFromShortcuts()}><ClipboardPaste size={18}/> วางรูปที่คัดลอก</button><small>รองรับ JPG, PNG, WebP, HEIC ขนาดไม่เกิน 10 MB ต่อรูป</small></details>
       {needsAttention.length>0&&<p className="slip-awaiting-review" role="status">รอตรวจ {needsAttention.length} รายการ · ยังไม่รวมในยอดเงิน</p>}
       {clipboardError&&<p className="slip-warning" role="alert">{clipboardError}</p>}
     </div>}
