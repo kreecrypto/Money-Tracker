@@ -16,15 +16,15 @@ export function prepareAutoSlip(
   if(slip.imageHash&&existing.some(t=>t.slipHash===slip.imageHash))
     return {status:'duplicate',reason:'รูปภาพสลิปนี้เคยบันทึกแล้ว'};
   if(slip.warnings.some(w=>w.includes('ต่างกัน')||w.includes('ขัดแย้ง')))
-    return {status:'incomplete',reason:'OCR พบข้อมูลการเงินที่ขัดแย้งกัน จึงยังไม่บันทึก กรุณาตรวจจากภาพหรือกรอกเอง'};
+    return {status:'incomplete',reason:'พบยอดเงินหรือข้อมูลไม่ตรงกันในสลิป · ยังไม่บันทึก กรุณาตรวจจากรูปต้นฉบับ'};
   if(slip.warnings.some(w=>w.includes('ความมั่นใจต่ำ')))
-    return {status:'incomplete',reason:'OCR อ่านภาพด้วยความมั่นใจต่ำและยังยืนยันยอดเงินหรือข้อมูลธุรกรรมไม่ได้ กรุณาตรวจสลิปก่อนบันทึก'};
+    return {status:'incomplete',reason:'อ่านข้อมูลจากสลิปไม่ชัดเจน · ยังไม่บันทึก กรุณาตรวจจากรูปต้นฉบับ'};
   if(!slip.direction)
-    return {status:'incomplete',reason:slip.directionReason+' · ยังไม่บันทึกอัตโนมัติ กรุณาตรวจสลิปหรือเลือกประเภทเอง'};
+    return {status:'incomplete',reason:'ยังไม่ทราบว่าเป็นเงินเข้าหรือเงินออก · กรุณาเลือกประเภทรายการก่อนบันทึก'};
   if(slip.amountSatang===null||!Number.isSafeInteger(slip.amountSatang)||slip.amountSatang<=0)
-    return {status:'incomplete',reason:'อ่านจำนวนเงินไม่ได้แน่ชัด จึงยังไม่บันทึก กรุณาลองภาพใหม่หรือกรอกเอง'};
+    return {status:'incomplete',reason:'อ่านจำนวนเงินจากสลิปไม่ชัดเจน · ยังไม่บันทึก กรุณาตรวจยอดเงิน'};
   if(!slip.date||!slip.time||!slip.recipient?.trim())
-    return {status:'incomplete',reason:'อ่านวันที่ เวลา หรือชื่อผู้รับไม่ครบ จึงยังไม่บันทึก กรุณาลองภาพใหม่หรือกรอกเอง'};
+    return {status:'incomplete',reason:'อ่านวันที่ เวลา หรือชื่อผู้รับไม่ครบ · กรุณาตรวจข้อมูลก่อนบันทึก'};
 
   if(slip.source&&!slip.receipt)
     return {status:'incomplete',reason:'ยังอ่านรายละเอียดใบเสร็จไม่ครบ จึงไม่บันทึกอัตโนมัติ'};
@@ -69,6 +69,6 @@ export function prepareAutoSlip(
     !!t.recipient &&
     normalize(t.recipient)===normalize(recipient)
   ));
-  if(repeated)return {status:'duplicate',reason:'พบสลิปธุรกรรมนี้ในรายการแล้ว จึงไม่บันทึกซ้ำ'};
+  if(repeated)return {status:'duplicate',reason:'สลิปนี้เคยบันทึกแล้ว · ระบบไม่เพิ่มรายการซ้ำ'};
   return {status:'ready',transaction};
 }
