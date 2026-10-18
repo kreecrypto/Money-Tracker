@@ -36,6 +36,16 @@ White text belongs only on sufficiently dark green. Secondary copy must maintain
 - Test both reading sizes on 320, 375, 390 and 430px Safari/WebKit, including page reload persistence, 0 horizontal overflow, navigation hit sizes, and slip buttons. Test on a real iPhone before Production.
 - The preference is in localStorage `ngoentoday-reading-size-v1` and is cleared when the user deliberately erases device data. Financial data and OCR logic are unchanged.
 
+## Responsive Grid Contract (2026-10-18)
+- Design is mobile first and non-decorative: **320–767px = 4 columns** (16px page margin, 12px gutter); **768–1199px = 8 columns** (24px margin, 16px gutter); **1200px+ = 12 columns** (32px margin, 24px gutter).
+- The page header and body share one left/right content margin. Child surfaces do not add a separate page gutter. Use `minmax(0,1fr)` on every track and `min-width:0` on financial rows to avoid clipping signed amounts and Thai strings.
+- Home: monthly summary, one primary slip CTA and recent transactions each span the available page; income / expense inside the hero split evenly across two halves.
+- Transactions: search then filter chips stack on narrow phones; use 5/3 tracks on tablet and 8/4 tracks on desktop. Ledger rows retain flexible text + amount to preserve long account names.
+- Reports: monthly metrics occupy 2+2 and net full width on phone, 4+4 and net full width on tablet, 4+4+4 on desktop. Supporting charts use 5/3 or 7/5 split only when wide enough.
+- Upload: camera and gallery buttons each span half of the available scanner width; minimum 48px hit height, no giant flex buttons at 320px.
+- Settings: one-column forms on phone and two balanced regions on wider views. Keep headings, anchors and full-width reading-size controls.
+- QA contract: check `getComputedStyle(...).gridTemplateColumns` and overflow on 320, 375, 390, 430, 768 and 1280px, both normal and large-text modes; include OCR modal and report views. This layout contract does not change data, API or OCR logic.
+
 ## Elevation
 Flat by default. Use thin green-tinted borders and white backgrounds instead of cards inside cards. Only the monthly summary, floating popover and modal may need restrained elevation. Do not add glowing accents, generic gradients, or decorative highlights that compromise readability. Existing brand green gradient is a deliberate exception, kept within AA contrast.
 
