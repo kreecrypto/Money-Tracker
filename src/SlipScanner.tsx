@@ -502,7 +502,7 @@ export default function SlipScanner({onApply,onComplete,onBusyChange,onUndoBatch
             <label><span className="slip-field-title"><CalendarDays size={16}/> วันที่</span><input type="date" value={draft.date} onChange={e=>changeCorrection(index,{date:e.target.value})}/></label>
             <label><span className="slip-field-title"><Clock3 size={16}/> เวลา</span><input type="time" value={draft.time} onChange={e=>changeCorrection(index,{time:e.target.value})}/></label>
             <label className="slip-attention-wide"><span className="slip-field-title"><UserRound size={16}/> ชื่อผู้รับตามสลิป / ร้านค้า</span><input value={draft.recipient} maxLength={160} onChange={e=>changeCorrection(index,{recipient:e.target.value})}/></label>
-            {draft.source.sender&&<p className="slip-ocr-party-hint">ชื่อผู้โอนที่ OCR อ่านได้: {draft.source.sender}</p>}
+            {draft.source.sender&&<p className="slip-ocr-party-hint slip-attention-wide">ชื่อผู้โอนที่ OCR อ่านได้: {draft.source.sender}</p>}
             {draft.direction&&<label className="slip-attention-wide"><span className="slip-field-title"><Tag size={16}/> หมวดหมู่</span><select value={draft.category} onChange={e=>changeCorrection(index,{category:e.target.value})}>{(draft.direction==='income'?INCOME_CATEGORIES:EXPENSE_CATEGORIES).map(category=><option key={category} value={category}>{category}</option>)}</select></label>}
           </div>
           {correctionErrors[index]&&<p className="error-message" role="alert">{correctionErrors[index]}</p>}
