@@ -1,11 +1,11 @@
-import {useEffect,useMemo,useRef,useState} from 'react';
+import {useEffect,useMemo,useRef,useState,type KeyboardEvent as ReactKeyboardEvent} from 'react';
 import {createPortal} from 'react-dom';
 import {
   ArrowDownLeft, ArrowRight, ArrowUpRight, Bell, Camera,
   ChevronDown, CircleUserRound, Sprout,
   UtensilsCrossed, ShoppingBag, TrainFront, HandCoins, Ellipsis, Wallet,
 } from 'lucide-react';
-import {baht, METHODS, type Transaction} from './lib/finance';
+import {baht, METHODS, transactionDisplayName, type Transaction} from './lib/finance';
 
 type Props={
   month:string;
@@ -73,6 +73,7 @@ function MonthChooser({month,label,onChange}:{
   const options=useMemo(()=>chooseMonthKeys(month),[month]);
   useEffect(()=>{
     if(!isOpen)return;
+    const focusSelected=window.requestAnimationFrame(()=>menuRef.current?.querySelector<HTMLButtonElement>('[aria-selected="true"]')?.focus());
     const place=()=>{
       const r=triggerRef.current?.getBoundingClientRect();
       if(!r)return;
@@ -90,17 +91,29 @@ function MonthChooser({month,label,onChange}:{
     document.addEventListener('pointerdown',outside);
     document.addEventListener('keydown',escape);
     return()=>{
+      window.cancelAnimationFrame(focusSelected);
       window.removeEventListener('resize',place);
       window.removeEventListener('scroll',place,true);
       document.removeEventListener('pointerdown',outside);
       document.removeEventListener('keydown',escape);
     };
   },[isOpen]);
+  const onOptionKeyDown=(event:ReactKeyboardEvent<HTMLDivElement>)=>{
+    if(!['ArrowDown','ArrowUp','Home','End','Tab'].includes(event.key))return;
+    if(event.key==='Tab'){setOpen(false);return;}
+    const options=Array.from(menuRef.current?.querySelectorAll<HTMLButtonElement>('[role="option"]')||[]);
+    if(!options.length)return;
+    event.preventDefault();
+    const current=options.indexOf(document.activeElement as HTMLButtonElement);
+    const next=event.key==='Home'?0:event.key==='End'?options.length-1:
+      event.key==='ArrowDown'?(current+1)%options.length:(current<=0?options.length-1:current-1);
+    options[next]?.focus();
+  };
   return <div className="mt-home-month-control">
     <button ref={triggerRef} type="button" className="mt-home-month-picker" aria-haspopup="listbox" aria-expanded={isOpen} aria-controls="mt-home-month-menu" aria-label={'เลือกเดือน '+label} onClick={()=>setOpen(x=>!x)}>
       <span>{label} <ChevronDown size={14}/></span>
     </button>
-    {isOpen&&createPortal(<div ref={menuRef} id="mt-home-month-menu" className="mt-home-month-popover" role="listbox" aria-label="เลือกเดือนของภาพรวม" style={{top:position.top,right:position.right}}>
+    {isOpen&&createPortal(<div ref={menuRef} id="mt-home-month-menu" className="mt-home-month-popover" role="listbox" aria-label="เลือกเดือนของภาพรวม" onKeyDown={onOptionKeyDown} style={{top:position.top,right:position.right}}>
       {options.map(item=><button type="button" key={item.key} role="option" aria-selected={item.key===month} className={item.key===month?'selected':''} onClick={()=>{onChange(item.key);setOpen(false);triggerRef.current?.focus();}}>{item.label}</button>)}
     </div>,document.body)}
   </div>;
@@ -120,7 +133,9 @@ function TransactionDetail({value,onClose}:{
      <div className="mt-home-detail-heading"><h2 id="mt-home-detail-title">รายละเอียดรายการ</h2><button type="button" onClick={onClose} aria-label="ปิดรายละเอียด">×</button></div>
      <strong className={value.type==='income'?'is-income':'is-expense'}>{value.type==='income'?'+':'−'} ฿ {baht(value.amountSatang)}</strong>
      <dl>
-       <div><dt>รายการ</dt><dd>{value.recipient||value.note||value.category}</dd></div>
+       <div><dt>คู่รายการ</dt><dd>{transactionDisplayName(value)}</dd></div>
+       {value.sender&&<div><dt>ผู้โอนเงิน</dt><dd>{value.sender}</dd></div>}
+       {value.recipient&&<div><dt>ผู้รับเงินบนสลิป</dt><dd>{value.recipient}</dd></div>
        <div><dt>วันที่และเวลา</dt><dd>{shortDate(value.date,value.time)}</dd></div>
        <div><dt>ประเภท</dt><dd>{value.type==='income'?'รายรับ':'รายจ่าย'}</dd></div>
        <div><dt>หมวดหมู่</dt><dd>{value.category}</dd></div>
@@ -179,9 +194,9 @@ export default function HomeScreen({
       <div className="mt-home-section-heading"><h2>รายการล่าสุด</h2><button type="button" onClick={onTransactions}>ดูทั้งหมด <ArrowRight size={15}/></button></div>
       {recent.length?
         <div className="mt-home-transaction-list">
-          {recent.slice(0,3).map(tx=><button type="button" className="mt-home-transaction" key={tx.id} onClick={event=>{detailTriggerRef.current=event.currentTarget;setDetail(tx);}} aria-label={`ดูรายละเอียด ${tx.recipient||tx.note||tx.category} ${tx.type==='income'?'รายรับ':'รายจ่าย'} ${baht(tx.amountSatang)} บาท ${shortDate(tx.date,tx.time)}`}>
+          {recent.slice(0,3).map(tx=><button type="button" className="mt-home-transaction" key={tx.id} onClick={event=>{detailTriggerRef.current=event.currentTarget;setDetail(tx);}} aria-label={`ดูรายละเอียด ${transactionDisplayName(tx)} ${tx.type==='income'?'รายรับ':'รายจ่าย'} ${baht(tx.amountSatang)} บาท ${shortDate(tx.date,tx.time)}`}>
             <RecentIcon transaction={tx}/>
-            <span className="mt-home-transaction-text"><strong>{tx.recipient||tx.note||tx.category}</strong><small>{shortDate(tx.date,tx.time)}</small></span>
+            <span className="mt-home-transaction-text"><strong>{transactionDisplayName(tx)}</strong><small>{shortDate(tx.date,tx.time)}</small></span>
             <b className={tx.type==='income'?'is-income':'is-expense'}>{tx.type==='income'?'+':'−'} ฿ {baht(tx.amountSatang)}</b>
           </button>)}
         </div>
