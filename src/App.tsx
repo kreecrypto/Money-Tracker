@@ -281,7 +281,7 @@ export default function App(){
     window.addEventListener('focus',onVisible);
     return()=>{window.clearInterval(interval);document.removeEventListener('visibilitychange',onVisible);window.removeEventListener('focus',onVisible);};
   },[reload]);
-  useEffect(()=>{if(!toast)return;const id=window.setTimeout(()=>setToast(''),3500);return()=>window.clearTimeout(id);},[toast]);
+  useEffect(()=>{if(!toast)return;const id=window.setTimeout(()=>setToast(''),toastTone==='success'?3500:6500);return()=>window.clearTimeout(id);},[toast,toastTone]);
   const selected=useMemo(()=>monthly(items,month),[items,month]);
   const sums=useMemo(()=>summarize(selected),[selected]);
   const allSums=useMemo(()=>summarize(items),[items]);
@@ -333,7 +333,7 @@ export default function App(){
     if(decision.status==='incomplete')return {status:'incomplete',reason:decision.reason};
     if(decision.status==='duplicate'){
       await deletePendingSlip(draft.id);await reload();
-      notify('รายการนี้ถูกบันทึกไว้แล้ว จึงนำออกจากรอตรวจ');
+      notify('สลิปนี้เคยบันทึกแล้ว · ไม่เพิ่มรายการซ้ำ','warning');
       return {status:'duplicate'};
     }
     if(decision.status!=='ready')return {status:'incomplete',reason:decision.reason};
@@ -358,7 +358,7 @@ export default function App(){
     try{setOwnerNamesSaving(true);const next={...settings,ownerNames};
       await saveSettings(next);setSettings(next);setOwnerNamesEdit(ownerNames.join('\n'));
       notify(ownerNames.length?'บันทึกชื่อของคุณเพื่อช่วยอ่านสลิปแล้ว':'ลบชื่อเจ้าของบัญชีแล้ว');
-    }catch(err){notify(err instanceof Error?err.message:'บันทึกชื่อบัญชีไม่สำเร็จ');}
+    }catch(err){notify(err instanceof Error?err.message:'บันทึกชื่อบัญชีไม่สำเร็จ','error');}
     finally{setOwnerNamesSaving(false);}
   };
   const exportJson=()=>{downloadText(`ngoentoday-backup-${todayLocal()}.json`,createBackup(items,settings),'application/json;charset=utf-8');const timestamp=Date.now();try{localStorage.setItem('ngoentoday-last-backup',String(timestamp));}catch{}setLastBackupAt(timestamp);notify('ดาวน์โหลดข้อมูลสำรองแล้ว โปรดเก็บไฟล์อย่างปลอดภัย');};
@@ -407,7 +407,7 @@ export default function App(){
   if(loadingError) return <div className="loading-screen"><span>⚠️</span><h2>ไม่สามารถเปิดข้อมูลได้</h2><p>{loadingError}</p><button className="btn btn-primary" onClick={()=>window.location.reload()}>ลองอีกครั้ง</button></div>;
   return <div className="app-shell"><a href="#main-content" className="skip-link">ข้ามไปยังเนื้อหาหลัก</a><aside className="sidebar"><Logo/><nav aria-label="เมนูหลัก">{navItems.map(({key,label,icon:Icon})=><button key={key} className={`nav-item ${view===key?'active':''}`} aria-label={label} aria-current={view===key?'page':undefined} onClick={()=>setView(key)}><Icon size={19} strokeWidth={1.9}/><span>{label}</span>{view===key&&<span className="nav-active-indicator"/>}</button>)}</nav><div className="sidebar-spacer"/></aside>
     <div className="app-body"><header className={`topbar ${view==='home'?'topbar-home home-v2-topbar':''}`}>{view==='home'
-      ?<HomeTopbar pendingCount={pendingSlips.length+(iphonePending||0)} onNotifications={()=>{if(pendingSlips.length)openPendingSlips();else if(iphonePending&&iphonePending>0)openReview();else notify('ยังไม่มีรายการที่ต้องตรวจในตอนนี้');}} onSettings={()=>setView('settings')}/>
+      ?<HomeTopbar pendingCount={pendingSlips.length+(iphonePending||0)} onNotifications={()=>{if(pendingSlips.length)openPendingSlips();else if(iphonePending&&iphonePending>0)openReview();else notify('ไม่มีรายการที่ต้องตรวจในตอนนี้','warning');}} onSettings={()=>setView('settings')}/>
       :<><div className="topbar-left"><div className="ref-topbar-copy"><h1>{pageLabels[view]}</h1></div></div><div className="topbar-actions"><div className="today-chip"><CalendarDays size={16}/><span>{dateText(todayLocal())}</span></div><button className="btn btn-primary top-add" onClick={openAdd}><ScanLine size={18}/> <span>อัปโหลดสลิป</span></button></div></>}</header>
     <main id="main-content" className="main-content" tabIndex={-1}>
       {updateAvailable&&<div className="app-update-notice" role="status"><div><strong>มีแอปเวอร์ชันใหม่พร้อมใช้งาน</strong><span>อัปเดตหน้าเว็บโดยไม่ลบรายการที่บันทึกในเครื่อง</span></div><button type="button" className="btn btn-primary" onClick={()=>window.location.reload()}>โหลดเวอร์ชันใหม่</button></div>}
@@ -499,7 +499,7 @@ export default function App(){
       else if(summary.duplicate>0&&summary.incomplete+summary.errors===0)notify('สลิปนี้เคยบันทึกแล้ว '+summary.duplicate+' รูป · ไม่เพิ่มรายการซ้ำ','warning');
       else if(summary.queued>0)notify('เก็บข้อมูลรอตรวจในอุปกรณ์นี้แล้ว '+summary.queued+' รูป · ยังไม่รวมยอดเงิน','warning');
       else if(summary.incomplete+summary.errors>0)notify((summary.incomplete>0?'ต้องตรวจข้อมูล '+summary.incomplete+' รูป':'')+(summary.errors>0?(summary.incomplete>0?' · ':'')+'อ่านไม่สำเร็จ '+summary.errors+' รูป กรุณาลองเลือกรูปใหม่':''),'warning');
-      else if((summary.excluded||0)>0)notify('ไม่นับการโอนเงินระหว่างบัญชี '+summary.excluded+' รายการ');
+      else if((summary.excluded||0)>0)notify('ไม่นับการโอนเงินระหว่างบัญชี '+summary.excluded+' รายการ','warning');
     }}/>}
     {pendingRestore&&<RestoreDialog existingCount={items.length} importedCount={pendingRestore.transactions.length} busy={restoreBusy} onBackup={exportJson} onConfirm={()=>{void confirmRestore();}} onClose={()=>setPendingRestore(null)}/>}
     {resetDialogOpen&&<ResetDataDialog transactionCount={items.length} pendingCount={pendingSlips.length}
