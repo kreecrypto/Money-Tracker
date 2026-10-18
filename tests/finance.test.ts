@@ -1,5 +1,5 @@
 import {describe,it,expect} from 'vitest';
-import {toSatang,summarize,monthly,expenseByCategory,lastMonths,isValidTransaction,type Transaction} from '../src/lib/finance';
+import {toSatang,summarize,monthly,expenseByCategory,lastMonths,isValidTransaction,transactionDisplayName,type Transaction} from '../src/lib/finance';
 import {toCsv,createBackup,parseBackup} from '../src/lib/backup';
 const e:Transaction={id:'a',type:'expense',amountSatang:12550,category:'อาหารและเครื่องดื่ม',note:'ข้าว',date:'2026-10-10',method:'cash',createdAt:1};
 const i:Transaction={...e,id:'b',type:'income',category:'เงินเดือน',amountSatang:2500000};
@@ -9,6 +9,12 @@ describe('finance math',()=>{
  it('filters by month',()=>expect(monthly([e,{...i,date:'2026-09-10'}],'2026-10')).toHaveLength(1));
  it('sorts categories',()=>expect(expenseByCategory([e,{...e,id:'c',category:'เดินทาง',amountSatang:30000}])[0].name).toBe('เดินทาง'));
  it('handles year rollover',()=>expect(lastMonths(3,new Date(2026,0,5)).map(x=>x.key)).toEqual(['2025-11','2025-12','2026-01']));
+ it('displays the payer for incoming transactions and retains the printed payee',()=>{
+   const transfer={...i,sender:'ผู้โอนเงิน',recipient:'ผู้รับเงิน'};
+   expect(transactionDisplayName(transfer)).toBe('ผู้โอนเงิน');
+   expect(transactionDisplayName({...transfer,type:'expense'})).toBe('ผู้รับเงิน');
+   expect(transactionDisplayName({...i,sender:undefined,recipient:undefined,note:'รับเงิน'})).toBe('รับเงิน');
+ });
 });
 describe('backup',()=>{
  it('roundtrips',()=>expect(parseBackup(createBackup([e],{monthlyBudgetSatang:20000})).transactions).toEqual([e]));
