@@ -17,7 +17,7 @@ try{
   }
   if(!ready)throw new Error('Local app did not become ready');
   browser=await webkit.launch({headless:true});
-  for(const [label,width,height] of [['safari375',375,812],['safari390',390,844],['safari430',430,932]]){
+  for(const [label,width,height] of [['safari320',320,700],['safari375',375,812],['safari390',390,844],['safari430',430,932]]){
     const context=await browser.newContext({viewport:{width,height},deviceScaleFactor:3,isMobile:true,hasTouch:true});
     const page=await context.newPage();
     const errors=[];
@@ -46,6 +46,11 @@ try{
     // The V2 prototype month menu must not be clipped by the green card.
     await page.locator('.mt-home-month-picker').click();
     const monthOptions=await page.locator('.mt-home-month-popover [role="option"]').count();
+    await page.waitForFunction(()=>document.activeElement?.getAttribute('role')==='option');
+    const focusedMonthBefore=await page.locator('.mt-home-month-popover [role="option"]:focus').textContent();
+    await page.keyboard.press('ArrowDown');
+    const focusedMonthAfter=await page.locator('.mt-home-month-popover [role="option"]:focus').textContent();
+    const arrowNavigatesMonth=focusedMonthBefore!==focusedMonthAfter;
     const menuUnclipped=await page.locator('.mt-home-month-popover').evaluate(el=>{
       const r=el.getBoundingClientRect();
       return r.left>=0&&r.right<=innerWidth+1&&r.top>=0&&r.bottom<=innerHeight+1;
@@ -83,15 +88,15 @@ try{
     await page.locator('.mobile-bottom-nav button').nth(3).click();
     const settings=await page.getByText('เกี่ยวกับแอป').isVisible();
     await page.screenshot({path:`${directory}/${label}-settings.png`,fullPage:true});
-    findings.push({label,home,monthOptions,menuUnclipped,monthCloses,detailsOpen,detailsClose,transactions,list,scanner,scannerColors,readableScanner,trendsOnly,noReportsFab,settings,errors});
+    findings.push({label,home,monthOptions,arrowNavigatesMonth,menuUnclipped,monthCloses,detailsOpen,detailsClose,transactions,list,scanner,scannerColors,readableScanner,trendsOnly,noReportsFab,settings,errors});
     await context.close();
   }
   fs.writeFileSync(`${directory}/webkit-report.json`,JSON.stringify(findings,null,2));
   console.log('WEBKIT_SAFARI_VISUAL_RESULTS',JSON.stringify(findings));
   const failed=findings.filter(f=>f.home.overflow>1||!f.home.order||f.home.actionCount!==0||f.home.navCount!==4||
-    !f.home.navVisible||f.home.icons.some(icon=>icon.width<20||icon.height<20)||f.monthOptions!==13||!f.menuUnclipped||!f.monthCloses||!f.detailsOpen||!f.detailsClose||f.transactions!==2||!f.list||!f.scanner||!f.readableScanner||!f.trendsOnly||!f.noReportsFab||!f.settings||f.errors.length);
+    !f.home.navVisible||f.home.icons.some(icon=>icon.width<20||icon.height<20)||f.monthOptions!==13||!f.arrowNavigatesMonth||!f.menuUnclipped||!f.monthCloses||!f.detailsOpen||!f.detailsClose||f.transactions!==2||!f.list||!f.scanner||!f.readableScanner||!f.trendsOnly||!f.noReportsFab||!f.settings||f.errors.length);
   if(failed.length){console.error('WEBKIT_SAFARI_VISUAL_FAIL',JSON.stringify(failed));process.exitCode=1;}
-  else console.log('WEBKIT_SAFARI_VISUAL_PASS: 3 phone sizes, essential home, icons, tabbar, scan, transactions, settings');
+  else console.log('WEBKIT_SAFARI_VISUAL_PASS: 4 phone sizes, essential home, icons, tabbar, scan, transactions, settings');
 }catch(error){
   console.error('WEBKIT_SAFARI_AUDIT_ERROR',error);
   process.exitCode=1;
