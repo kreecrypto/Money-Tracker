@@ -9,7 +9,7 @@ export default function ReadingPreferenceControl(){
     setReadingSize(next);
     setValue(next);
   };
-  return <section className="surface settings-card reading-preference-card" aria-labelledby="reading-preference-heading">
+  return <section id="settings-reading" className="surface settings-card reading-preference-card" aria-labelledby="reading-preference-heading">
     <div className="settings-icon green" aria-hidden="true"><Type size={23}/></div>
     <h3 id="reading-preference-heading">ขนาดตัวอักษร</h3>
     <p>เลือกขนาดที่อ่านสบายตา ใช้กับหน้าภาพรวม รายการ รายงาน และอัปโหลดสลิป</p>
