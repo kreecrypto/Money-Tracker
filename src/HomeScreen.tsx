@@ -135,7 +135,7 @@ function TransactionDetail({value,onClose}:{
      <dl>
        <div><dt>คู่รายการ</dt><dd>{transactionDisplayName(value)}</dd></div>
        {value.sender&&<div><dt>ผู้โอนเงิน</dt><dd>{value.sender}</dd></div>}
-       {value.recipient&&<div><dt>ผู้รับเงินบนสลิป</dt><dd>{value.recipient}</dd></div>
+       {value.recipient&&<div><dt>ผู้รับเงินบนสลิป</dt><dd>{value.recipient}</dd></div>}
        <div><dt>วันที่และเวลา</dt><dd>{shortDate(value.date,value.time)}</dd></div>
        <div><dt>ประเภท</dt><dd>{value.type==='income'?'รายรับ':'รายจ่าย'}</dd></div>
        <div><dt>หมวดหมู่</dt><dd>{value.category}</dd></div>
