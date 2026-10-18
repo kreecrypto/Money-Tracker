@@ -35,18 +35,18 @@ export default function ResetDataDialog({transactionCount,pendingCount,busy,erro
   },[]);
   return <div className="modal-backdrop"><section className="modal restore-modal local-reset-modal"
     role="alertdialog" aria-modal="true" aria-labelledby="local-reset-title" aria-describedby="local-reset-description" tabIndex={-1} ref={dialogRef}>
-    <div className="modal-heading"><div><span className="eyebrow">DEVICE DATA</span><h2 id="local-reset-title">ลบข้อมูลในเครื่อง</h2></div>
+    <div className="modal-heading"><div><span className="eyebrow">ข้อมูลในอุปกรณ์</span><h2 id="local-reset-title">ลบข้อมูลในเครื่อง</h2></div>
       <button type="button" className="icon-btn" aria-label="ปิด" disabled={busy} onClick={onClose}><X size={20}/></button></div>
     <div className="restore-notice"><AlertTriangle size={22}/><div id="local-reset-description">
       <strong>ข้อมูลบนอุปกรณ์นี้จะถูกลบถาวร</strong>
-      <p>ลบรายการ รายการสลิปรอตรวจ งบประมาณ ชื่อบัญชี และการเชื่อมต่อ iPhone/LINE เฉพาะเครื่องนี้ ไม่ลบข้อมูลใน Supabase หรือหยุด Shortcut ที่ยังส่งข้อมูลอยู่</p>
+      <p>ลบรายการที่บันทึกไว้ รายการรอตรวจ งบประมาณ ชื่อบัญชี และการเชื่อมต่อบนอุปกรณ์นี้เท่านั้น ข้อมูลในระบบซิงก์ยังอยู่ และ Shortcut ที่ตั้งไว้จะยังทำงานต่อ</p>
     </div></div>
     <dl className="restore-counts">
       <div><dt>รายการบันทึกในเครื่อง</dt><dd>{transactionCount.toLocaleString('th-TH')} รายการ</dd></div>
       <div><dt>สลิปรอตรวจในเครื่อง</dt><dd>{pendingCount.toLocaleString('th-TH')} รายการ</dd></div>
     </dl>
-    <button className="btn btn-secondary restore-backup" disabled={busy} type="button" onClick={onBackup}><Download size={17}/> สำรองข้อมูล JSON ก่อนลบ</button>
-    <p className="local-reset-help">หลังลบ คุณต้องเชื่อมต่อ Review Token อีกครั้งเพื่อซิงก์รายการจาก Cloud ข้อมูลที่บันทึกเฉพาะในเครื่องและไม่ได้สำรองจะกู้คืนไม่ได้</p>
+    <button className="btn btn-secondary restore-backup" disabled={busy} type="button" onClick={onBackup}><Download size={17}/> ดาวน์โหลดไฟล์สำรองก่อนลบ</button>
+    <p className="local-reset-help">หลังลบ หากต้องการนำเข้ารายการจาก iPhone อีกครั้ง ต้องเชื่อมต่อด้วยรหัสเปิดรายการใหม่ ข้อมูลที่เก็บเฉพาะบนเครื่องและไม่ได้สำรองไว้จะกู้คืนไม่ได้</p>
     <label className="field-label" htmlFor="local-reset-confirm">พิมพ์ <strong>ลบข้อมูล</strong> เพื่อยืนยัน</label>
     <input ref={inputRef} id="local-reset-confirm" className="local-reset-input" type="text" autoComplete="off"
       spellCheck={false} value={confirmation} onChange={e=>setConfirmation(e.target.value)} disabled={busy} placeholder="ลบข้อมูล"/>
