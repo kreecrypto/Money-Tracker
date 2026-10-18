@@ -14,6 +14,8 @@ export type PendingSlip={
   date:string|null;
   time:string|null;
   recipient:string|null;
+  /** Optional for older drafts; sender is the counterparty on incoming slips. */
+  sender?:string|null;
   direction:EntryType|null;
   method:Method;
   category:string;
@@ -30,6 +32,7 @@ export function makePendingSlip(slip:SlipFields,name:string,reason:string,id:str
     id,name:name.slice(0,160),createdAt:now,updatedAt:now,
     amountSatang:slip.amountSatang,date:slip.date,time:slip.time,
     recipient:slip.recipient?.trim().slice(0,160)||null,
+    ...(slip.sender?.trim()?{sender:slip.sender.trim().slice(0,160)}:{}),
     direction:slip.direction,method:slip.method||'bank',category:slip.category||'อื่น ๆ',
     directionReason:slip.directionReason.slice(0,300),reason:reason.slice(0,400),
     kind:slip.directionReason.includes('เติมเงินเข้า e-Wallet')?'wallet_topup':'slip',
@@ -51,6 +54,7 @@ export function isValidPendingSlip(value:unknown):value is PendingSlip{
     (p.date===null||(typeof p.date==='string'&&/^\d{4}-\d{2}-\d{2}$/.test(p.date)))&&
     (p.time===null||(typeof p.time==='string'&&/^([01]\d|2[0-3]):[0-5]\d$/.test(p.time)))&&
     (p.recipient===null||(typeof p.recipient==='string'&&p.recipient.length<=160))&&
+    (p.sender===undefined||p.sender===null||(typeof p.sender==='string'&&p.sender.length<=160))&&
     (p.direction===null||p.direction==='income'||p.direction==='expense')&&
     ['bank','wallet','card','cash'].includes(p.method||'')&&
     typeof p.category==='string'&&p.category.length<=80&&
@@ -71,6 +75,7 @@ export function pendingToSlipFields(p:PendingSlip):SlipFields{
     ?p.category:'อื่น ๆ';
   return {
     amountSatang:p.amountSatang,date:p.date,time:p.time,recipient:p.recipient,
+    ...(p.sender?.trim()?{sender:p.sender.trim()}:{}),
     direction:p.direction??(p.kind==='wallet_topup'?'expense':null),directionReason:p.kind==='wallet_topup'
       ?'เติมเงินเข้า e-Wallet จากบัญชีธนาคาร (รายจ่าย) · ผู้ใช้ตรวจข้อมูลแล้ว'
       :'ผู้ใช้ตรวจและยืนยันข้อมูลจากคิวรอตรวจ',
