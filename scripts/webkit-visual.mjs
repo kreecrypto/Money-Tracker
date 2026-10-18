@@ -38,9 +38,13 @@ try{
       const rect=(selector)=>document.querySelector(selector)?.getBoundingClientRect();
       const hero=rect('.mt-home-balance'),cta=rect('.mt-home-upload'),recent=rect('.mt-home-recent'),navigation=rect('.mobile-bottom-nav');
       const icons=Array.from(document.querySelectorAll('.mobile-bottom-nav button svg')).map(el=>{const r=el.getBoundingClientRect();return {width:r.width,height:r.height};});
+      const gridTracks=selector=>getComputedStyle(document.querySelector(selector)).gridTemplateColumns.split(/\s+/).filter(Boolean).length;
+      const pageGrid=gridTracks('.main-content');
+      const homeGrid=gridTracks('.mt-home-screen');
+      const splitGrid=gridTracks('.mt-home-balance-splits');
       return {overflow:Math.max(0,document.documentElement.scrollWidth-innerWidth),order:!!(hero&&cta&&recent&&hero.top<cta.top&&cta.top<recent.top),
         actionCount:document.querySelectorAll('.mt-home-shortcut-grid button').length,navCount:document.querySelectorAll('.mobile-bottom-nav button').length,
-        navVisible:!!(navigation&&navigation.top>=0&&navigation.bottom<=innerHeight+2),icons};
+        navVisible:!!(navigation&&navigation.top>=0&&navigation.bottom<=innerHeight+2),pageGrid,homeGrid,splitGrid,icons};
     });
     const brandLoaded=await page.locator('.mt-home-brand-icon img').evaluate(img=>img.complete&&img.naturalWidth>0);
     await page.screenshot({path:`${directory}/${label}-home.png`,fullPage:true});
@@ -145,6 +149,7 @@ try{
   fs.writeFileSync(`${directory}/webkit-report.json`,JSON.stringify(findings,null,2));
   console.log('WEBKIT_SAFARI_VISUAL_RESULTS',JSON.stringify(findings));
   const failed=findings.filter(f=>f.home.overflow>1||!f.home.order||f.home.actionCount!==0||f.home.navCount!==4||
+    f.home.pageGrid!==4||f.home.homeGrid!==4||f.home.splitGrid!==4||
     !f.home.navVisible||f.home.icons.some(icon=>icon.width<20||icon.height<20)||f.monthOptions!==13||!f.arrowNavigatesMonth||!f.menuUnclipped||!f.monthCloses||!f.detailsOpen||!f.detailsClose||f.transactions!==2||!f.list||!f.brandLoaded||!f.slipArtLoaded||!f.reportOverview||!f.settingsDirectory||!f.settingsAnchors||!f.scanner||!f.compactUploadButtons||!f.readableScanner||!f.trendsOnly||!f.noReportsFab||!f.settings||!f.noSettingsFab||!f.largeSetting.active||!f.largeSetting.selected||f.largeSetting.fontSize<16||f.largeHome.overflow>1||f.largeHome.textSize<16||!f.largeHome.navigation||!f.savedReadingMode||!f.largeScanner||f.errors.length);
   if(failed.length){console.error('WEBKIT_SAFARI_VISUAL_FAIL',JSON.stringify(failed));process.exitCode=1;}
   else console.log('WEBKIT_SAFARI_VISUAL_PASS: 4 phone sizes, essential home, icons, tabbar, scan, transactions, settings');
