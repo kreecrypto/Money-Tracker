@@ -12,6 +12,7 @@ import './home-screen.css';
 import './ui-audit-polish.css';
 import './universal-minimal.css';
 import './reference-screen-integration.css';
+import './responsive-grids.css';
 installReadingSize();
 const stopViewportObserver = installMobileViewportObserver();
 if (import.meta.hot) import.meta.hot.dispose(stopViewportObserver);
