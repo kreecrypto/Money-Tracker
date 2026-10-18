@@ -91,7 +91,7 @@ describe('financially safe K PLUS OCR fallbacks',()=>{
     slip.warnings.push('OCR ความมั่นใจต่ำและยังยืนยันข้อมูลได้ไม่ครบ กรุณาตรวจจากภาพก่อนบันทึก');
     const decision=prepareAutoSlip(slip,[],'low-confidence',Date.now());
     expect(decision.status).toBe('incomplete');
-    if(decision.status==='incomplete')expect(decision.reason).toContain('ความมั่นใจต่ำ');
+    if(decision.status==='incomplete')expect(decision.reason).toContain('อ่านข้อมูลจากสลิปไม่ชัดเจน');
   });
 
   it('upscales narrow images but stays within bounded OCR canvas dimensions',()=>{
