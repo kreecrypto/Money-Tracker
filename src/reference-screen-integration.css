@@ -1,0 +1,247 @@
+/* Money Tracker — 5-screen visual-reference implementation.
+   Original mockup: money-tracker-visual-reference.zip. The mock amounts and
+   device frames are NOT app UI. Real values and workflows remain in React.
+   Loaded after legacy layers and universal reading-size rules. */
+:root {
+  --refapp-ink:#13271f;
+  --refapp-muted:#586a60;
+  --refapp-brand:#08783f;
+  --refapp-deep:#075d38;
+  --refapp-canvas:#f7faf8;
+  --refapp-line:#e5efeb;
+  --refapp-radius:16px;
+  --refapp-control:48px;
+  --refapp-shadow:0 3px 14px #1c503216;
+}
+.reference-sidebar-brand {
+  width:42px;height:42px;display:block;flex:none;object-fit:contain;border-radius:12px;
+}
+.mt-home-brand-icon .reference-brand-img {
+  width:100%;height:100%;display:block;border-radius:inherit;
+}
+.mt-home-brand-icon:has(.reference-brand-img) { box-shadow:none;background:transparent;overflow:visible; }
+.mt-home-brand-name { color:var(--refapp-ink); }
+.mt-home-header-button,.mt-home-avatar {
+  min-width:44px;min-height:44px;display:grid;place-items:center;
+}
+
+/* A. Home: quiet summary and prominent upload above ledger. */
+.mt-home-screen { gap:14px; }
+.mt-home-screen .mt-home-balance {
+  background:linear-gradient(125deg,#075334 0%,#087b48 83%,#168e53 100%);
+  border-radius:18px;overflow:hidden;box-shadow:0 6px 18px #095a3520;
+}
+.mt-home-screen .mt-home-balance-splits { gap:8px; }
+.mt-home-screen .mt-home-split {
+  background:#fff;border-radius:12px;border:1px solid #e8f3eb;
+  min-width:0;padding:10px 11px;
+}
+.mt-home-screen .mt-home-split-head {
+  color:#365b49;font-size:var(--mt-readable-detail);line-height:1.5;
+}
+.mt-home-screen .mt-home-split>strong { font-variant-numeric:tabular-nums;overflow-wrap:anywhere; }
+.mt-home-screen .mt-home-upload {
+  min-height:64px;border-radius:15px;background:linear-gradient(100deg,#076b40,#0a8e53);
+  border:1px solid #0a8451;box-shadow:0 5px 12px #11704c21;
+}
+.mt-home-screen .mt-home-upload strong { font-size:16px;line-height:1.4; }
+.mt-home-screen .mt-home-upload small { font-size:var(--mt-readable-detail);line-height:1.45; }
+.mt-home-screen .mt-home-recent {
+  border:1px solid var(--refapp-line);border-radius:16px;
+  box-shadow:0 2px 9px #16402c08;background:#fff;min-height:0;
+}
+.mt-home-screen .mt-home-section-heading h2 {
+  color:var(--refapp-ink);font-size:var(--mt-readable-title);
+}
+.mt-home-screen .mt-home-transaction {
+  min-height:66px;gap:10px;padding:10px 2px;border-color:#edf2ef;
+}
+.mt-home-screen .mt-home-transaction-icon {
+  width:40px;height:40px;min-width:40px;border-radius:13px;
+}
+.mt-home-screen .mt-home-transaction-text strong {
+  font-size:var(--mt-readable-body);color:var(--refapp-ink);line-height:1.45;
+}
+.mt-home-screen .mt-home-transaction-text small { font-size:var(--mt-readable-detail);line-height:1.5;color:var(--refapp-muted); }
+.mt-home-screen .mt-home-transaction>b {
+  font-size:var(--mt-readable-body);text-align:right;overflow-wrap:anywhere;
+  font-variant-numeric:tabular-nums;
+}
+.mt-home-screen .mt-home-transaction>b.is-income { color:#0b8e4c; }
+.mt-home-screen .mt-home-transaction>b.is-expense { color:#ba3048; }
+
+/* B. Transactions: search, filters, date groups, readable counterparty and money. */
+.transaction-page,.transaction-month-summary {
+  background:#fff;border:1px solid var(--refapp-line);border-radius:var(--refapp-radius);
+  box-shadow:0 2px 9px #16402c08;
+}
+.transaction-page .list-tools { gap:11px; }
+.transaction-page .search-box {
+  min-height:50px;border:1px solid #dceae1;border-radius:13px;background:#fafdfb;
+}
+.transaction-page .search-box input { font-size:16px;line-height:1.45; }
+.transaction-page .filter-tabs {
+  gap:7px;background:transparent;border:0;min-width:0;
+}
+.transaction-page .filter-tabs button {
+  min-height:var(--refapp-control);border-radius:12px!important;font-size:13px!important;
+  font-weight:700;border:1px solid #e2ece5;
+}
+.transaction-page .filter-tabs button.selected {
+  background:#08783f!important;color:#fff!important;border-color:#08783f!important;
+}
+.transaction-page .transaction-row {
+  min-height:65px;border-color:#eaf1ec;padding-block:10px!important;
+}
+.transaction-page .transaction-emoji {
+  flex:none;min-width:40px;width:40px;height:40px;border-radius:13px;
+}
+.transaction-page .transaction-copy strong {
+  color:var(--refapp-ink);font-size:var(--mt-readable-body)!important;
+}
+.transaction-page .transaction-end b { font-variant-numeric:tabular-nums; }
+.transaction-page .transaction-day-heading {
+  margin-top:8px;color:var(--refapp-muted);font-size:var(--mt-readable-detail);
+}
+
+/* C. Reports: real financial metrics at the top, then breakdown and trend. */
+.ref-report-tabs { gap:4px;padding:4px;background:#f4f8f5;border-radius:13px; }
+.ref-report-tabs button {
+  min-width:0;min-height:var(--refapp-control);padding:7px 3px;border-radius:10px!important;
+  font-size:var(--mt-readable-detail);line-height:1.4;white-space:normal;
+}
+.ref-report-tabs button.active { color:#fff;background:#08783f; }
+.reference-report-summary {
+  display:grid!important;grid-template-columns:repeat(2,minmax(0,1fr));
+  gap:10px;margin-bottom:14px;
+}
+.reference-report-summary>.metric { min-width:0;padding:16px 13px;border-radius:14px;border-color:var(--refapp-line); }
+.reference-report-summary>.metric.net { grid-column:1/-1; }
+.reference-report-summary .metric-number {
+  font-size:clamp(21px,5.8vw,28px);font-variant-numeric:tabular-nums;
+  overflow-wrap:anywhere;line-height:1.35;
+}
+.reference-report-summary>.metric.net .metric-number { font-size:clamp(25px,6.3vw,31px); }
+.ref-report-spending,.ref-report-budget,.reference-overview-trends {
+  border:1px solid var(--refapp-line);border-radius:16px;background:#fff;
+  box-shadow:0 2px 9px #16402c08;
+}
+.ref-report-spending .spending-legend-row { font-size:var(--mt-readable-detail)!important;line-height:1.45; }
+.reference-overview-trends { margin:0 0 16px;padding:16px; }
+.reference-overview-trends .section-header { margin-bottom:10px;align-items:center; }
+.reference-overview-trends .section-header h3 { font-size:var(--mt-readable-title); }
+.reference-mini-bars {
+  display:grid;grid-template-columns:repeat(6,minmax(0,1fr));
+  height:152px;gap:5px;padding:8px 2px 0;
+  border-bottom:1px solid #e1eae4;
+  background:repeating-linear-gradient(to top,transparent 0 29px,#ecf1ed 30px);
+}
+.reference-mini-bar-group {
+  min-width:0;display:flex;flex-direction:column;justify-content:flex-end;align-items:center;
+}
+.reference-mini-bar-pair {
+  width:100%;height:119px;display:flex;gap:4px;align-items:flex-end;justify-content:center;
+}
+.reference-mini-bar-pair span { display:block;max-width:14px;width:36%;border-radius:4px 4px 0 0; }
+.reference-mini-bar-pair .income { background:#46b98b; }
+.reference-mini-bar-pair .expense { background:#ed8294; }
+.reference-mini-bar-group small {
+  font-size:11px;min-height:21px;display:block;white-space:nowrap;color:#566c60;
+  text-align:center;line-height:1.6;
+}
+.reference-chart-legend { display:flex;justify-content:flex-end;gap:15px;padding-top:12px; }
+.reference-chart-legend>span { display:flex;align-items:center;gap:6px;font-size:12px;color:var(--refapp-muted); }
+.reference-chart-legend i { display:inline-block;width:8px;height:8px;border-radius:50%; }
+.reference-chart-legend i.income { background:#46b98b; }
+.reference-chart-legend i.expense { background:#ed8294; }
+.reference-empty-chart { font-size:var(--mt-readable-body);color:var(--refapp-muted);line-height:1.6; }
+
+/* D. OCR: real file inputs from SlipScanner, reference vector is decorative. */
+.ref-ocr-modal .slip-upload-box {
+  background:linear-gradient(150deg,#f7fcf8,#edf8f0)!important;
+  border:1.5px dashed #a2d5b6!important;
+  border-radius:18px!important;padding:19px 13px!important;gap:8px;
+}
+.ref-ocr-modal .slip-upload-box .slip-upload-icon {
+  width:82px!important;height:82px!important;background:transparent!important;
+  display:grid;place-items:center;border:0!important;overflow:visible;
+}
+.ref-ocr-modal .slip-upload-icon .reference-slip-art { width:82px;height:82px;display:block;object-fit:contain; }
+.ref-ocr-modal .slip-upload-box>strong { color:#164c30;font-size:17px!important;line-height:1.4; }
+.ref-ocr-modal .slip-upload-box .slip-actions { gap:9px!important; }
+.ref-ocr-modal .slip-upload-box .slip-actions .btn {
+  min-height:52px!important;height:52px!important;
+  max-height:52px!important;border-radius:11px!important;font-size:14px!important;
+}
+.ref-ocr-modal .slip-upload-box .slip-actions .btn-primary {
+  background:#08783f!important;border-color:#08783f!important;color:white!important;
+}
+.ref-ocr-modal .slip-upload-box .slip-actions .slip-pick {
+  background:#fff!important;border:1px solid #d1e6d9!important;color:#125b3a!important;
+}
+.ref-ocr-modal .slip-upload-box .slip-actions .btn svg { flex:none; }
+
+/* E. Settings: concise visual directory links to genuine existing forms. */
+.reference-settings-index {
+  display:flex;flex-direction:column;overflow:hidden;
+  background:#fff;border:1px solid var(--refapp-line);
+  border-radius:16px;margin-bottom:16px;
+}
+.reference-settings-link {
+  display:flex;align-items:center;gap:12px;min-height:66px;
+  padding:11px 13px;border-bottom:1px solid #e9f0eb;
+  color:var(--refapp-ink);text-decoration:none;
+}
+.reference-settings-link:last-child { border-bottom:0; }
+.reference-settings-link:focus-visible { outline:3px solid #08783f;outline-offset:-3px; }
+.reference-settings-link:active { background:#eff9f3; }
+.reference-settings-symbol {
+  width:38px;height:38px;min-width:38px;display:grid;place-items:center;
+  color:#08783f;background:#e8f7ed;border-radius:12px;
+}
+.reference-settings-label { display:flex;flex-direction:column;flex:1;gap:2px;min-width:0; }
+.reference-settings-label strong { font-size:var(--mt-readable-body);font-weight:750;line-height:1.45; }
+.reference-settings-label small { font-size:var(--mt-readable-detail);line-height:1.4;color:var(--refapp-muted);overflow-wrap:anywhere; }
+.reference-settings-link>svg { color:#799082;flex:none; }
+.settings-grid [id^="settings-"],.settings-connections { scroll-margin-top:84px; }
+.settings-grid>.settings-card,.settings-grid>.settings-connections {
+  box-shadow:none;border-color:var(--refapp-line);border-radius:14px;
+}
+.settings-grid .settings-card h3 { color:var(--refapp-ink); }
+#settings-owner .ocr-owner-input { border-color:#dce9e1; }
+#settings-budget .budget-field { min-height:var(--refapp-control); }
+
+/* Keep interactions generous, accessible, predictable on all phones. */
+@media(max-width:660px) {
+  .main-content { min-width:0; }
+  .mobile-bottom-nav { background:#fff; }
+  .mobile-bottom-nav button { font-size:12px!important; }
+  .settings-grid { grid-template-columns:minmax(0,1fr); }
+  .reference-report-summary>.metric { padding:13px 11px; }
+  .ref-report-tabs button { font-size:12px; }
+}
+@media(max-width:360px) {
+  .mt-home-screen .mt-home-balance { padding-inline:12px!important; }
+  .mt-home-screen .mt-home-transaction { gap:7px; }
+  .mt-home-screen .mt-home-transaction>b { max-width:48%; }
+  .reference-settings-link { gap:9px;padding-inline:11px; }
+  .reference-report-summary .metric-number { font-size:21px; }
+  .reference-mini-bar-group small { font-size:10px; }
+}
+@media(min-width:661px) {
+  .reference-report-summary { grid-template-columns:repeat(3,minmax(0,1fr)); }
+  .reference-report-summary>.metric.net { grid-column:auto; }
+  .reference-settings-index { display:grid;grid-template-columns:repeat(2,minmax(0,1fr)); }
+  .reference-settings-link { border-bottom:1px solid #e9f0eb; }
+  .reference-settings-link:nth-child(odd) { border-right:1px solid #e9f0eb; }
+}
+html[data-reading-size="large"] .reference-settings-label strong { font-size:16px; }
+html[data-reading-size="large"] .reference-settings-label small { font-size:14px; }
+html[data-reading-size="large"] .reference-settings-link { min-height:77px; }
+html[data-reading-size="large"] .mt-home-screen .mt-home-transaction-text strong { font-size:16px; }
+html[data-reading-size="large"] .mt-home-screen .mt-home-transaction-text small { font-size:14px; }
+html[data-reading-size="large"] .ref-report-spending .spending-legend-row { font-size:14px!important; }
+html[data-reading-size="large"] .reference-mini-bar-group small { font-size:12px; }
+@media(prefers-reduced-motion:reduce) {
+  .reference-settings-link,.reference-mini-bars * { animation:none!important;transition:none!important; }
+}
