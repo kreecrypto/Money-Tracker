@@ -121,6 +121,11 @@
   width: 18px;height: 18px;
 }
 
+.report-trend-empty {
+  padding: 26px 14px;margin-top: 12px;
+  border-radius: 12px;background: #f6faf7;
+  color: #435c4d;font-size: 14px;line-height: 1.65;text-align: center;
+}
 /* Reports: discoverable values even on touch devices (not hover-only bars). */
 .chart-surface .bars-chart { position: relative; }
 .chart-surface .trend-axis-max {
