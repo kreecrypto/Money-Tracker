@@ -2,10 +2,11 @@ import {useEffect,useMemo,useRef,useState,type KeyboardEvent as ReactKeyboardEve
 import {createPortal} from 'react-dom';
 import {
   ArrowDownLeft, ArrowRight, ArrowUpRight, Bell, Camera,
-  ChevronDown, CircleUserRound, Sprout,
+  ChevronDown, CircleUserRound,
   UtensilsCrossed, ShoppingBag, TrainFront, HandCoins, Ellipsis, Wallet,
 } from 'lucide-react';
 import {baht, METHODS, transactionDisplayName, type Transaction} from './lib/finance';
+import sproutBrand from './assets/brand-sprout.svg';
 
 type Props={
   month:string;
@@ -24,7 +25,7 @@ export function HomeTopbar({pendingCount,onNotifications,onSettings}:{
 }){
   return <div className="mt-home-topbar">
     <div className="mt-home-brand-row">
-      <span className="mt-home-brand-icon" aria-hidden="true"><Sprout size={23} strokeWidth={2.8}/></span>
+      <span className="mt-home-brand-icon" aria-hidden="true"><img className="reference-brand-img" src={sproutBrand} alt=""/></span>
       <strong className="mt-home-brand-name">เงินวันนี้</strong>
       <div className="mt-home-header-actions">
         <button type="button" className="mt-home-header-button" aria-label={pendingCount>0?`การแจ้งเตือน: มีสลิปรอตรวจ ${pendingCount} รายการ`:'การแจ้งเตือน'} onClick={onNotifications}>
@@ -194,7 +195,7 @@ export default function HomeScreen({
       <div className="mt-home-section-heading"><h2>รายการล่าสุด</h2><button type="button" onClick={onTransactions}>ดูทั้งหมด <ArrowRight size={15}/></button></div>
       {recent.length?
         <div className="mt-home-transaction-list">
-          {recent.slice(0,3).map(tx=><button type="button" className="mt-home-transaction" key={tx.id} onClick={event=>{detailTriggerRef.current=event.currentTarget;setDetail(tx);}} aria-label={`ดูรายละเอียด ${transactionDisplayName(tx)} ${tx.type==='income'?'รายรับ':'รายจ่าย'} ${baht(tx.amountSatang)} บาท ${shortDate(tx.date,tx.time)}`}>
+          {recent.slice(0,4).map(tx=><button type="button" className="mt-home-transaction" key={tx.id} onClick={event=>{detailTriggerRef.current=event.currentTarget;setDetail(tx);}} aria-label={`ดูรายละเอียด ${transactionDisplayName(tx)} ${tx.type==='income'?'รายรับ':'รายจ่าย'} ${baht(tx.amountSatang)} บาท ${shortDate(tx.date,tx.time)}`}>
             <RecentIcon transaction={tx}/>
             <span className="mt-home-transaction-text"><strong>{transactionDisplayName(tx)}</strong><small>{shortDate(tx.date,tx.time)}</small></span>
             <b className={tx.type==='income'?'is-income':'is-expense'}>{tx.type==='income'?'+':'−'} ฿ {baht(tx.amountSatang)}</b>
