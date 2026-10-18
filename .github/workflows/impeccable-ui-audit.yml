@@ -29,7 +29,7 @@ jobs:
         shell: bash
         run: |
           set +e
-          npx --yes impeccable detect --no-design-system --json src/ > impeccable-findings.json
+          npx --yes impeccable detect --json src/ > impeccable-findings.json
           code=$?
           set -e
           if [ "$code" -eq 1 ]; then
@@ -38,7 +38,7 @@ jobs:
             exit 1
           fi
           if [ "$code" -eq 2 ]; then
-            echo "::notice::Impeccable found legacy design warnings. See report artifact; this is advisory while baselining the existing app."
+            echo "::notice::Impeccable found primary design findings under DESIGN.md. Review the JSON report; the current legacy baseline is advisory until each finding is triaged."
           fi
           if [ "$code" -ne 0 ] && [ "$code" -ne 2 ]; then exit "$code"; fi
       - name: Upload detector report
