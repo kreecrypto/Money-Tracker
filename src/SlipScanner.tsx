@@ -459,6 +459,7 @@ export default function SlipScanner({onApply,onComplete,onBusyChange,onUndoBatch
     {complete&&<div className={'slip-batch-summary ref-ocr-results'+(summary.incomplete+summary.errors>0?' requires-review':'')} role="status" aria-live="polite">
       <div className="slip-batch-summary-title">{summary.incomplete+summary.errors>0?<AlertTriangle size={18}/>:<CheckCircle2 size={18}/>}<strong>{slipBatchHeading(summary)}</strong></div>
       <div className="slip-batch-counts"><span>บันทึกแล้ว<b>{summary.saved}</b></span><span>ซ้ำ<b>{summary.duplicate}</b></span><span>รอตรวจ<b>{summary.incomplete}</b></span><span>อ่านไม่สำเร็จ<b>{summary.errors}</b></span>{(summary.excluded||0)>0&&<span>ไม่นับรายการ<b>{summary.excluded}</b></span>}</div>
+       <p className="slip-batch-note">บันทึกแล้ว: อยู่ในรายการ · ซ้ำ: ไม่เพิ่มรายการใหม่ · รอตรวจ: ยังไม่รวมยอดเงิน</p>
       {summary.saved>0&&<div className="slip-batch-totals" aria-label="ยอดที่บันทึกแยกประเภทรายการ">
         <div className="slip-batch-total"><span>รายรับที่บันทึก</span><strong>฿{baht(savedTotals.incomeSatang)}</strong></div>
         <div className="slip-batch-total"><span>รายจ่ายที่บันทึก</span><strong>฿{baht(savedTotals.expenseSatang)}</strong></div>
@@ -500,7 +501,8 @@ export default function SlipScanner({onApply,onComplete,onBusyChange,onUndoBatch
             <label><span className="slip-field-title"><Tag size={16}/> ประเภท (ต้องเลือก)</span><select required value={draft.direction} onChange={e=>changeCorrection(index,{direction:e.target.value as EntryType,category:'อื่น ๆ'})}><option value="" disabled>เลือกประเภทรายการ</option><option value="expense">เงินออก / รายจ่าย</option><option value="income">เงินเข้า / รายรับ</option></select></label>
             <label><span className="slip-field-title"><CalendarDays size={16}/> วันที่</span><input type="date" value={draft.date} onChange={e=>changeCorrection(index,{date:e.target.value})}/></label>
             <label><span className="slip-field-title"><Clock3 size={16}/> เวลา</span><input type="time" value={draft.time} onChange={e=>changeCorrection(index,{time:e.target.value})}/></label>
-            <label className="slip-attention-wide"><span className="slip-field-title"><UserRound size={16}/> ผู้รับเงิน / ร้านค้า</span><input value={draft.recipient} maxLength={160} onChange={e=>changeCorrection(index,{recipient:e.target.value})}/></label>
+            <label className="slip-attention-wide"><span className="slip-field-title"><UserRound size={16}/> ชื่อผู้รับตามสลิป / ร้านค้า</span><input value={draft.recipient} maxLength={160} onChange={e=>changeCorrection(index,{recipient:e.target.value})}/></label>
+            {draft.source.sender&&<p className="slip-ocr-party-hint">ชื่อผู้โอนที่ OCR อ่านได้: {draft.source.sender}</p>}
             {draft.direction&&<label className="slip-attention-wide"><span className="slip-field-title"><Tag size={16}/> หมวดหมู่</span><select value={draft.category} onChange={e=>changeCorrection(index,{category:e.target.value})}>{(draft.direction==='income'?INCOME_CATEGORIES:EXPENSE_CATEGORIES).map(category=><option key={category} value={category}>{category}</option>)}</select></label>}
           </div>
           {correctionErrors[index]&&<p className="error-message" role="alert">{correctionErrors[index]}</p>}
