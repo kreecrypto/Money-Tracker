@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 112 112" fill="none" role="img" aria-label="เลือกรูปสลิป">
+<circle cx="56" cy="56" r="51" fill="#E6F7EC"/>
+<path d="M37 23h29l12 13v51H37z" fill="#fff" stroke="#0A8050" stroke-width="3" stroke-linejoin="round"/>
+<path d="M66 23v14h12" stroke="#0A8050" stroke-width="3" stroke-linejoin="round"/>
+<path d="M44 49h26M44 58h19M44 67h16" stroke="#B0D8BE" stroke-width="3.5" stroke-linecap="round"/>
+<circle cx="73" cy="76" r="17" fill="#0B8752"/>
+<path d="m65 76 6 6 10-12" stroke="#fff" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>
