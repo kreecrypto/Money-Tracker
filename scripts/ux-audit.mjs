@@ -22,6 +22,18 @@ async function scan(page,view,viewport){
   await page.waitForTimeout(230);
   const metrics=await page.evaluate(()=>{
     const vw=document.documentElement.clientWidth;
+    const gridExpected=vw>=1200?12:vw>=768?8:4;
+    const gridTracks=(selector)=>{
+      const el=document.querySelector(selector);
+      if(!el)return null;
+      const style=getComputedStyle(el);
+      return style.display==='grid'?style.gridTemplateColumns.split(/\\s+/).filter(Boolean).length:0;
+    };
+    const gridMain=gridTracks('.main-content');
+    const gridHome=gridTracks('.mt-home-screen');
+    const gridSettings=gridTracks('.settings-grid');
+    const gridReportMetrics=gridTracks('.reference-report-summary');
+    const gridScannerActions=gridTracks('.ref-ocr-modal .slip-upload-box .slip-actions');
     const wide=Math.max(document.body.scrollWidth,document.documentElement.scrollWidth);
     const visibles=Array.from(document.querySelectorAll('button,[role="button"]'))
       .filter(e=>{const s=getComputedStyle(e),r=e.getBoundingClientRect();return s.display!=='none'&&s.visibility!=='hidden'&&r.width>0&&r.height>0;})
@@ -29,7 +41,7 @@ async function scan(page,view,viewport){
     const textSizes=Array.from(document.querySelectorAll('p,span,label,small,dt,dd,strong'))
       .filter(e=>{const s=getComputedStyle(e),r=e.getBoundingClientRect();return r.width>0&&r.height>0&&s.display!=='none'&&s.visibility!=='hidden'})
       .map(e=>parseFloat(getComputedStyle(e).fontSize)).filter(n=>n>0);
-    return {vw,scrollWidth:wide,overflowPx:Math.max(0,wide-vw),smallTouchTargets:visibles.filter(x=>x.width<44||x.height<44).slice(0,18),touchTargetCount:visibles.length,smallTouchTargetCount:visibles.filter(x=>x.width<44||x.height<44).length,smallTextCount:textSizes.filter(x=>x<12).length,textCount:textSizes.length,bodyFontPx:parseFloat(getComputedStyle(document.body).fontSize)};
+    return {vw,scrollWidth:wide,gridExpected,gridMain,gridHome,gridSettings,gridReportMetrics,gridScannerActions,overflowPx:Math.max(0,wide-vw),smallTouchTargets:visibles.filter(x=>x.width<44||x.height<44).slice(0,18),touchTargetCount:visibles.length,smallTouchTargetCount:visibles.filter(x=>x.width<44||x.height<44).length,smallTextCount:textSizes.filter(x=>x<12).length,textCount:textSizes.length,bodyFontPx:parseFloat(getComputedStyle(document.body).fontSize)};
   });
   let axe={violations:[]};
   try{
@@ -242,6 +254,11 @@ try {
   console.log('AXE_DETAILS_END');
   const critical=findings.filter(x=>x.view==='navigation-obstruction'
     ||x.overflowPx>0
+    ||x.gridMain!==x.gridExpected
+    ||(x.gridHome!==null&&x.gridHome!==x.gridExpected)
+    ||(x.gridSettings!==null&&x.gridSettings!==x.gridExpected)
+    ||(x.gridReportMetrics!==null&&x.gridReportMetrics!==x.gridExpected)
+    ||(x.gridScannerActions!==null&&x.gridScannerActions!==x.gridExpected)
     ||(x.axe?.violations?.length||0)>0
     ||(x.view==='slip-first-default'&&(!x.slipDefault||!x.uploadPrimary||!x.autoSaveNext||!x.multiSelectable||!x.batchLimitVisible||!x.compactUploadButtons||x.reviewButtonCount>0||x.pageErrors?.length))
     ||(x.view==='manual-entry-alternative'&&(!x.manualAvailable||x.pageErrors?.length))
