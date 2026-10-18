@@ -29,6 +29,13 @@ White text belongs only on sufficiently dark green. Secondary copy must maintain
 - Body reading size should generally be at least 13–14px; avoid 9–11px for important financial information.
 - Prefer clear Thai action labels (e.g. “อัปโหลดสลิป”, “ดูทั้งหมด”, “รอตรวจ”) over mixed English metadata. Do not use uppercase or overly spaced lettering for Thai.
 
+## Universal Minimal Accessibility (2026-10-18)
+- Default text is readable without reducing information: 14px body and 12px only for metadata. Prefer 16px on form fields and longer descriptions. Keep financial amounts prominent and use +/− signs in addition to color.
+- Settings offers a per-device **ขนาดปกติ / ตัวอักษรใหญ่** toggle. The large setting increases important supporting text to 14–16px, section headers to 19px, and preserves the four-tab navigation. Never depend on color or icons alone.
+- Keep all primary buttons at least 48px high. Maintain a predictable Home → Transactions → Reports → Settings journey and a single prominent upload action.
+- Test both reading sizes on 320, 375, 390 and 430px Safari/WebKit, including page reload persistence, 0 horizontal overflow, navigation hit sizes, and slip buttons. Test on a real iPhone before Production.
+- The preference is in localStorage `ngoentoday-reading-size-v1` and is cleared when the user deliberately erases device data. Financial data and OCR logic are unchanged.
+
 ## Elevation
 Flat by default. Use thin green-tinted borders and white backgrounds instead of cards inside cards. Only the monthly summary, floating popover and modal may need restrained elevation. Do not add glowing accents, generic gradients, or decorative highlights that compromise readability. Existing brand green gradient is a deliberate exception, kept within AA contrast.
 
