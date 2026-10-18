@@ -27,7 +27,7 @@ async function scan(page,view,viewport){
       const el=document.querySelector(selector);
       if(!el)return null;
       const style=getComputedStyle(el);
-      return style.display==='grid'?style.gridTemplateColumns.split(/\\s+/).filter(Boolean).length:0;
+      return style.display==='grid'?style.gridTemplateColumns.split(/\s+/).filter(Boolean).length:0;
     };
     const gridMain=gridTracks('.main-content');
     const gridHome=gridTracks('.mt-home-screen');
