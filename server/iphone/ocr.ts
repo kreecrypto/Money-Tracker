@@ -14,7 +14,7 @@ export function extractBankDraft(raw:string):OCRDraft {
   // exclusion discarded their entire receipt parser, including amounts.
   // Only parse an actual K PLUS payment/transfer receipt; do not parse a
   // balance-only banking screenshot with the generic currency fallback.
-  const isKplusReceipt=/(?:K\\s*PLUS|กสิกรไทย|ธ\\.?กสิกรไทย|KBank)/iu.test(raw)&&
+  const isKplusReceipt=/(?:K\s*PLUS|กสิกรไทย|ธ\.?กสิกรไทย|KBank)/iu.test(raw)&&
     /(?:โอนเงินสำเร็จ|จ่ายบิลสำเร็จ|ชำระเงินสำเร็จ|เติมเงินสำเร็จ|โอนสำเร็จ)/u.test(raw);
   const slip=isKplusReceipt?parseSlipText(raw):null;
   // Never use a bank notice fallback to override missing or conflicting K PLUS
