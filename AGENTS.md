@@ -31,6 +31,12 @@ Never cut: validation at trust boundaries, error handling that prevents data los
 
 (Yes, this file also applies to agents working on the ponytail repo itself. Especially to them.)
 
+## Superpowers-based debugging workflow
+
+Before changing code in response to a bug or a failed OCR slip, read `.agents/skills/systematic-debugging/SKILL.md` and follow its four evidence-driven phases: reproduce → compare → single hypothesis → failing test, smallest fix, verification. This local skill adapts Superpowers for Money Tracker and does not install the global Superpowers agent plugin.
+
+For actual K PLUS photo failures, run the opt-in private image-golden suite documented in `docs/OCR_REAL_IMAGE_QA.md`. Public text fixtures and passing CI alone cannot establish true image-OCR accuracy. Never commit `tests/private-ocr/`, OCR output, or bank identities.
+
 ## Money Tracker (เงินวันนี้): non-negotiable local rules
 
 The canonical product spec is `PRODUCT.md`, design contract is `DESIGN.md`, and implementation references are `docs/ARCHITECTURE.md`, `docs/OCR.md`, and existing tests. Read the relevant files and actual callers before choosing a change. If guidance conflicts, preserve the user's requested behavior and financial/data safety, and report the conflict.
