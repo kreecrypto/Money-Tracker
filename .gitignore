@@ -6,3 +6,5 @@ dist/
 .DS_Store
 *.log
 coverage/
+# Local-only real bank slip images and expected financial values
+/tests/private-ocr/
