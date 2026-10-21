@@ -50,3 +50,14 @@ The canonical product spec is `PRODUCT.md`, design contract is `DESIGN.md`, and 
 - **Scope discipline**: no new frameworks, dependencies, endpoints, DB migrations or broad CSS rewrites solely to "simplify." Keep changes small and traceable to a concrete task.
 
 Adapted from the upstream Ponytail project (`DietrichGebert/ponytail`, MIT). This repo-level `AGENTS.md` supplies guidance to agents that read it; it does **not** install Ponytail lifecycle hooks, slash commands, or runtime dependencies.
+
+## Task-specific repo-local skills (P0–P2)
+
+These files are procedures for compatible coding agents, not proof that external vendor plugins have been installed. Select only the relevant guide; avoid redoing completed work (see `docs/AI_SKILLS_P0_P2.md`).
+
+- OCR bugs / failed K PLUS slip: `.agents/skills/systematic-debugging/SKILL.md` (existing Superpowers-inspired procedure).
+- Screen, CSS, Thai copy or Safari issue: `.agents/skills/mobile-ux-qa/SKILL.md`.
+- API/auth/storage, privacy, staging or release review: `.agents/skills/security-release-review/SKILL.md`.
+- Cross-layer impact or dependency tracing: `.agents/skills/architecture-impact-map/SKILL.md` (Graphify not installed).
+
+For changes spanning more than one category, preserve the existing P0 financial and physical-device release gates rather than replacing them with agent review output.
