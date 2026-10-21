@@ -185,8 +185,9 @@ try {
     }
     // The mobile scan shortcut intentionally lives on the Saved ledger only.
     if(width<=660)await page.locator('.mobile-bottom-nav button').nth(1).click();
-    const add=page.locator(width<=660?'.transaction-page .empty button':'.top-add');
-    if(width<=660&&await page.locator('.mobile-fab').count()!==0)throw new Error('Empty ledger must not render a duplicate scan FAB');
+    const emptyLedger=await page.locator('.transaction-page .empty button').isVisible().catch(()=>false);
+    if(width<=660&&emptyLedger&&await page.locator('.mobile-fab').count()!==0)throw new Error('Empty ledger must not render a duplicate scan FAB');
+    const add=page.locator(width>660?'.top-add':emptyLedger?'.transaction-page .empty button':'.mobile-fab');
     await add.click({timeout:3500});
     const slipDefault=await page.locator('.modal .slip-panel').isVisible();
     const uploadPrimary=await page.getByRole('button',{name:'เลือกรูป',exact:true}).isVisible();
