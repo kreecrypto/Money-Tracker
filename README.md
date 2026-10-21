@@ -1,5 +1,9 @@
 # เงินวันนี้ · Daily Money Tracker
 
+## Project workflow — mandatory
+
+For **every Money Tracker task**, start with [`docs/PROJECT_WORKFLOW.md`](docs/PROJECT_WORKFLOW.md) and [`AGENTS.md`](AGENTS.md). Use P0/P1/P2 intake → latest source inspection → relevant AI skills → minimal implementation → tests → UX/CI → isolated Preview QA → applicable physical-iPhone/security gates → review → merge → verified Production smoke. GitHub's [Project Workflow Contract](.github/workflows/project-workflow.yml) runs on PR/push/issues events to validate references; it does **not** replace full CI or real-device QA. [Pull request checklist](.github/pull_request_template.md).
+
 Mobile-first, Thai-language, offline-first **daily income and expense tracker** (slip-first UI, October 2026). Uses a responsive React + TypeScript + Vite frontend and IndexedDB for local data storage.
 
 ## ✨ Features
