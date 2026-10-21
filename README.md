@@ -107,6 +107,10 @@ Reuse the existing code, browser primitives and current dependencies before addi
 
 `AGENTS.md` is a repo-scoped ruleset, **not the installed Ponytail CLI/agent plugin**. For optional mode switching and lifecycle hooks, install the [official plugin](https://github.com/DietrichGebert/ponytail/blob/main/INSTALL.md) in your coding agent separately; no package is added to the shipped app.
 
+## OCR debugging: private real-image golden suite
+
+Use the project-local [Systematic Debugging skill](.agents/skills/systematic-debugging/SKILL.md) before patching OCR, and the [private image OCR verification guide](docs/OCR_REAL_IMAGE_QA.md) for actual K PLUS screenshots. The opt-in `RUN_PRIVATE_OCR=1 pnpm exec vitest run tests/ocrRealImageGolden.test.ts` reads **locally held** JPG/PNG/WebP images with Tesseract and checks the parsed auto-save decision against independently verified expected fields. Public CI skips actual images: passing public tests is **not** proof that real-device OCR works. Do not commit or publish private bank slips or their manifest.
+
 ## Repository setup
 
 Clone the existing repository:
