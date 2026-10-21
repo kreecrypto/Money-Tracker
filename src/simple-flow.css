@@ -1,0 +1,48 @@
+/* Daily money flow P0–P2: component-scoped presentation only. */
+.mt-home-screen .mt-home-upload { min-height:60px!important;height:auto!important;padding:10px 14px!important; }
+.mt-home-screen .mt-home-upload strong { font-size:16px;line-height:1.4; }
+.mt-home-screen .mt-home-upload small { font-size:13px;line-height:1.5; }
+.mt-home-setup,.mt-home-pending { border:1px solid #e5efeb;border-radius:14px;background:#fff; }
+.mt-home-setup,.mt-home-pending-row {
+  display:flex;align-items:center;justify-content:space-between;gap:12px;
+  padding:12px 14px;min-width:0;
+}
+.mt-home-pending-row + .mt-home-pending-row { border-top:1px solid #e5efeb; }
+.mt-home-setup>div,.mt-home-pending-row>div { min-width:0;flex:1; }
+.mt-home-setup strong,.mt-home-pending-row strong {
+  display:block;font-size:14px;font-weight:750;line-height:1.5;color:#193b29;
+}
+.mt-home-setup p,.mt-home-pending-row p {
+  margin:3px 0 0;color:#586a60;font-size:13px;line-height:1.55;
+}
+.mt-home-setup button,.mt-home-pending-row button {
+  display:flex;align-items:center;justify-content:center;gap:4px;
+  min-height:48px;min-width:108px;border:1px solid #c8e5d4;border-radius:10px;
+  background:#ebf8f0;color:#0c6040;font-size:13px;font-weight:750;
+  white-space:nowrap;padding:8px 11px;touch-action:manipulation;
+}
+.mt-home-pending { background:#fbfdfa;border-color:#d6e6da; }
+.mt-home-screen .mt-home-transaction { min-height:64px;gap:11px; }
+.mt-home-screen .mt-home-transaction-icon { height:38px;width:38px;border-radius:11px; }
+.mt-home-screen .mt-home-transaction-text strong { font-size:14px;line-height:1.45; }
+.mt-home-screen .mt-home-transaction-text small { font-size:12px;line-height:1.5; }
+.mt-home-screen .mt-home-transaction>b { color:#243d30;font-size:14px; }
+.mt-home-screen .mt-home-transaction>b.is-income { color:#0b8e4c; }
+.mt-home-screen .mt-home-transaction>b.is-expense { color:#c8334e; }
+.ref-ocr-modal .slip-result-direction { display:block;color:#3d6550;font-size:12px;line-height:1.5; }
+.ref-ocr-modal .slip-hint { font-size:13px;line-height:1.6; }
+.ref-ocr-modal .slip-result-reason { font-size:13px;line-height:1.55; }
+.report-simple-hint { font-size:13px;line-height:1.6;color:#586a60;margin:0 0 16px; }
+.settings-advanced-data { width:100%;margin-top:16px;border-top:1px solid #e5efeb; }
+.settings-advanced-data>summary {
+  display:flex;align-items:center;min-height:48px;cursor:pointer;
+  color:#126e49;font-size:14px;font-weight:700;line-height:1.55;
+}
+.settings-advanced-data[open]>summary { margin-bottom:12px; }
+@media(max-width:360px) {
+  .mt-home-setup,.mt-home-pending-row { align-items:stretch;flex-direction:column; }
+  .mt-home-setup button,.mt-home-pending-row button { width:100%; }
+}
+@media(prefers-reduced-motion:reduce) {
+  .mt-home-screen .mt-home-upload,.mt-home-pending-row button { transition:none!important; }
+}
