@@ -432,12 +432,11 @@ export default function SlipScanner({onApply,onComplete,onBusyChange,onUndoBatch
   const savedTotals=savedSlipTotals(rows);
   const needsAttention=Object.entries(corrections).filter(([index])=>rows[Number(index)]?.status==='incomplete');
   return <section className="slip-panel slip-panel-primary slip-workspace" aria-label="อัปโหลดสลิปหรือใบเสร็จหลายรูป">
-    <div className="slip-head"><div><ScanLine size={18}/><strong>เพิ่มสลิปหรือใบเสร็จ</strong></div></div>
-    {!busy&&!complete&&<p className="slip-hint">อ่านข้อมูลและบันทึกอัตโนมัติ หากอ่านไม่ครบจะแจ้งให้ตรวจ</p>}
+    {!busy&&!complete&&<p className="slip-hint">อ่านสลิปและบันทึกอัตโนมัติเมื่อข้อมูลครบ · อ่านไม่ครบจะเก็บไว้รอตรวจ</p>}
     {!busy&&(!complete||needsAttention.length===0)&&<div className="slip-upload-box">
       <div className="slip-upload-icon" aria-hidden="true"><img className="reference-slip-art" src={slipArt} alt=""/></div>
       <strong>{complete?'เพิ่มรูปอีกชุด':'เลือกรูปสลิป'}</strong>
-      <span>เลือกรูปได้สูงสุด 20 รูป</span>
+      <span>เลือกรูปพร้อมกันได้สูงสุด 20 รูป</span>
       <div className="slip-actions"><button type="button" className="btn btn-primary" disabled={undoing||needsAttention.length>0} onClick={()=>cameraRef.current?.click()}><Camera size={18}/> ถ่ายรูป</button><button type="button" className="btn btn-secondary slip-pick" disabled={undoing||needsAttention.length>0} onClick={()=>galleryRef.current?.click()}><Upload size={18}/> เลือกรูป</button></div><details className="slip-more-options"><summary>นำเข้ารูปด้วยวิธีอื่น</summary><button type="button" className="btn btn-secondary" disabled={undoing||needsAttention.length>0} onClick={()=>void pasteFromShortcuts()}><ClipboardPaste size={18}/> วางรูปที่คัดลอก</button><small>รองรับ JPG, PNG, WebP, HEIC ขนาดไม่เกิน 10 MB ต่อรูป</small></details>
       {needsAttention.length>0&&<p className="slip-awaiting-review" role="status">รอตรวจ {needsAttention.length} รายการ · ยังไม่รวมในยอดเงิน</p>}
       {clipboardError&&<p className="slip-warning" role="alert">{clipboardError}</p>}
@@ -479,8 +478,8 @@ export default function SlipScanner({onApply,onComplete,onBusyChange,onUndoBatch
     {rows.length>0&&<div className="slip-batch-results" aria-label="ผลการประมวลผลแต่ละรูป">
       <strong>ผลของแต่ละสลิป</strong>
       <ul>{rows.map((row,i)=><li key={i+'-'+row.name} className="slip-result-row">
-        <span className="slip-result-main"><span className="slip-batch-file">{row.recipient||row.name}</span>{row.date&&<small>{row.date}</small>}</span>
-        {row.amountSatang!==undefined&&<b className="slip-result-amount">฿{baht(row.amountSatang)}</b>}
+        <span className="slip-result-main"><span className="slip-batch-file">{row.recipient||row.name}</span>{row.date&&<small>{row.date}</small>}{row.status==='saved'&&row.direction&&<small className="slip-result-direction">{row.direction==='income'?'เงินเข้า / รายรับ':'เงินออก / รายจ่าย'}</small>}</span>
+        {row.amountSatang!==undefined&&<b className="slip-result-amount">{row.status==='saved'&&row.direction?(row.direction==='income'?'+':'−'):''}฿{baht(row.amountSatang)}</b>}
         <span className={'slip-batch-status '+row.status}>{statusLabels[row.status]}</span>
         {row.reason&&row.status!=='saved'&&<small className="slip-result-reason">{row.reason}</small>}
         {row.status==='incomplete'&&corrections[i]&&<button type="button" className="slip-result-fix" onClick={()=>focusReview(i)}>ตรวจยอดเงินจากสลิป <Check size={16}/></button>}
