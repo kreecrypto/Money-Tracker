@@ -109,7 +109,7 @@ try {
           && await page.locator('#report-trends').count()===0;
         await tabs.nth(0).click();
         const overview=await page.locator('#report-spending').isVisible()
-          && await page.locator('#report-budget').isVisible()
+          && await page.locator('#report-budget').count()===0
           && await page.locator('#report-trends').count()===0;
         const noOverlay=width>660 || await page.locator('.mobile-fab').isHidden();
         record('report-view-switch',name,{count,trendOnly,budgetOnly,categoryOnly,overview,noOverlay,pageErrors:errors});
@@ -139,7 +139,7 @@ try {
         });
       });
       await page.reload({waitUntil:'networkidle'});
-      const homeBadge=await page.locator('.pending-home-alert').isVisible();
+      const homeBadge=await page.locator('.mt-home-pending-row').filter({hasText:'รอตรวจจากสลิป'}).isVisible();
       await page.locator('.mobile-bottom-nav button').nth(1).click();
       await page.getByRole('button',{name:/รอตรวจจากสลิป/}).click();
       const pendingBefore=await page.locator('.pending-slip-card').count();
@@ -223,6 +223,7 @@ try {
 
     // The destructive flow is exercised against a disposable audit browser only.
     // Verify deliberate confirmation and that no local records/pairing survive.
+    await page.locator('.settings-advanced-data > summary').click();
     await page.locator('.data-delete-btn').click();
     const deleteDialog=page.locator('.local-reset-modal');
     await deleteDialog.waitFor();
