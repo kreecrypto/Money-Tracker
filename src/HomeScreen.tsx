@@ -33,6 +33,7 @@ export function HomeTopbar({pendingCount,onNotifications,onSettings}:{
     <div className="mt-home-brand-row">
       <span className="mt-home-brand-icon" aria-hidden="true"><img className="reference-brand-img" src={sproutBrand} alt=""/></span>
       <strong className="mt-home-brand-name">เงินวันนี้</strong>
+      <span className="mt-home-desktop-title">ภาพรวม</span>
       <div className="mt-home-header-actions">
         <button type="button" className="mt-home-header-button" aria-label={pendingCount>0?`การแจ้งเตือน: มีสลิปรอตรวจ ${pendingCount} รายการ`:'การแจ้งเตือน'} onClick={onNotifications}>
           <Bell size={21} strokeWidth={2.1}/>{pendingCount>0&&<span className="mt-home-alert-dot"/>}
