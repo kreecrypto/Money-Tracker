@@ -99,6 +99,14 @@ The store is **IndexedDB**, isolated to the site's origin. CSV exports include d
 
 This code is hosted at https://github.com/kreecrypto/Money-Tracker and production deploys through Vercel on `main`. The application is currently deployed at https://money-tracker-beta-teal.vercel.app/. Visibility is controlled by the Vercel project protection settings.
 
+## AI coding workflow — Ponytail Full
+
+This repository follows [Ponytail](https://github.com/DietrichGebert/ponytail)'s **smallest complete change** approach through [`AGENTS.md`](AGENTS.md). AI coding agents should read that file alongside [`PRODUCT.md`](PRODUCT.md) and [`DESIGN.md`](DESIGN.md) before editing.
+
+Reuse the existing code, browser primitives and current dependencies before adding abstractions. **Never trade away financial validation, slip OCR confidence/duplicate handling, user privacy, data-loss safeguards, accessibility or real iPhone Safari QA for fewer lines.** Check `pnpm test`, `pnpm run typecheck` and `pnpm build` plus relevant preview/device QA before merging.
+
+`AGENTS.md` is a repo-scoped ruleset, **not the installed Ponytail CLI/agent plugin**. For optional mode switching and lifecycle hooks, install the [official plugin](https://github.com/DietrichGebert/ponytail/blob/main/INSTALL.md) in your coding agent separately; no package is added to the shipped app.
+
 ## Repository setup
 
 Clone the existing repository:
