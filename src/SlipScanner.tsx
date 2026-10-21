@@ -35,18 +35,19 @@ type Correction={
   time:string;
   amount:string;
   recipient:string;
+  sender:string;
   direction:EntryType|'';
   method:Method;
   category:string;
 };
 const statusLabels:Record<SlipBatchRow['status'],string>={
-  saved:'บันทึกแล้ว',duplicate:'รายการซ้ำ',incomplete:'รอตรวจข้อมูล',
-  error:'อ่านหรือบันทึกไม่สำเร็จ',cancelled:'ยกเลิกแล้ว',undone:'ยกเลิกการบันทึกแล้ว',excluded:'ไม่นับรายการ',
+  saved:'บันทึกแล้ว',duplicate:'เคยบันทึกแล้ว',incomplete:'ต้องตรวจข้อมูล',
+  error:'ไม่สำเร็จ',cancelled:'ยกเลิกแล้ว',undone:'ยกเลิกการบันทึกแล้ว',excluded:'ไม่นับรายการ',
 };
 const toCorrection=(source:SlipFields):Correction=>({
   source,date:source.date||'',time:source.time||'',
   amount:source.amountSatang===null?'':String(source.amountSatang/100),
-  recipient:source.recipient||'',direction:correctionDirection(source),
+  recipient:source.recipient||'',sender:source.sender||'',direction:correctionDirection(source),
   method:source.method||'bank',category:source.category||'อื่น ๆ',
 });
 async function originalImageHash(file:File):Promise<string|undefined>{
@@ -121,7 +122,7 @@ export default function SlipScanner({onApply,onComplete,onBusyChange,onUndoBatch
   const scanFiles=async(files:File[])=>{
     if(!files.length||runningRef.current)return;
     if(Object.keys(corrections).some(key=>rows[Number(key)]?.status==='incomplete')){
-      setClipboardError('ยังมีสลิปที่รอตรวจ กรุณาตรวจหรือปิดชุดนี้ก่อนเพิ่มชุดใหม่');
+      setClipboardError('ยังมีสลิปที่ต้องตรวจ กรุณาตรวจหรือปิดชุดนี้ก่อนเพิ่มรูปใหม่');
       return;
     }
     setClipboardError('');
@@ -360,7 +361,7 @@ export default function SlipScanner({onApply,onComplete,onBusyChange,onUndoBatch
     }
     const amountSatang=toSatang(draft.amount);
     if(!amountSatang||!draft.recipient.trim()||!draft.date||!draft.time){
-      setCorrectionErrors(previous=>({...previous,[index]:'กรุณาระบุวันที่ เวลา จำนวนเงิน และชื่อผู้รับให้ครบ'}));
+      setCorrectionErrors(previous=>({...previous,[index]:'กรุณาตรวจจำนวนเงิน วันที่ เวลา และชื่อผู้รับให้ครบก่อนบันทึก'}));
       return;
     }
     setFixingIndex(index);
@@ -371,6 +372,7 @@ export default function SlipScanner({onApply,onComplete,onBusyChange,onUndoBatch
       const keepReceipt=!!receipt&&receipt.itemsComplete&&receipt.paidSatang===amountSatang&&!receiptReconciliationError(receipt);
       const corrected:SlipFields={
         ...draft.source,amountSatang,date:draft.date,time:draft.time,recipient:draft.recipient.trim(),
+        sender:draft.sender.trim()||null,
         direction:draft.direction,directionReason:'ผู้ใช้ตรวจและยืนยันข้อมูลจากสลิป',
         method:draft.method,category:draft.category,
         source:keepReceipt?draft.source.source:undefined,
@@ -432,8 +434,8 @@ export default function SlipScanner({onApply,onComplete,onBusyChange,onUndoBatch
   const savedTotals=savedSlipTotals(rows);
   const needsAttention=Object.entries(corrections).filter(([index])=>rows[Number(index)]?.status==='incomplete');
   return <section className="slip-panel slip-panel-primary slip-workspace" aria-label="อัปโหลดสลิปหรือใบเสร็จหลายรูป">
-    <div className="slip-head"><div><ScanLine size={18}/><strong>เพิ่มสลิปหรือใบเสร็จ</strong></div></div>
-    {!busy&&!complete&&<p className="slip-hint">อ่านข้อมูลและบันทึกอัตโนมัติ หากอ่านไม่ครบจะแจ้งให้ตรวจ</p>}
+    <div className="slip-head"><div><ScanLine size={18}/><strong>อัปโหลดสลิปหรือใบเสร็จ</strong></div></div>
+    {!busy&&!complete&&<p className="slip-hint">ระบบจะอ่านและบันทึกข้อมูลที่ครบถ้วนให้ทันที หากข้อมูลไม่ชัดเจนจะแจ้งให้ตรวจ</p>}
     {!busy&&(!complete||needsAttention.length===0)&&<div className="slip-upload-box">
       <div className="slip-upload-icon" aria-hidden="true"><img className="reference-slip-art" src={slipArt} alt=""/></div>
       <strong>{complete?'เพิ่มรูปอีกชุด':'เลือกรูปสลิป'}</strong>
@@ -459,8 +461,8 @@ export default function SlipScanner({onApply,onComplete,onBusyChange,onUndoBatch
     {preview&&(busy||complete)&&<figure className="slip-preview ref-ocr-evidence"><img src={preview} alt={busy?'รูปสลิปที่กำลังประมวลผล':'รูปสลิปใบล่าสุดของชุดที่เลือก'}/><figcaption>{filename} · แสดงเฉพาะระหว่างเปิดหน้านี้ ไม่เก็บรูปถาวร</figcaption></figure>}
     {complete&&<div className={'slip-batch-summary ref-ocr-results'+(summary.incomplete+summary.errors>0?' requires-review':'')} role="status" aria-live="polite">
       <div className="slip-batch-summary-title">{summary.incomplete+summary.errors>0?<AlertTriangle size={18}/>:<CheckCircle2 size={18}/>}<strong>{slipBatchHeading(summary)}</strong></div>
-      <div className="slip-batch-counts"><span>บันทึกแล้ว<b>{summary.saved}</b></span><span>ซ้ำ<b>{summary.duplicate}</b></span><span>รอตรวจ<b>{summary.incomplete}</b></span><span>อ่านไม่สำเร็จ<b>{summary.errors}</b></span>{(summary.excluded||0)>0&&<span>ไม่นับรายการ<b>{summary.excluded}</b></span>}</div>
-       <p className="slip-batch-note">บันทึกแล้ว: อยู่ในรายการ · ซ้ำ: ไม่เพิ่มรายการใหม่ · รอตรวจ: ยังไม่รวมยอดเงิน</p>
+      <div className="slip-batch-counts"><span>บันทึกแล้ว<b>{summary.saved}</b></span><span>เคยบันทึก<b>{summary.duplicate}</b></span><span>ต้องตรวจ<b>{summary.incomplete}</b></span><span>อ่านไม่สำเร็จ<b>{summary.errors}</b></span>{(summary.excluded||0)>0&&<span>ไม่นับรายการ<b>{summary.excluded}</b></span>}</div>
+       <p className="slip-batch-note">บันทึกแล้ว: รวมในยอดเงิน · เคยบันทึกแล้ว: ไม่เพิ่มรายการซ้ำ · ต้องตรวจ: ยังไม่รวมยอดเงิน</p>
       {summary.saved>0&&<div className="slip-batch-totals" aria-label="ยอดที่บันทึกแยกประเภทรายการ">
         <div className="slip-batch-total"><span>รายรับที่บันทึก</span><strong>฿{baht(savedTotals.incomeSatang)}</strong></div>
         <div className="slip-batch-total"><span>รายจ่ายที่บันทึก</span><strong>฿{baht(savedTotals.expenseSatang)}</strong></div>
@@ -471,7 +473,7 @@ export default function SlipScanner({onApply,onComplete,onBusyChange,onUndoBatch
       {(summary.undone||0)>0&&<p className="slip-batch-note">ยกเลิกการบันทึกแล้ว {summary.undone} รายการ</p>}
       {summary.saved>0&&<button type="button" className="btn btn-secondary slip-undo" disabled={undoing} onClick={()=>void undoSaved()}><Undo2 size={16}/>{undoing?'กำลังยกเลิกรายการ…':'ลบรายการที่เพิ่งบันทึก ('+summary.saved+')'}</button>}
       {correctionErrors[-1]&&<p role="alert" className="error-message">{correctionErrors[-1]}</p>}
-      {summary.queued>0&&<p className="slip-queued-note" role="status">เก็บรอตรวจ {summary.queued} รูป · กลับมาตรวจได้จากหน้ารายการ โปรดเก็บรูปต้นฉบับไว้ใน Photos</p>}
+      {summary.queued>0&&<p className="slip-queued-note" role="status">เก็บข้อมูลรอตรวจ {summary.queued} รูปไว้ในอุปกรณ์นี้แล้ว · ยังไม่รวมยอดเงิน โปรดเก็บรูปต้นฉบับไว้ใน Photos</p>}
       {summary.saved>0&&summary.incomplete===summary.queued&&<button type="button" className={'btn '+(needsAttention.length>0?'btn-secondary':'btn-primary')+' slip-batch-finish'} onClick={()=>onViewSaved(rows.find(row=>row.status==='saved')?.date||'')}>ดูรายการที่บันทึก</button>}
       {needsAttention.length>0&&<button type="button" className="btn btn-primary slip-batch-finish" onClick={()=>attentionRef.current?.scrollIntoView({behavior:window.matchMedia('(prefers-reduced-motion: reduce)').matches?'auto':'smooth',block:'start'})}>ตรวจ {needsAttention.length} รายการที่ยังไม่บันทึก</button>}
       <button type="button" className={'btn '+(needsAttention.length>0?'btn-secondary':'btn-primary')+' slip-batch-finish'} disabled={undoing} onClick={onClose}>{needsAttention.length>0?'ปิดและตรวจภายหลัง':'เสร็จสิ้น'}</button>
@@ -483,12 +485,12 @@ export default function SlipScanner({onApply,onComplete,onBusyChange,onUndoBatch
         {row.amountSatang!==undefined&&<b className="slip-result-amount">฿{baht(row.amountSatang)}</b>}
         <span className={'slip-batch-status '+row.status}>{statusLabels[row.status]}</span>
         {row.reason&&row.status!=='saved'&&<small className="slip-result-reason">{row.reason}</small>}
-        {row.status==='incomplete'&&corrections[i]&&<button type="button" className="slip-result-fix" onClick={()=>focusReview(i)}>ตรวจยอดเงินจากสลิป <Check size={16}/></button>}
+        {row.status==='incomplete'&&corrections[i]&&<button type="button" className="slip-result-fix" onClick={()=>focusReview(i)}>ตรวจและแก้ไขข้อมูล <Check size={16}/></button>}
       </li>)}</ul>
     </div>}
     {needsAttention.length>0&&<div ref={attentionRef} className="slip-attention" aria-label="แก้ไขสลิปที่อ่านไม่ครบ">
       <div className="slip-attention-title"><ScanLine size={19}/><strong>ข้อมูลที่อ่านได้จากสลิป · โปรดตรวจสอบ</strong></div>
-      <p>ตรวจวันที่ ยอดเงิน และประเภทรายการก่อนบันทึก หรือกลับมาที่ “รายการ → รอตรวจจากสลิป” (กรุณาเก็บรูปต้นฉบับไว้ เพราะระบบไม่เก็บรูปสำหรับดูภายหลัง)</p>
+      <p>ตรวจจำนวนเงิน วันที่ เวลา และประเภทให้ถูกต้องก่อนบันทึก หรือเลือกตรวจภายหลังได้จากหน้า “รายการ → รอตรวจจากสลิป” โปรดเก็บรูปต้นฉบับไว้ด้วย</p>
       {needsAttention.map(([rawIndex,draft])=>{
         const index=Number(rawIndex);
         return <div id={'slip-review-'+index} key={rawIndex} className="slip-attention-card">
@@ -503,7 +505,8 @@ export default function SlipScanner({onApply,onComplete,onBusyChange,onUndoBatch
             <label><span className="slip-field-title"><CalendarDays size={16}/> วันที่</span><input type="date" value={draft.date} onChange={e=>changeCorrection(index,{date:e.target.value})}/></label>
             <label><span className="slip-field-title"><Clock3 size={16}/> เวลา</span><input type="time" value={draft.time} onChange={e=>changeCorrection(index,{time:e.target.value})}/></label>
             <label className="slip-attention-wide"><span className="slip-field-title"><UserRound size={16}/> ชื่อผู้รับตามสลิป / ร้านค้า</span><input value={draft.recipient} maxLength={160} onChange={e=>changeCorrection(index,{recipient:e.target.value})}/></label>
-            {draft.source.sender&&<p className="slip-ocr-party-hint slip-attention-wide">ชื่อผู้โอนที่ OCR อ่านได้: {draft.source.sender}</p>}
+            {draft.direction==='income'&&<label className="slip-attention-wide"><span className="slip-field-title"><UserRound size={16}/> ชื่อผู้โอนเงิน</span><input value={draft.sender} maxLength={160} onChange={e=>changeCorrection(index,{sender:e.target.value})} placeholder="ชื่อคนหรือบริษัทที่โอนให้"/></label>}
+            {draft.direction!=='income'&&draft.source.sender&&<p className="slip-ocr-party-hint slip-attention-wide">ชื่อผู้โอนที่อ่านได้: {draft.source.sender}</p>}
             {draft.direction&&<label className="slip-attention-wide"><span className="slip-field-title"><Tag size={16}/> หมวดหมู่</span><select value={draft.category} onChange={e=>changeCorrection(index,{category:e.target.value})}>{(draft.direction==='income'?INCOME_CATEGORIES:EXPENSE_CATEGORIES).map(category=><option key={category} value={category}>{category}</option>)}</select></label>}
           </div>
           {correctionErrors[index]&&<p className="error-message" role="alert">{correctionErrors[index]}</p>}

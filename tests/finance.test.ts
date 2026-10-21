@@ -13,6 +13,7 @@ describe('finance math',()=>{
    const transfer={...i,sender:'ผู้โอนเงิน',recipient:'ผู้รับเงิน'};
    expect(transactionDisplayName(transfer)).toBe('ผู้โอนเงิน');
    expect(transactionDisplayName({...transfer,type:'expense'})).toBe('ผู้รับเงิน');
+   expect(transactionDisplayName({...transfer,sender:undefined,note:''})).toBe(transfer.category);
    expect(transactionDisplayName({...i,sender:undefined,recipient:undefined,note:'รับเงิน'})).toBe('รับเงิน');
  });
 });

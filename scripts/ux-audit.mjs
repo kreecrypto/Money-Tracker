@@ -153,7 +153,7 @@ try {
       });
       await scan(page,'pending-slip-review-form',name);
       await page.locator('.pending-slip-form select').first().selectOption('expense');
-      await page.getByRole('button',{name:'บันทึกรายการนี้'}).click();
+      await page.getByRole('button',{name:'บันทึกและรวมในยอดเงิน'}).click();
       await page.waitForTimeout(250);
       const pendingAfter=await page.locator('.pending-slip-card').count();
       await page.getByRole('button',{name:'บันทึกแล้ว'}).click();

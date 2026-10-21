@@ -5,19 +5,29 @@ import type {EntryType} from '../../src/lib/finance.js';
 
 export type OCRDraft={
   type:EntryType|null;amount_satang:number|null;transaction_date:string|null;
+  transaction_time:string|null;recipient:string|null;
   category:string;note:string;method:'bank';source_label:string;bank_fingerprint:string|null;
 };
 export function extractBankDraft(raw:string):OCRDraft {
   const notice=parseBankNotice(raw);
-  const bankLike=/(?:KBank|K PLUS|กสิกร|SCB|ไทยพาณิชย์|Krungthai|กรุงไทย|ยอดเงินคงเหลือ|รายการโอน\/ถอน|จากบัญชี)/i.test(raw);
-  // Bank alerts may display large balances; NEVER fall back to generic currency parsing.
-  const slip=bankLike?null:parseSlipText(raw);
-  const bank=notice?.bank==='kbank'?'KBank':bankLike?'แจ้งเตือนธนาคาร':'สลิป/ภาพ';
-  const validAmount=notice?.amountSatang??slip?.amountSatang??null;
-  const date=notice?.date??slip?.date??null;
+  // K PLUS transfer images are not KBank Live notifications. The old bankLike
+  // exclusion discarded their entire receipt parser, including amounts.
+  // Only parse an actual K PLUS payment/transfer receipt; do not parse a
+  // balance-only banking screenshot with the generic currency fallback.
+  const isKplusReceipt=/(?:K\s*PLUS|กสิกรไทย|ธ\.?กสิกรไทย|KBank)/iu.test(raw)&&
+    /(?:โอนเงินสำเร็จ|จ่ายบิลสำเร็จ|ชำระเงินสำเร็จ|เติมเงินสำเร็จ|โอนสำเร็จ)/u.test(raw);
+  const slip=isKplusReceipt?parseSlipText(raw):null;
+  // Never use a bank notice fallback to override missing or conflicting K PLUS
+  // slip data. Missing fields remain pending for user confirmation.
+  const validAmount=slip?slip.amountSatang:notice?.amountSatang??null;
+  const date=slip?slip.date:notice?.date??null;
+  const time=slip?slip.time:notice?.time??null;
+  const recipient=slip?slip.recipient:null;
+  const type=slip?slip.direction:notice?.type??null;
+  const bank=isKplusReceipt||notice?.bank==='kbank'?'KBank':'แจ้งเตือนธนาคาร';
   return {
-    type:notice?.type??null,
-    amount_satang:validAmount,transaction_date:date,
+    type,amount_satang:validAmount,transaction_date:date,
+    transaction_time:time,recipient,
     category:'อื่น ๆ',note:bank+' (ตรวจสอบก่อนบันทึก)',
     method:'bank',source_label:bank,
     bank_fingerprint:notice?.fingerprintSource||null

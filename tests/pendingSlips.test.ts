@@ -83,6 +83,21 @@ describe('persistent local slip review draft',()=>{
     expect(matchingPendingBySlipHash([old,another],undefined)).toEqual([]);
   });
 
+  it('preserves the incoming sender in review while accepting older local drafts',()=>{
+    const slip=sample();
+    slip.sender='บริษัท ตัวอย่าง จำกัด';
+    slip.direction='income';
+    const pending=makePendingSlip(slip,'incoming.png','ต้องตรวจ','incoming',1000);
+    expect(pending.sender).toBe('บริษัท ตัวอย่าง จำกัด');
+    expect(isValidPendingSlip(pending)).toBe(true);
+    expect(pendingToSlipFields(pending).sender).toBe('บริษัท ตัวอย่าง จำกัด');
+    const old={...pending};
+    delete old.sender;
+    expect(isValidPendingSlip(old)).toBe(true);
+    expect(pendingToSlipFields(old).sender).toBeUndefined();
+    expect(isValidPendingSlip({...pending,sender:123})).toBe(false);
+  });
+
   it('rejects malformed snapshots and arbitrary private payloads',()=>{
     const p=makePendingSlip(sample(),'a.png','incomplete','id',100);
     expect(isValidPendingSlip({...p,imageHash:'not-sha'})).toBe(false);

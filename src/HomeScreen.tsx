@@ -134,9 +134,9 @@ function TransactionDetail({value,onClose}:{
      <div className="mt-home-detail-heading"><h2 id="mt-home-detail-title">รายละเอียดรายการ</h2><button type="button" onClick={onClose} aria-label="ปิดรายละเอียด">×</button></div>
      <strong className={value.type==='income'?'is-income':'is-expense'}>{value.type==='income'?'+':'−'} ฿ {baht(value.amountSatang)}</strong>
      <dl>
-       <div><dt>คู่รายการ</dt><dd>{transactionDisplayName(value)}</dd></div>
-       {value.sender&&<div><dt>ผู้โอนเงิน</dt><dd>{value.sender}</dd></div>}
-       {value.recipient&&<div><dt>ผู้รับเงินบนสลิป</dt><dd>{value.recipient}</dd></div>}
+       <div><dt>{value.type==='income'?(value.sender?'ผู้โอนเงิน':'รายละเอียดรายการ'):'ผู้รับเงิน / ร้านค้า'}</dt><dd>{transactionDisplayName(value)}</dd></div>
+       {value.type==='expense'&&value.sender&&<div><dt>ผู้โอนเงิน</dt><dd>{value.sender}</dd></div>}
+       {value.type==='income'&&value.recipient&&<div><dt>ผู้รับเงินบนสลิป</dt><dd>{value.recipient}</dd></div>}
        <div><dt>วันที่และเวลา</dt><dd>{shortDate(value.date,value.time)}</dd></div>
        <div><dt>ประเภท</dt><dd>{value.type==='income'?'รายรับ':'รายจ่าย'}</dd></div>
        <div><dt>หมวดหมู่</dt><dd>{value.category}</dd></div>
@@ -201,7 +201,7 @@ export default function HomeScreen({
             <b className={tx.type==='income'?'is-income':'is-expense'}>{tx.type==='income'?'+':'−'} ฿ {baht(tx.amountSatang)}</b>
           </button>)}
         </div>
-       :<div className="mt-home-empty"><Wallet size={22}/><p>ยังไม่มีรายการในเดือนนี้</p></div>}
+       :<div className="mt-home-empty"><Wallet size={22}/><p>ยังไม่มีรายการในเดือนนี้</p><small>เริ่มบันทึกได้ด้วยปุ่มอัปโหลดสลิปด้านบน</small></div>}
     </section>
     {detail&&<TransactionDetail value={detail} onClose={closeDetail}/>}
   </div>;

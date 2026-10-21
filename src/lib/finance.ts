@@ -57,8 +57,10 @@ export const CATEGORY_ICONS: Record<string,string> = {
 export function transactionDisplayName(
   t: Pick<Transaction,'type'|'sender'|'recipient'|'note'|'category'>
 ): string {
-  const primary=t.type==='income'?t.sender?.trim():t.recipient?.trim();
-  return primary||t.recipient?.trim()||t.sender?.trim()||t.note?.trim()||t.category;
+  // An incoming slip's recipient may be the account owner, not the payer.
+  // Never display that recipient as the counterparty when sender OCR is missing.
+  if(t.type==='income')return t.sender?.trim()||t.note?.trim()||t.category;
+  return t.recipient?.trim()||t.sender?.trim()||t.note?.trim()||t.category;
 }
 export const formatter = new Intl.NumberFormat('th-TH', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 export const baht = (satang:number) => formatter.format(satang/100);

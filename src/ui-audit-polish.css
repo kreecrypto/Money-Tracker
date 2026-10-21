@@ -173,3 +173,9 @@
 @media(prefers-reduced-motion:reduce) {
   .report-trend-breakdown * { transition: none !important; }
 }
+
+/* UX feedback states: warning/error must never look like a saved success. */
+.toast.toast-warning { background: #6b4c20; color: #fff; }
+.toast.toast-error { background: #8d3030; color: #fff; }
+.toast.toast-warning svg, .toast.toast-error svg { flex: 0 0 auto; }
+.toast span { overflow-wrap: anywhere; }
