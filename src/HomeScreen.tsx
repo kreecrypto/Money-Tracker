@@ -18,6 +18,12 @@ type Props={
   onMonthChange:(month:string)=>void;
   onUpload:()=>void;
   onTransactions:()=>void;
+  pendingSlipCount:number;
+  pendingIphoneCount:number;
+  needsOwnerName:boolean;
+  onPendingSlips:()=>void;
+  onPendingIphone:()=>void;
+  onSetupOwner:()=>void;
 };
 
 export function HomeTopbar({pendingCount,onNotifications,onSettings}:{
@@ -149,7 +155,9 @@ function TransactionDetail({value,onClose}:{
 
 export default function HomeScreen({
   month,monthLabel,net,income,expense,recent,
-  onMonthChange,onUpload,onTransactions
+  onMonthChange,onUpload,onTransactions,
+  pendingSlipCount,pendingIphoneCount,needsOwnerName,
+  onPendingSlips,onPendingIphone,onSetupOwner
 }:Props){
   const [detail,setDetail]=useState<Transaction|null>(null);
   const detailTriggerRef=useRef<HTMLButtonElement|null>(null);
@@ -191,6 +199,20 @@ export default function HomeScreen({
       <span className="mt-home-camera"><Camera size={25} strokeWidth={2.7}/></span>
       <span><strong>อัปโหลดสลิป</strong><small>เลือกรูปหรือถ่ายสลิป</small></span>
     </button>
+    {needsOwnerName&&<section className="mt-home-setup" aria-label="ตั้งค่าการอ่านสลิป">
+      <div><strong>ช่วยแยกเงินเข้า–ออกให้แม่นยำ</strong><p>เพิ่มชื่อบัญชีของคุณก่อนอ่านสลิป</p></div>
+      <button type="button" onClick={onSetupOwner}>ตั้งชื่อบัญชี <ArrowRight size={16}/></button>
+    </section>}
+    {(pendingSlipCount>0||pendingIphoneCount>0)&&<section className="mt-home-pending" aria-label="รายการที่ต้องตรวจ">
+      {pendingSlipCount>0&&<div className="mt-home-pending-row">
+        <div><strong>รอตรวจจากสลิป {pendingSlipCount} รายการ</strong><p>ยังไม่รวมในยอดเงินรายเดือน</p></div>
+        <button type="button" onClick={onPendingSlips}>ตรวจรายการ <ArrowRight size={16}/></button>
+      </div>}
+      {pendingIphoneCount>0&&<div className="mt-home-pending-row">
+        <div><strong>รอตรวจจาก iPhone {pendingIphoneCount} รายการ</strong><p>ต้องตรวจข้อมูลก่อนนำเข้ารายการ</p></div>
+        <button type="button" onClick={onPendingIphone}>ตรวจรายการ <ArrowRight size={16}/></button>
+      </div>}
+    </section>}
     <section className="surface transactions-surface mt-home-recent" aria-label="รายการล่าสุด">
       <div className="mt-home-section-heading"><h2>รายการล่าสุด</h2><button type="button" onClick={onTransactions}>ดูทั้งหมด <ArrowRight size={15}/></button></div>
       {recent.length?
