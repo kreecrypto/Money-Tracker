@@ -5,6 +5,8 @@ on:
   pull_request:
     branches: [main]
     types: [opened, reopened, synchronize, edited, ready_for_review]
+  issues:
+    types: [opened, reopened]
   workflow_dispatch:
 
 permissions:
@@ -34,7 +36,7 @@ jobs:
           {
             echo "## Money Tracker mandatory workflow"
             echo ""
-            echo "Read `AGENTS.md` and `docs/PROJECT_WORKFLOW.md` at the start of **every task**."
+            echo 'Read `AGENTS.md` and `docs/PROJECT_WORKFLOW.md` at the start of **every task**.'
             echo ""
             echo "00 Prioritize -> 01 Inspect -> 02 Plan/Skills -> 03 Implement -> 04 Tests -> 05 UX/WebKit -> 06 PR/CI -> 07 Preview/Staging -> 08 Real-device/Security -> 09 Approve -> 10 Merge -> 11 Verify Production -> 12 Smoke/Report."
             echo ""
