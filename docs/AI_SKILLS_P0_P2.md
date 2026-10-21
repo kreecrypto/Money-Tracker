@@ -1,5 +1,10 @@
 # Money Tracker AI Skills rollout — P0–P2
 
+## Required project delivery workflow
+
+Before acting on any P0/P1/P2 issue, **read `docs/PROJECT_WORKFLOW.md`** (and root `AGENTS.md`) and execute its stages 00–12 with accurate tests and blockers. These issue priorities organize work; they do not override financial/privacy or release gates.
+
+
 **Plan status: in progress, not a Production release.** This document concerns *agent development workflows*, not the broader feature-version priorities in `docs/ROADMAP.md`. Canonical product/design rules remain `PRODUCT.md`, `DESIGN.md`, and `AGENTS.md`. Last reviewed 2026-10-21.
 
 | Priority | Agent workflow | Already present | Next gate | Issue |
