@@ -61,7 +61,7 @@ function importKplusEmailNotices() {
     var ok=0, skipped=0, failures=0;
     messages.forEach(function(msg) {
       var from=msg.getFrom();
-      var addr=(from.match(/<([^>]+)>/)||[])[1] || from;
+      var addr=(from.match(/(?:^|[\s<])([^\s<>]+@[^\s<>]+)>?\s*$/)||[])[1] || '';
       if (addr.trim().toLowerCase()!=='kplus@kasikornbank.com') {skipped++;return;}
       var payload={
         messageId:msg.getId(),
