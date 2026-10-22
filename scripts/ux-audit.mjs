@@ -62,6 +62,8 @@ try {
     const errors=[];
     page.on('pageerror',e=>errors.push(e.message));
     await page.goto(base,{waitUntil:'networkidle'});
+    // IndexedDB initialization may finish after Vite/networkidle on a fresh audit profile.
+    await page.locator('.mt-home-screen .mt-home-balance').waitFor({state:'visible',timeout:10000});
     await scan(page,'home',name);
     if(width<=660){
       const mobileHome=await page.evaluate(()=>{
