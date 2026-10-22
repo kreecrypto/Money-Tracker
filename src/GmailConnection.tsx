@@ -18,6 +18,14 @@ export default function GmailConnection(){
     setView({state:'ready',value:data,message:''});
   };
   useEffect(()=>{
+    const reason=new URLSearchParams(window.location.search).get('gmail');
+    const errorText:Record<string,string>={
+      state_error:'ลิงก์เชื่อม Gmail หมดเวลา กรุณาลองใหม่',
+      authorization_failed:'Google ยังไม่ได้อนุญาตให้เชื่อม Gmail',
+      identity_failed:'ยืนยันบัญชี Google ไม่สำเร็จ',
+      connection_failed:'เชื่อม Gmail ไม่สำเร็จ กรุณาลองใหม่'
+    };
+    const message=reason?errorText[reason]||'':'';
     let active=true;
     void fetch('/api/gmail/connection',{cache:'no-store',credentials:'same-origin'})
       .then(async response=>{
@@ -25,7 +33,7 @@ export default function GmailConnection(){
         return await response.json() as ConnectionState;
       })
       .then(data=>{
-        if(active)setView({state:'ready',value:data,message:''});
+        if(active)setView({state:'ready',value:data,message});
       })
       .catch(()=>{
         if(active)setView({state:'error',value:blank,message:'ตรวจสถานะ Gmail ไม่สำเร็จ'});
