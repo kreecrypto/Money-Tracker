@@ -56,13 +56,34 @@ try {
   await ready();
   try{browser=await chromium.launch({headless:true,channel:'chrome',args:['--no-sandbox']});}
   catch{browser=await chromium.launch({headless:true,args:['--no-sandbox']});}
-  for(const [name,width,height] of [['mobile320',320,700],['mobile375',375,812],['iphone390',390,844],['mobile430',430,932],['tablet768',768,1024],['desktop1280',1280,800]]){
+  for(const [name,width,height] of [['mobile320',320,700],['mobile375',375,812],['iphone390',390,844],['mobile430',430,932],['rail740',740,900],['tablet768',768,1024],['rail980',980,900],['desktop1280',1280,800]]){
     const context=await browser.newContext({viewport:{width,height},deviceScaleFactor:1,isMobile:width<700,hasTouch:width<700});
     const page=await context.newPage();
     const errors=[];
     page.on('pageerror',e=>errors.push(e.message));
     await page.goto(base,{waitUntil:'networkidle'});
     await scan(page,'home',name);
+    // Visual stress: render very long numeric labels without touching IndexedDB
+    // or finance logic, and ensure both normal and large reading mode fit.
+    if(width<=430){
+      const homeNumbers=await page.evaluate(()=>{
+        const nodes=[...document.querySelectorAll('.mt-home-total,.mt-home-split>strong')];
+        const original=nodes.map(el=>el.textContent);
+        nodes.forEach(el=>{el.textContent='฿12,345,678.90';});
+        const measure=()=>{
+          const vw=document.documentElement.clientWidth;
+          return {overflow:Math.max(0,document.documentElement.scrollWidth-vw),
+            clipped:nodes.some(el=>el.scrollWidth>el.clientWidth+1)};
+        };
+        const normal=measure();
+        document.documentElement.dataset.readingSize='large';
+        const large=measure();
+        document.documentElement.dataset.readingSize='normal';
+        nodes.forEach((el,i)=>{el.textContent=original[i];});
+        return {normal,large};
+      });
+      record('home-long-amounts',name,homeNumbers);
+    }
     if(width<=660){
       const mobileHome=await page.evaluate(()=>{
         const el=name=>document.querySelector(name)?.getBoundingClientRect();
@@ -109,7 +130,7 @@ try {
           && await page.locator('#report-trends').count()===0;
         await tabs.nth(0).click();
         const overview=await page.locator('#report-spending').isVisible()
-          && await page.locator('#report-budget').isVisible()
+          && await page.locator('#report-budget').count()===0
           && await page.locator('#report-trends').count()===0;
         const noOverlay=width>660 || await page.locator('.mobile-fab').isHidden();
         record('report-view-switch',name,{count,trendOnly,budgetOnly,categoryOnly,overview,noOverlay,pageErrors:errors});
@@ -139,7 +160,7 @@ try {
         });
       });
       await page.reload({waitUntil:'networkidle'});
-      const homeBadge=await page.locator('.pending-home-alert').isVisible();
+      const homeBadge=await page.locator('.mt-home-pending-row').filter({hasText:'รอตรวจจากสลิป'}).isVisible();
       await page.locator('.mobile-bottom-nav button').nth(1).click();
       await page.getByRole('button',{name:/รอตรวจจากสลิป/}).click();
       const pendingBefore=await page.locator('.pending-slip-card').count();
@@ -164,11 +185,15 @@ try {
     }
     // The mobile scan shortcut intentionally lives on the Saved ledger only.
     if(width<=660)await page.locator('.mobile-bottom-nav button').nth(1).click();
-    const add=page.locator(width<=660?'.mobile-fab':'.top-add');
+    const emptyLedger=await page.locator('.transaction-page .empty button').isVisible().catch(()=>false);
+    if(width<=660&&emptyLedger&&await page.locator('.mobile-fab').count()!==0)throw new Error('Empty ledger must not render a duplicate scan FAB');
+    const add=page.locator(width>660?'.top-add':emptyLedger?'.transaction-page .empty button':'.mobile-fab');
     await add.click({timeout:3500});
     const slipDefault=await page.locator('.modal .slip-panel').isVisible();
     const uploadPrimary=await page.getByRole('button',{name:'เลือกรูป',exact:true}).isVisible();
-    const autoSaveNext=await page.getByText('2 อ่านข้อมูลจากสลิป').isVisible() && await page.getByText('3 บันทึกหรือรอตรวจ').isVisible();
+    const autoSaveNext=await page.locator('.slip-hint').isVisible()
+      && /บันทึกอัตโนมัติเมื่อข้อมูลครบ/.test(await page.locator('.slip-hint').innerText())
+      && /อ่านไม่ครบจะเก็บไว้รอตรวจ/.test(await page.locator('.slip-hint').innerText());
     const multiSelectable=await page.locator('input[aria-label="เลือกรูปสลิปหลายรูป"]').evaluate(el=>el instanceof HTMLInputElement&&el.multiple);
     const batchLimitVisible=await page.getByText(/สูงสุด 20 รูป/).isVisible();
     const uploadControls=await page.evaluate(()=>{
@@ -223,6 +248,7 @@ try {
 
     // The destructive flow is exercised against a disposable audit browser only.
     // Verify deliberate confirmation and that no local records/pairing survive.
+    await page.locator('.settings-advanced-data > summary').click();
     await page.locator('.data-delete-btn').click();
     const deleteDialog=page.locator('.local-reset-modal');
     await deleteDialog.waitFor();
@@ -268,12 +294,13 @@ try {
     ||(x.view==='pending-queue-smoke'&&(!x.homeBadge||x.pendingBefore!==1||x.pendingAfter!==0||!x.savedVisible||!x.fabHidden||!x.bottomNavHidden||x.pageErrors?.length))
     ||(x.view==='restore-smoke'&&(!x.initiallyDisabled||!x.enabledAfterAcknowledgement||!x.closed||x.pageErrors?.length))
     ||(x.view==='local-reset-smoke'&&(!x.initiallyDisabled||!x.enabledAfterAcknowledgement||!x.dialogClosed||x.wiped?.transactions!==0||x.wiped?.pending!==0||x.wiped?.paired||x.pageErrors?.length))
+    ||(x.view==='home-long-amounts'&&(x.normal?.overflow>0||x.normal?.clipped||x.large?.overflow>0||x.large?.clipped))
     ||(x.view==='mobile-home-actions'&&(!x.correctHierarchy||x.quickActionCount!==0||!x.noDuplicateActions||!x.bottomNavVisible||!x.openedOCR||x.pageErrors?.length))
     ||(x.view==='report-view-switch'&&(x.count!==4||!x.trendOnly||!x.budgetOnly||!x.categoryOnly||!x.overview||!x.noOverlay||x.pageErrors?.length))
     ||(x.view==='competitive-ledger-smoke'&&(!x.ledgerAvailable||!x.resetVisible||!x.searchReset||x.pageErrors?.length))
   ).map(x=>({viewport:x.viewport,view:x.view,overflowPx:x.overflowPx,axe:x.axe?.violations?.map(v=>v.id),savedVisible:x.savedVisible,restore:[x.initiallyDisabled,x.enabledAfterAcknowledgement,x.closed]}));
   if(critical.length){console.error('UX_ACCEPTANCE_FAIL',JSON.stringify(critical));process.exitCode=1;}
-  else console.log('UX_ACCEPTANCE_PASS: 6 viewport, minimal home, slip-first, manual fallback, save, restore, responsive and WCAG scans');
+  else console.log('UX_ACCEPTANCE_PASS: 8 viewport, stress-tested grid, minimal home, slip-first, manual fallback, save, restore, responsive and WCAG scans');
 } catch (err) {
   console.error('UX AUDIT FAILURE',err);
   process.exitCode=1;

@@ -94,8 +94,9 @@ try{
     await page.locator('.modal-heading button').click();
     await page.locator('.mobile-bottom-nav button').nth(2).click();
     const reportOverview=await page.locator('.reference-report-summary .metric').count()===3
-      &&await page.locator('.reference-overview-trends').isVisible()
-      &&await page.locator('.ref-report-spending').isVisible();
+      &&await page.locator('.ref-report-spending').isVisible()
+      &&await page.locator('#report-budget').count()===0
+      &&await page.locator('.reference-overview-trends').count()===0;
     await page.screenshot({path:`${directory}/${label}-report-overview.png`,fullPage:true});
     await page.locator('.ref-report-tabs button').nth(2).click();
     const trendsOnly=await page.locator('#report-trends').isVisible()&&await page.locator('#report-budget').count()===0;

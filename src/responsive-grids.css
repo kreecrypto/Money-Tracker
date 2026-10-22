@@ -226,3 +226,79 @@
 @media(prefers-reduced-motion:reduce) {
   .main-content *, .mt-home-screen * { scroll-behavior:auto; }
 }
+
+/* 2026-10-21 Grid QA P0–P2.
+   Scopes layout to its real available area; no transaction or OCR semantics change. */
+
+/* P0: Home header/body use the same 16px safe-area-aware inset as other views.
+   Earlier :has() Home rules with !important were overriding the grid contract. */
+.mt-home-desktop-title { display:none; }
+@media(max-width:660px) {
+  .app-shell .main-content:has(.mt-home-screen) {
+    padding-left:max(var(--mt-grid-margin), env(safe-area-inset-left,0px))!important;
+    padding-right:max(var(--mt-grid-margin), env(safe-area-inset-right,0px))!important;
+  }
+  .app-shell .topbar.topbar-home.home-v2-topbar {
+    padding-left:max(var(--mt-grid-margin), env(safe-area-inset-left,0px))!important;
+    padding-right:max(var(--mt-grid-margin), env(safe-area-inset-right,0px))!important;
+  }
+  /* When the ledger has rows, keep the last row scrollable above the scan FAB.
+     The empty state already contains a primary upload button, so no FAB there. */
+  .app-shell:has(.mobile-fab) .transaction-page {
+    padding-bottom:calc(76px + env(safe-area-inset-bottom,0px));
+  }
+}
+/* P1: Reserve a complete line for long signed values on the smallest phones. */
+.mt-home-screen .mt-home-split>strong,
+.reference-report-summary .metric-number {
+  min-width:0;
+  font-variant-numeric:tabular-nums;
+  overflow-wrap:anywhere;
+  white-space:normal;
+}
+@media(max-width:360px) {
+  /* Two evenly split financial cards turn into a comfortable one-per-row grid.
+     Retain 4 explicit tracks for the established mobile grid contract. */
+  .mt-home-screen .mt-home-balance-splits > .mt-home-split { grid-column:1/-1; }
+  .mt-home-screen .mt-home-balance-splits { row-gap:7px; }
+  .mt-home-screen .mt-home-split { padding:7px 12px; }
+  .mt-home-screen .mt-home-split>strong { font-size:16px; }
+  .reference-report-summary > .metric,
+  .reference-report-summary > .metric.net { grid-column:1/-1; }
+  .reference-report-summary .metric-number { font-size:clamp(21px,7vw,26px); }
+  /* All four report views remain visible instead of tiny 4-up Thai tabs. */
+  .ref-report-tabs { grid-template-columns:repeat(2,minmax(0,1fr));gap:6px; }
+  .ref-report-tabs button { min-height:48px;padding:9px 6px; }
+}
+/* P1: Between phone and tablet breakpoints, align left rail + page heading. */
+@media(min-width:661px) and (max-width:767px) {
+  .app-body > .topbar { padding-inline:24px; }
+  .main-content { padding-inline:24px; }
+  .transaction-page .list-tools > .search-box,
+  .transaction-page .list-tools > .filter-tabs { grid-column:1/-1; }
+}
+/* P1: Do not squeeze two tall settings forms, reports or 3 filter chips into
+   narrow regions when the sidebar expands from 76px to 210px at 931px. */
+@media(min-width:768px) and (max-width:1099px) {
+  .settings-grid > *,
+  .settings-grid > .reading-preference-card,
+  .two-column > *,
+  .report-panels > * { grid-column:1/-1; }
+}
+@media(min-width:931px) and (max-width:1023px) {
+  .transaction-page .list-tools > .search-box,
+  .transaction-page .list-tools > .filter-tabs { grid-column:1/-1; }
+}
+/* P2: Better use desktop workspace without duplicating the app identity
+   already present in the sidebar. Keep mobile brand untouched. */
+@media(min-width:1200px) {
+  .mt-home-topbar,.mt-home-screen,.mt-home-below { max-width:960px;width:100%; }
+  .mt-home-brand-icon,.mt-home-brand-name { display:none; }
+  .mt-home-desktop-title {
+    display:block;color:#101f1b;font-size:23px;font-weight:800;line-height:1.45;
+  }
+}
+/* Protect the 16px/14px reading modes and long Thai labels from shrinkage. */
+.mt-home-setup > div,.mt-home-pending-row > div,
+.transaction-page .transaction-copy,
+.transaction-page .transaction-end { min-width:0; }
