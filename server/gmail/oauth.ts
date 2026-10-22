@@ -132,7 +132,7 @@ async function db(query:string,method:'GET'|'POST'|'DELETE',body?:object,prefer=
     ...(body?{body:JSON.stringify(body)}:{}),cache:'no-store',signal:AbortSignal.timeout(12000)
   });
   if(!response.ok)throw new Error('GMAIL_STORAGE_'+response.status);
-  if(prefer==='return=minimal')return [];
+  if(prefer.includes('return=minimal'))return [];
   return await response.json() as GmailLink[];
 }
 export async function persistConnection(profile:{sub:string;email:string},refresh:string,session:string,config:Config):Promise<void>{
