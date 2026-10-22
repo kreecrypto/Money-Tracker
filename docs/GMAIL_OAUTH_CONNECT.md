@@ -50,3 +50,20 @@ Implementation is **only on a reviewed feature branch** until approved and deplo
 - [ ] Verified encrypted token at rest, state/PKCE rejection, session boundaries and CSRF protection
 - [ ] Real iPhone Safari OAuth redirect and cookie persistence QA
 - [ ] Explicit finance/security release approval before Production
+
+
+## Direct Gmail API read-only test (same staged PR)
+
+**Selected architecture:** Gmail → Money Tracker API → per-Google-identity ledger → App; no ChatGPT intermediary or Apps Script primary flow.
+
+**Read-only slice (not financial import):**
+- POST /api/gmail/scan requires a valid OAuth cookie, canonical same-origin JSON request and encrypted server-held refresh token.
+- Gmail API messages.list searches the exact K PLUS sender within 30 days (maximum ten messages), then messages.get reads each MIME message.
+- Exact sender plus DKIM authentication evidence for kasikornbank.com is required before any message can be marked Ready.
+- Bounded text/plain body parsed with strict K PLUS parser. Unsupported HTML-only/ambiguous emails remain Pending, and unauthenticated mail is unverified.
+- The browser sees aggregate counts only; no raw financial emails, bank references, account IDs, tokens or amounts are exposed.
+- Home shows a manual test-only button after verified connection. API always responds mode=preview, saved=0; no data is persisted or counted in dashboards.
+
+**Before turning on real auto-import:** configure Google OAuth, test sanitized real income and expense emails and HTML signatures, build user-scoped Supabase transactions plus idempotency and review, reconcile IndexedDB, add secure scheduler, pass isolated staging E2E and Safari QA, obtain restricted-scope approvals and release sign-off.
+
+No production financial writes or schema changes are made in this direct-read slice.

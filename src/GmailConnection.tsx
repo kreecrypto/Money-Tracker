@@ -3,12 +3,15 @@ import {CheckCircle2,Mail,RefreshCw,ShieldCheck,Unlink} from 'lucide-react';
 import './gmail-connection.css';
 
 type ConnectionState={available:boolean;connected:boolean;email?:string;linkedAt?:string};
+type ScanSummary={mode:'preview';scanned:number;recognized:number;ready:number;pending:number;skipped:number;unverified:number;moreAvailable:boolean;saved:number};
 type View={state:'loading'|'ready'|'error';value:ConnectionState;message:string};
 const blank:ConnectionState={available:false,connected:false};
 
 export default function GmailConnection(){
   const [view,setView]=useState<View>({state:'loading',value:blank,message:''});
   const [busy,setBusy]=useState(false);
+  const [scanning,setScanning]=useState(false);
+  const [scan,setScan]=useState<ScanSummary|null>(null);
   const refresh=async()=>{
     const response=await fetch('/api/gmail/connection',{cache:'no-store',credentials:'same-origin'});
     if(!response.ok)throw new Error('ไม่สามารถตรวจสถานะการเชื่อมต่อ Gmail ได้');
@@ -40,9 +43,27 @@ export default function GmailConnection(){
       });
     return()=>{active=false;};
   },[]);
+  const preview=async()=>{
+    if(scanning)return;
+    setScanning(true);setScan(null);
+    try{
+      const response=await fetch('/api/gmail/scan',{
+        method:'POST',headers:{'content-type':'application/json'},
+        credentials:'same-origin',body:'{}',cache:'no-store'
+      });
+      if(!response.ok)throw new Error(response.status===401||response.status===403?
+        'เชื่อม Gmail ใหม่หรืออนุญาตสิทธิ์อ่าน Gmail ก่อนตรวจ':'ตรวจอีเมลยังไม่สำเร็จ');
+      const result=await response.json() as ScanSummary;
+      if(result.mode!=='preview'||!Number.isSafeInteger(result.scanned)||result.scanned<0)
+        throw new Error('ผลตรวจอีเมลไม่ถูกต้อง');
+      setScan(result);
+      setView(s=>({...s,message:''}));
+    }catch(e){setView(s=>({...s,message:e instanceof Error?e.message:'ตรวจอีเมลไม่สำเร็จ'}));}
+    finally{setScanning(false);}
+  };
   const disconnect=async()=>{
     if(busy||!window.confirm('ยกเลิกการเชื่อมต่อ Gmail? รายการที่บันทึกไว้จะยังอยู่'))return;
-    setBusy(true);
+    setBusy(true);setScan(null);
     try{
       const response=await fetch('/api/gmail/connection',{
         method:'POST',headers:{'content-type':'application/json'},
@@ -66,6 +87,14 @@ export default function GmailConnection(){
       <div className="mt-gmail-content">
         <p className="mt-gmail-status"><CheckCircle2 size={16} aria-hidden="true"/> เชื่อมบัญชีแล้ว · {view.value.email||'Gmail'}</p>
         <p className="mt-gmail-subnote">การนำเข้าธุรกรรมอัตโนมัติยังต้องเปิดใช้หลังผ่านการทดสอบ จึงยังไม่แสดงเวลาซิงก์</p>
+        <button className="mt-gmail-primary" type="button" onClick={()=>void preview()} disabled={scanning}>
+          <RefreshCw size={16} aria-hidden="true"/> {scanning?'กำลังตรวจอีเมล':'ทดลองตรวจอีเมล K PLUS'}
+        </button>
+        {scan&&<p className="mt-gmail-subnote" role="status">
+          ตรวจ {scan.scanned} ฉบับ · ข้อมูลครบ {scan.ready} · รอตรวจ {scan.pending} ·
+          ไม่ผ่านการยืนยันผู้ส่ง {scan.unverified} · ไม่รองรับ {scan.skipped}
+          {scan.moreAvailable?' · ยังมีอีเมลอื่นอีก':''} — ทดลองอ่านเท่านั้น ยังไม่บันทึกลงบัญชี
+        </p>}
         <button className="mt-gmail-secondary" type="button" onClick={()=>void disconnect()} disabled={busy}>
           <Unlink size={16} aria-hidden="true"/> {busy?'กำลังยกเลิก':'ยกเลิกการเชื่อมต่อ'}
         </button>
