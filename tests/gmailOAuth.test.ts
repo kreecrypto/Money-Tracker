@@ -11,8 +11,10 @@ beforeEach(()=>{
   vi.stubEnv('GOOGLE_OAUTH_CLIENT_SECRET','synthetic-secret');
   vi.stubEnv('GMAIL_APP_ORIGIN','https://money-tracker.example');
   vi.stubEnv('GMAIL_TOKEN_ENCRYPTION_KEY','a'.repeat(64));
+  vi.stubEnv('SUPABASE_URL','https://oauth-test.supabase.co');
+  vi.stubEnv('SUPABASE_SERVICE_ROLE_KEY','synthetic-test-only-key');
 });
-afterEach(()=>vi.unstubAllEnvs());
+afterEach(()=>{vi.unstubAllGlobals();vi.unstubAllEnvs();});
 
 describe('Gmail OAuth connection security',()=>{
   it('requires every server config value and a safe fixed origin',()=>{
