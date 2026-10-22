@@ -80,3 +80,70 @@ describe('Gmail OAuth connection security',()=>{
     expect(parseCookies(r)).toMatchObject({mt_gmail_session:'abc',mt_gmail_oauth_state:'def'});
   });
 });
+
+
+describe('Google callback and private token storage (synthetic only)',()=>{
+  it('rejects missing CSRF state without contacting Google',async()=>{
+    const {GET:callback}=await import('../api/gmail/oauth/callback');
+    const spy=vi.fn();
+    vi.stubGlobal('fetch',spy);
+    const response=await callback(new Request('https://money-tracker.example/api/gmail/oauth/callback?code=synthetic-authorization-code'));
+    expect(response.status).toBe(302);
+    expect(response.headers.get('location')).toContain('gmail=state_error');
+    expect(spy).not.toHaveBeenCalled();
+    vi.unstubAllGlobals();
+  });
+  it('exchanges code and stores only encrypted refresh token + hashed session',async()=>{
+    const {GET:callback}=await import('../api/gmail/oauth/callback');
+    const cfg=oauthConfig()!;
+    const login=createLogin(cfg),url=new URL(login.url);
+    let persisted:Record<string,unknown>|null=null;
+    const mock=vi.fn(async(input:RequestInfo|URL,init?:RequestInit)=>{
+      const path=String(input);
+      if(path==='https://oauth2.googleapis.com/token')return Response.json({
+        access_token:'synthetic-access-secret',refresh_token:'synthetic-refresh-secret',
+        scope:'openid email https://www.googleapis.com/auth/gmail.readonly'
+      });
+      if(path==='https://openidconnect.googleapis.com/v1/userinfo')return Response.json({
+        sub:'google-user-1234',email:'tester@example.com',email_verified:true
+      });
+      if(path.includes('money_tracker_gmail_connections')){
+        persisted=JSON.parse(String(init?.body)) as Record<string,unknown>;
+        return new Response(null,{status:201});
+      }
+      throw new Error('Unexpected fetch');
+    });
+    vi.stubGlobal('fetch',mock);
+    const request=new Request('https://money-tracker.example/api/gmail/oauth/callback?state='+
+      encodeURIComponent(url.searchParams.get('state')||'')+'&code=synthetic-authorization-code',
+      {headers:{cookie:login.cookie.split(';')[0]}});
+    const response=await callback(request);
+    expect(response.status).toBe(302);
+    expect(response.headers.get('location')).toBe('https://money-tracker.example/?gmail=connected');
+    expect(response.headers.get('set-cookie')).toContain('HttpOnly');
+    expect(persisted).toMatchObject({google_sub:'google-user-1234',email:'tester@example.com'});
+    expect(JSON.stringify(persisted)).not.toContain('synthetic-refresh-secret');
+    expect(String((persisted as Record<string,unknown>|null)?.session_hash)).toMatch(/^[a-f0-9]{64}$/);
+    expect(mock).toHaveBeenCalledTimes(3);
+    vi.unstubAllGlobals();
+  });
+  it('does not persist OAuth session when Gmail read scope is absent',async()=>{
+    const {GET:callback}=await import('../api/gmail/oauth/callback');
+    const login=createLogin(oauthConfig()!),url=new URL(login.url);
+    const mock=vi.fn(async(input:RequestInfo|URL)=>{
+      if(String(input)==='https://oauth2.googleapis.com/token')return Response.json({
+        access_token:'synthetic-access-secret',refresh_token:'synthetic-refresh-secret',scope:'openid email'
+      });
+      throw new Error('Unexpected access after scope rejection');
+    });
+    vi.stubGlobal('fetch',mock);
+    const req=new Request('https://money-tracker.example/api/gmail/oauth/callback?state='+
+      encodeURIComponent(url.searchParams.get('state')||'')+'&code=synthetic-authorization-code',
+      {headers:{cookie:login.cookie.split(';')[0]}});
+    const response=await callback(req);
+    expect(response.status).toBe(302);
+    expect(response.headers.get('location')).toContain('gmail=authorization_failed');
+    expect(mock).toHaveBeenCalledTimes(1);
+    vi.unstubAllGlobals();
+  });
+});
