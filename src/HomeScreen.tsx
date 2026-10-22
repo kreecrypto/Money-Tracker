@@ -7,6 +7,7 @@ import {
 } from 'lucide-react';
 import {baht, METHODS, transactionDisplayName, type Transaction} from './lib/finance';
 import sproutBrand from './assets/brand-sprout.svg';
+import GmailConnection from './GmailConnection';
 
 type Props={
   month:string;
@@ -187,6 +188,7 @@ export default function HomeScreen({
         </div>
       </div>
     </section>
+    <GmailConnection/>
     <button className="ref-home-upload mobile-action-scan mt-home-upload" type="button" onClick={onUpload}>
       <span className="mt-home-camera"><Camera size={25} strokeWidth={2.7}/></span>
       <span><strong>อัปโหลดสลิป</strong><small>เลือกรูปหรือถ่ายสลิป</small></span>
