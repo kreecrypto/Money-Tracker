@@ -35,7 +35,7 @@ export function HomeTopbar({pendingCount,onNotifications,onSettings}:{
       <strong className="mt-home-brand-name">เงินวันนี้</strong>
       <span className="mt-home-desktop-title">ภาพรวม</span>
       <div className="mt-home-header-actions">
-        <button type="button" className="mt-home-header-button" aria-label={pendingCount>0?`การแจ้งเตือน: มีสลิปรอตรวจ ${pendingCount} รายการ`:'การแจ้งเตือน'} onClick={onNotifications}>
+        <button type="button" className="mt-home-header-button" aria-label={pendingCount>0?`การแจ้งเตือน: มีรายการรอตรวจ ${pendingCount} รายการ`:'การแจ้งเตือน'} onClick={onNotifications}>
           <Bell size={21} strokeWidth={2.1}/>{pendingCount>0&&<span className="mt-home-alert-dot"/>}
         </button>
         <button type="button" className="mt-home-avatar" aria-label="ตั้งค่าของฉัน" onClick={onSettings}><CircleUserRound size={23}/></button>
@@ -201,17 +201,17 @@ export default function HomeScreen({
       <span><strong>อัปโหลดสลิป</strong><small>เลือกรูปหรือถ่ายสลิป</small></span>
     </button>
     {needsOwnerName&&<section className="mt-home-setup" aria-label="ตั้งค่าการอ่านสลิป">
-      <div><strong>ช่วยแยกเงินเข้า–ออกให้แม่นยำ</strong><p>เพิ่มชื่อบัญชีของคุณก่อนอ่านสลิป</p></div>
-      <button type="button" onClick={onSetupOwner}>ตั้งชื่อบัญชี <ArrowRight size={16}/></button>
+      <div><strong>ช่วยแยกเงินเข้า–ออกให้แม่นยำ</strong><p>เพิ่มชื่อที่ปรากฏบนสลิป เพื่อช่วยแยกรายรับและรายจ่าย</p></div>
+      <button type="button" onClick={onSetupOwner}>เพิ่มชื่อของฉัน <ArrowRight size={16}/></button>
     </section>}
     {(pendingSlipCount>0||pendingIphoneCount>0)&&<section className="mt-home-pending" aria-label="รายการที่ต้องตรวจ">
       {pendingSlipCount>0&&<div className="mt-home-pending-row">
         <div><strong>รอตรวจจากสลิป {pendingSlipCount} รายการ</strong><p>ยังไม่รวมในยอดเงินรายเดือน</p></div>
-        <button type="button" onClick={onPendingSlips}>ตรวจรายการ <ArrowRight size={16}/></button>
+        <button type="button" aria-label={`ตรวจสลิปที่รอตรวจ ${pendingSlipCount} รายการ`} onClick={onPendingSlips}>ตรวจรายการ <ArrowRight size={16}/></button>
       </div>}
       {pendingIphoneCount>0&&<div className="mt-home-pending-row">
         <div><strong>รอตรวจจาก iPhone {pendingIphoneCount} รายการ</strong><p>ต้องตรวจข้อมูลก่อนนำเข้ารายการ</p></div>
-        <button type="button" onClick={onPendingIphone}>ตรวจรายการ <ArrowRight size={16}/></button>
+        <button type="button" aria-label={`ตรวจรายการจาก iPhone ${pendingIphoneCount} รายการ`} onClick={onPendingIphone}>ตรวจรายการ <ArrowRight size={16}/></button>
       </div>}
     </section>}
     <section className="surface transactions-surface mt-home-recent" aria-label="รายการล่าสุด">
