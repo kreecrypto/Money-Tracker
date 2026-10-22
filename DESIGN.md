@@ -1,7 +1,7 @@
 # Money Tracker — Design System
 
 ## Overview
-**Creative North Star: Quiet Financial Clarity.** Money Tracker should feel like a finished utility on a phone: one primary action, clear real financial values, low-friction navigation, reassuring states and no unnecessary marketing copy. In Impeccable terms each operational screen is in **Operate** mode. Preserve the existing green fintech identity rather than introducing a new dashboard template. The Home visual hierarchy is **monthly net → income/expense → upload slip → recent transactions**. Use spacing to group information rather than nested cards.
+**Creative North Star: Quiet Financial Clarity.** Money Tracker should feel like a finished utility on a phone: one primary action, clear real financial values, low-friction navigation, reassuring states and no unnecessary marketing copy. In Impeccable terms each operational screen is in **Operate** mode. Preserve the existing green fintech identity rather than introducing a new dashboard template. The target Email-first Home visual hierarchy is **monthly net → income/expense → actual Gmail connection/sync status or setup → Pending review → recent transactions → secondary slip/manual entry**. The currently deployed slip-first UI remains until the Gmail connection and state are implemented and tested. Use spacing to group information rather than nested cards.
 
 ## Colors
 Use CSS tokens and the current palette as authoritative; the source has older color variants that should be progressively consolidated, not treated as new colors to invent.
@@ -32,14 +32,14 @@ White text belongs only on sufficiently dark green. Secondary copy must maintain
 ## Universal Minimal Accessibility (2026-10-18)
 - Default text is readable without reducing information: 14px body and 12px only for metadata. Prefer 16px on form fields and longer descriptions. Keep financial amounts prominent and use +/− signs in addition to color.
 - Settings offers a per-device **ขนาดปกติ / ตัวอักษรใหญ่** toggle. The large setting increases important supporting text to 14–16px, section headers to 19px, and preserves the four-tab navigation. Never depend on color or icons alone.
-- Keep all primary buttons at least 48px high. Maintain a predictable Home → Transactions → Reports → Settings journey and a single prominent upload action.
+- Keep all primary buttons at least 48px high. Maintain a predictable Home → Transactions → Reports → Settings journey. In the Email-first target, show one prominent *real* Gmail setup/status action when unlinked (or review action when linked); keep slip upload secondary.
 - Test both reading sizes on 320, 375, 390 and 430px Safari/WebKit, including page reload persistence, 0 horizontal overflow, navigation hit sizes, and slip buttons. Test on a real iPhone before Production.
 - The preference is in localStorage `ngoentoday-reading-size-v1` and is cleared when the user deliberately erases device data. Financial data and OCR logic are unchanged.
 
 ## Responsive Grid Contract (2026-10-18)
 - Design is mobile first and non-decorative: **320–767px = 4 columns** (16px page margin, 12px gutter); **768–1199px = 8 columns** (24px margin, 16px gutter); **1200px+ = 12 columns** (32px margin, 24px gutter).
 - The page header and body share one left/right content margin. Child surfaces do not add a separate page gutter. Use `minmax(0,1fr)` on every track and `min-width:0` on financial rows to avoid clipping signed amounts and Thai strings.
-- Home: monthly summary, one primary slip CTA and recent transactions each span the available page; income / expense inside the hero split evenly across two halves.
+- Home (Email-first target): monthly summary, one truthful primary Gmail status/setup surface, Pending review and recent transactions each span the available page. Upload slip and manual add become secondary. Income / expense inside the hero split evenly across two halves.
 - Transactions: search then filter chips stack on narrow phones; use 5/3 tracks on tablet and 8/4 tracks on desktop. Ledger rows retain flexible text + amount to preserve long account names.
 - Reports: monthly metrics occupy 2+2 and net full width on phone, 4+4 and net full width on tablet, 4+4+4 on desktop. Supporting charts use 5/3 or 7/5 split only when wide enough.
 - Upload: camera and gallery buttons each span half of the available scanner width; minimum 48px hit height, no giant flex buttons at 320px.
@@ -53,18 +53,19 @@ Flat by default. Use thin green-tinted borders and white backgrounds instead of 
 - **Topbar**: “เงินวันนี้” identity, accessible notifications and settings controls; 44×44px hit areas.
 - **Monthly summary**: month chooser, monthly net, split income/expense in compact internal white surfaces; no fabricated trends.
 - **Month chooser**: real months, clear selected state, keyboard close and focus restoration; must not overflow the visual viewport.
-- **Primary upload**: visible on Home with one verb; use secondary text only to distinguish camera/gallery choices.
+- **Primary email connection/status** (target): visible on Home with backend-grounded state, masked Gmail identity if actually authorized, actual last sync and actionable setup/reconnect. Do not present an Apps Script setup as one-tap Gmail OAuth; use a truthful setup-guidance action until OAuth exists.
+- **Secondary upload**: keep the existing Home entry and camera/gallery choices accessible but below connection/review priorities.
 - **Recent transactions**: one tappable row per saved entry, icon + counterparty/category + date + signed amount; truncate long titles but avoid clipping values.
 - **Bottom navigation**: exactly four persistent destinations — ภาพรวม, รายการ, รายงาน, ตั้งค่า; no duplicate Home shortcuts.
 - **Slip scanner and Pending**: truthful progress, duplicate and uncertain states; no false completed statuses; privacy/safety warnings remain readable.
-- **Settings**: advanced Shortcut, LINE and build information progressively disclosed, not mixed with daily options.
+- **Settings**: email connection/consent/sync status and disconnect controls are first-class; legacy Shortcut, LINE and build information remain progressively disclosed.
 - **Modal and menu**: focus-visible rings, Escape where appropriate, accessible labels, safe-area awareness and reduced-motion fallback.
 - **Responsive**: 320, 375, 390, 430, 768 and 1280px are QA baselines; iOS Safari must be explicitly checked.
 
 ## Do's and Don'ts
 - **Do** use the existing app's components and visual language as the baseline.
 - **Do** display actual balance semantics: monthly income minus expense is a monthly net, not necessarily a bank balance.
-- **Do** keep upload/OCR visible and status messaging concise.
+- **Do** keep upload/OCR available as a secondary fallback, while Gmail connection status and Pending actions take priority in the Email-first target UI.
 - **Do** keep typography legible, touch controls comfortably sized and layouts tolerant of Thai names and long amounts.
 - **Do** test browser rendering and GitHub CI before Production release.
 - **Don't** invent account balances, banks, transactions, charts, accuracy rates or example data in production.
