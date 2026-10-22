@@ -60,8 +60,8 @@ Use the current green, quiet-finance design language and the existing 4-tab navi
 
 ## Rollout priorities
 P0: financial correctness, inbound/outbound parser evidence, duplicate/idempotency, secure ingestion, Pending, isolated staging.
-P1: truthful mail connection and sync UI, user-scoped cloud ledger, paginated incremental sync, verified on-device iPhone Safari behavior.
-P2: in-app Google OAuth integration for self-service linking subject to Google verification constraints; other banks/providers; advanced categorization and analytics.
+P1: real in-app Google OAuth for self-service Gmail linking (subject to restricted-scope verification and security requirements), truthful connection/sync UI, user-scoped cloud ledger, paginated incremental sync, verified on-device iPhone Safari behavior.
+P2: other email providers and banks after format validation; advanced categorization, notification and analytics.
 
 ## Brand and UI constraints
 - Name: **เงินวันนี้**; minimal mobile-first, green/white, high contrast, Thai-first.
