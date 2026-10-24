@@ -62,6 +62,8 @@ try {
     const errors=[];
     page.on('pageerror',e=>errors.push(e.message));
     await page.goto(base,{waitUntil:'networkidle'});
+    // Initial IndexedDB hydration can complete after networkidle on a fresh mobile context.
+    await page.locator('.home-dashboard').waitFor({state:'visible',timeout:15000});
     await scan(page,'home',name);
     if(width<=660){
       const mobileHome=await page.evaluate(()=>{
