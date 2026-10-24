@@ -62,7 +62,21 @@ try {
     const errors=[];
     page.on('pageerror',e=>errors.push(e.message));
     await page.goto(base,{waitUntil:'networkidle'});
+    // Initial IndexedDB hydration can complete after networkidle on a fresh mobile context.
+    await page.locator('.home-dashboard').waitFor({state:'visible',timeout:15000});
     await scan(page,'home',name);
+    // Secretary smoke: verify real rendered chips, separated pending queues and answer state.
+    const assistant=page.locator('.accounting-secretary');
+    const assistantVisible=await assistant.isVisible();
+    const questionCount=await assistant.locator('.accounting-secretary-questions button').count();
+    await assistant.getByRole('button',{name:'มีอะไรต้องตรวจบ้าง'}).click();
+    const pendingTitle=await assistant.locator('.accounting-secretary-answer strong').textContent();
+    const pendingMetrics=await assistant.locator('.accounting-secretary-metric').count();
+    await assistant.getByRole('button',{name:'วันนี้ใช้เงินเท่าไร'}).click();
+    record('secretary-mvp',name,{assistantVisible,questionCount,
+      pendingAnswer:pendingTitle?.includes('รายการที่ต้องตรวจ'),pendingMetrics,
+      todaySelected:await assistant.getByRole('button',{name:'วันนี้ใช้เงินเท่าไร'}).getAttribute('aria-pressed')==='true',
+      pageErrors:errors});
     if(width<=660){
       const mobileHome=await page.evaluate(()=>{
         const el=name=>document.querySelector(name)?.getBoundingClientRect();
@@ -253,7 +267,8 @@ try {
   console.log('AXE_DETAILS_START');
   console.log(JSON.stringify(focus.map(x=>({viewport:x.viewport,view:x.view,violations:x.axe?.violations,smallTouchTargets:x.smallTouchTargets})),null,2));
   console.log('AXE_DETAILS_END');
-  const critical=findings.filter(x=>x.view==='navigation-obstruction'
+  const critical=findings.filter(x=>(x.view==='secretary-mvp'&&(!x.assistantVisible||x.questionCount!==4||!x.pendingAnswer||x.pendingMetrics!==2||!x.todaySelected||x.pageErrors?.length))
+    ||x.view==='navigation-obstruction'
     ||x.overflowPx>0
     ||x.gridMain!==x.gridExpected
     ||(x.gridHome!==null&&x.gridHome!==x.gridExpected)
