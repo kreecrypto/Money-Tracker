@@ -1,8 +1,7 @@
 import {useState} from 'react';
 import {ArrowRight,Bot,ClipboardCheck} from 'lucide-react';
-import type {Transaction} from './lib/finance';
-import {secretaryAnswer,type SecretaryQuestion} from './lib/accountingSecretary';
-import {todayLocal} from './lib/finance';
+import {todayLocal,type Transaction} from './lib/finance';
+import {secretaryAnswer,secretaryBriefing,type SecretaryQuestion} from './lib/accountingSecretary';
 import './accounting-secretary.css';
 
 type Props={
@@ -10,8 +9,9 @@ type Props={
   month:string;
   localPending:number;
   iphonePending:number|null;
-  onTransactions:()=>void;
-  onReview:()=>void;
+  onTransactions:(question:SecretaryQuestion)=>void;
+  onReviewLocal:()=>void;
+  onReviewIphone:()=>void;
 };
 const questions:{key:SecretaryQuestion;label:string}[]=[
   {key:'today',label:'วันนี้ใช้เงินเท่าไร'},
@@ -20,14 +20,21 @@ const questions:{key:SecretaryQuestion;label:string}[]=[
   {key:'pending',label:'มีอะไรต้องตรวจบ้าง'},
 ];
 
-export default function AccountingSecretary({items,month,localPending,iphonePending,onTransactions,onReview}:Props){
+export default function AccountingSecretary({items,month,localPending,iphonePending,onTransactions,onReviewLocal,onReviewIphone}:Props){
   const [question,setQuestion]=useState<SecretaryQuestion>('today');
-  const answer=secretaryAnswer(question,items,month,todayLocal(),localPending,iphonePending);
-  const hasPending=localPending>0||(iphonePending!==null&&iphonePending>0);
+  const today=todayLocal();
+  const answer=secretaryAnswer(question,items,month,today,localPending,iphonePending);
+  const briefing=secretaryBriefing(items,today,localPending,iphonePending);
+  const transactionAction=question==='today'?'เปิดรายการเดือนปัจจุบัน':question==='category'&&answer.metrics.length?'เปิดรายการหมวดนี้':'ดูรายการในเดือนที่เลือก';
   return <section className="accounting-secretary surface" aria-label="เลขานักจดบัญชี">
     <div className="accounting-secretary-heading">
       <span className="accounting-secretary-avatar" aria-hidden="true"><Bot size={22}/></span>
-      <div><h2>เลขานักจดบัญชี</h2><p>ถามเรื่องรายรับ–รายจ่ายจากข้อมูลที่บันทึกไว้</p></div>
+      <div><h2>เลขานักจดบัญชี</h2><p>สรุปและตรวจงานจากรายการที่บันทึกในเครื่อง</p></div>
+    </div>
+    <div className="accounting-secretary-briefing">
+      <span>เรื่องที่ควรรู้ตอนนี้</span>
+      <strong>{briefing.title}</strong>
+      <p>{briefing.detail}</p>
     </div>
     <div className="accounting-secretary-questions" role="group" aria-label="คำถามสำเร็จรูป">
       {questions.map(item=><button key={item.key} type="button" className={question===item.key?'is-selected':''} aria-pressed={question===item.key} onClick={()=>setQuestion(item.key)}>{item.label}</button>)}
@@ -35,12 +42,18 @@ export default function AccountingSecretary({items,month,localPending,iphonePend
     <div className="accounting-secretary-answer" aria-live="polite" aria-atomic="true">
       <strong>{answer.title}</strong>
       <p>{answer.detail}</p>
+      {answer.metrics.length>0&&<dl className="accounting-secretary-metrics">
+        {answer.metrics.map(metric=><div key={metric.label} className={'accounting-secretary-metric '+(metric.kind||'')}>
+          <dt>{metric.label}</dt><dd>{metric.value}</dd>
+        </div>)}
+      </dl>}
       <small>{answer.source}</small>
     </div>
     <div className="accounting-secretary-actions">
-      <button type="button" onClick={onTransactions}>ดูรายการที่บันทึก <ArrowRight size={17}/></button>
-      {hasPending&&<button type="button" onClick={onReview}><ClipboardCheck size={17}/> เปิดรายการรอตรวจ</button>}
+      {question!=='pending'&&<button type="button" onClick={()=>onTransactions(question)}>{transactionAction} <ArrowRight size={17}/></button>}
+      {localPending>0&&<button type="button" onClick={onReviewLocal}><ClipboardCheck size={17}/> ตรวจสลิป ({localPending})</button>}
+      {iphonePending!==null&&iphonePending>0&&<button type="button" onClick={onReviewIphone}><ClipboardCheck size={17}/> ตรวจจาก iPhone ({iphonePending})</button>}
     </div>
-    <p className="accounting-secretary-disclaimer">รุ่นเริ่มต้น: คำตอบสำเร็จรูป คำนวณในเครื่อง ไม่ส่งข้อมูลให้ AI ภายนอก และไม่แก้ไขรายการโดยอัตโนมัติ</p>
+    <p className="accounting-secretary-disclaimer">คำตอบสำเร็จรูป ไม่ใช่ AI Chat · คำนวณในเครื่อง · ไม่ส่งข้อมูลให้ AI ภายนอกหรือแก้รายการอัตโนมัติ</p>
   </section>;
 }
