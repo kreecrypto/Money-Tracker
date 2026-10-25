@@ -427,7 +427,7 @@ export default function App(){
           onUpload={openAdd}
           onTransactions={()=>{setInboxTab(false);setSlipInboxTab(false);setView('transactions');}}
         />
-        <div className="mt-home-below"><div className="mt-home-advisory"><div><strong>เริ่มนับรายการ 25 ต.ค. 2569</strong><p>ยอดสรุปรวมเฉพาะรายการตั้งแต่วันเริ่มต้น ประวัติเก่ายังคงอยู่ในไฟล์สำรอง JSON</p></div></div>
+        <div className="mt-home-below"><div className="mt-home-advisory"><div><strong>เริ่มนับรายการ 25 ต.ค. 2569</strong><p>ยอดสรุปรวมเฉพาะรายการตั้งแต่วันเริ่มต้น ข้อมูลเก่ายังอยู่ในเครื่องและสำรองเป็น JSON ได้</p></div></div>
           {(settings.ownerNames||[]).length===0&&<div className="mt-home-advisory"><div><strong>ตั้งชื่อเจ้าของบัญชีก่อนอ่านสลิป</strong><p>ช่วยระบุเงินเข้าและเงินออกให้ตรงกับชื่อบนสลิป</p></div><button type="button" onClick={()=>setView('settings')}>ตั้งชื่อของฉัน <ArrowRight size={16}/></button></div>}
           {pendingSlips.length>0&&<div className="mt-home-advisory mt-home-review pending-home-alert"><div><strong>มีสลิปรอตรวจ {pendingSlips.length} รายการ</strong><p>รายการที่ยังไม่ตรวจจะไม่รวมในยอดเงิน</p></div><button type="button" onClick={openPendingSlips}>ตรวจรายการ <ArrowRight size={16}/></button></div>}
           {items.length>=5&&Date.now()-lastBackupAt>30*24*60*60*1000&&<div className="mt-home-advisory"><div><strong>สำรองข้อมูลการเงิน</strong><p>ข้อมูลในเครื่องอาจสูญหายหากล้างข้อมูลของ Safari</p></div><button type="button" onClick={exportJson}>สำรองข้อมูล</button></div>}
