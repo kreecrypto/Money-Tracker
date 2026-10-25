@@ -44,9 +44,9 @@ export function accountantAudit(items:readonly Transaction[]):AccountantAudit{
       continue;
     }
     outflow.amountSatang+=item.amountSatang;outflow.count++;
-    const key=accountantBucketFor(item)!;
+    const categoryKey=accountantBucketFor(item)!;
     const buckets={debtPayments,walletTopups,needsClassification,otherCategorized};
-    buckets[key].amountSatang+=item.amountSatang;buckets[key].count++;
+    buckets[categoryKey].amountSatang+=item.amountSatang;buckets[categoryKey].count++;
     // Names are used only locally. Matching payments are review suggestions, not duplicates.
     const name=item.recipient?.trim().replace(/\s+/g,' ').toLocaleLowerCase('th-TH');
     if(!name||!item.time||!/^([01]\d|2[0-3]):[0-5]\d$/.test(item.time))continue;
