@@ -111,7 +111,7 @@ try{
         breakdown:bucket.length===5&&bucket[0].includes('20,000.00')&&
           bucket[1].includes('300.00')&&bucket[2].includes('120.00')&&
           bucket[3].includes('7,750.00'),
-        flags:flags.includes('บัตรเครดิต')&&flags.includes('นับซ้ำ')&&flags.includes('ยังระบุวัตถุประสงค์'),
+        flags:flags.includes('ชำระหนี้')&&flags.includes('นับซ้ำ')&&flags.includes('ยังระบุวัตถุประสงค์'),
         subtotalMatches:bucket[4]===moneyString
       };
     });
