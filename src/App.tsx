@@ -1,5 +1,5 @@
 import {useCallback,useEffect,useMemo,useRef,useState,type FormEvent} from 'react';
-import {ArrowDownLeft,ArrowRight,ArrowUpRight,BarChart3,CalendarDays,Check,ScanLine,ChevronLeft,ChevronRight,CloudOff,Download,FileSpreadsheet,Menu,MoreHorizontal,Pencil,Plus,Search,Settings as SettingsIcon,ShieldCheck,Trash2,TrendingDown,Upload,Wallet,WalletCards,X,House,ReceiptText,UtensilsCrossed,ShoppingBag,TrainFront,HandCoins,Ellipsis,} from 'lucide-react';
+import {ArrowDownLeft,ArrowRight,ArrowUpRight,BarChart3,CalendarDays,Check,ScanLine,ChevronLeft,ChevronRight,CloudOff,Download,FileSpreadsheet,Menu,MoreHorizontal,Pencil,Plus,Search,Settings as SettingsIcon,ShieldCheck,Trash2,Upload,Wallet,WalletCards,X,House,ReceiptText,UtensilsCrossed,ShoppingBag,TrainFront,HandCoins,Ellipsis,} from 'lucide-react';
 import {baht,DEFAULT_SETTINGS,EXPENSE_CATEGORIES,expenseByCategory,INCOME_CATEGORIES,lastMonths,METHODS,monthLocal,monthly,summarize,todayLocal,toSatang,transactionDisplayName,type EntryType,type Method,type Settings,type Transaction} from './lib/finance';
 import {deleteTransaction,loadSettings,loadTransactions,replaceAll,saveSettings,saveTransaction,loadPendingSlips,savePendingSlip,deletePendingSlip} from './lib/storage';
 import {makePendingSlip,pendingToSlipFields,matchingPendingBySlipHash,type PendingSlip} from './lib/pendingSlips';
@@ -32,17 +32,6 @@ const navItems=[{key:'home' as const,icon:House,label:'ภาพรวม'},{key
 const monthText=(value:string)=>{const [year,m]=value.split('-').map(Number);return new Intl.DateTimeFormat('th-TH',{month:'long',year:'numeric'}).format(new Date(year,m-1,1));};
 const dateText=(date:string)=>new Intl.DateTimeFormat('th-TH',{day:'numeric',month:'short',year:'numeric'}).format(new Date(`${date}T12:00:00`));
 const percent=(n:number,d:number)=>d<=0?0:Math.round(n/d*100);
-const SPENDING_COLORS=['#16a34a','#fb6674','#3b82f6','#f59e0b','#a855f7'] as const;
-function spendingGradient(totals:readonly number[],grandTotal:number):string{
-  if(grandTotal<=0)return 'conic-gradient(#e8efec 0% 100%)';
-  let cursor=0;
-  const parts=totals.slice(0,4).map((amount,index)=>{
-    const start=cursor;cursor+=Math.max(0,amount)/grandTotal*100;
-    return `${SPENDING_COLORS[index]} ${start.toFixed(3)}% ${Math.min(cursor,100).toFixed(3)}%`;
-  });
-  if(cursor<100)parts.push(`${SPENDING_COLORS[4]} ${cursor.toFixed(3)}% 100%`);
-  return `conic-gradient(${parts.join(',')})`;
-}
 function CategoryGlyph({category,type}:{category:string;type:EntryType}){
   const food=/อาหาร|ข้าว|กาแฟ|เครื่องดื่ม|ร้าน|restaurant|cafe/i.test(category);
   const shop=/ซื้อ|ช้อป|สินค้า|shopping|shopee/i.test(category);
@@ -209,7 +198,6 @@ function EntryModal({initial,existing,startWithScanner,close,submit,submitImport
 }
 export default function App(){
   const [items,setItems]=useState<Transaction[]>([]);const [settings,setSettings]=useState<Settings>(DEFAULT_SETTINGS);
-  const [reportTab,setReportTab]=useState<'overview'|'categories'|'trends'|'budget'>('overview');
   const [accountantBucket,setAccountantBucket]=useState<AccountantBucketKey|null>(null);
   const [view,setView]=useState<Page>('home');const [month,setMonth]=useState(monthLocal());const [modalOpen,setModalOpen]=useState(false);const [scanOnOpen,setScanOnOpen]=useState(false);const [editing,setEditing]=useState<Transaction|null>(null);
   const [updateAvailable,setUpdateAvailable]=useState(false);
@@ -287,7 +275,6 @@ export default function App(){
   useEffect(()=>{if(!toast)return;const id=window.setTimeout(()=>setToast(''),3500);return()=>window.clearTimeout(id);},[toast]);
   const selected=useMemo(()=>monthly(items,month),[items,month]);
   const sums=useMemo(()=>summarize(selected),[selected]);
-  const allSums=useMemo(()=>summarize(items),[items]);
   const byCategory=useMemo(()=>expenseByCategory(selected),[selected]);
   const audit=useMemo(()=>accountantAudit(selected),[selected]);
   const usedBudget=percent(sums.expense,settings.monthlyBudgetSatang);
@@ -425,7 +412,7 @@ export default function App(){
           onTransactions={()=>{setAccountantBucket(null);setInboxTab(false);setSlipInboxTab(false);setView('transactions');}}
         />
         <div className="mt-home-below">
-          {audit.needsClassification.count>0&&<div className="accountant-home-entry"><div><strong>รายการยังไม่แยกประเภท {audit.needsClassification.count.toLocaleString('th-TH')} รายการ</strong><p>ตรวจหมวดเงินออกของเดือนนี้ได้จากรายงาน</p></div><button type="button" onClick={()=>{setReportTab('overview');setView('reports');}}>ตรวจบัญชี <ArrowRight size={16}/></button></div>}
+          {audit.needsClassification.count>0&&<div className="accountant-home-entry"><div><strong>รายการยังไม่แยกประเภท {audit.needsClassification.count.toLocaleString('th-TH')} รายการ</strong><p>ตรวจหมวดเงินออกของเดือนนี้ได้จากรายงาน</p></div><button type="button" onClick={()=>{setView('reports');}}>ตรวจบัญชี <ArrowRight size={16}/></button></div>}
           {(settings.ownerNames||[]).length===0&&<div className="mt-home-advisory"><div><strong>ตั้งชื่อเจ้าของบัญชีก่อนอ่านสลิป</strong><p>ช่วยระบุเงินเข้าและเงินออกให้ตรงกับชื่อบนสลิป</p></div><button type="button" onClick={()=>setView('settings')}>ตั้งชื่อของฉัน <ArrowRight size={16}/></button></div>}
           {pendingSlips.length>0&&<div className="mt-home-advisory mt-home-review pending-home-alert"><div><strong>มีสลิปรอตรวจ {pendingSlips.length} รายการ</strong><p>รายการที่ยังไม่ตรวจจะไม่รวมในยอดเงิน</p></div><button type="button" onClick={openPendingSlips}>ตรวจรายการ <ArrowRight size={16}/></button></div>}
           {items.length>=5&&Date.now()-lastBackupAt>30*24*60*60*1000&&<div className="mt-home-advisory"><div><strong>สำรองข้อมูลการเงิน</strong><p>ข้อมูลในเครื่องอาจสูญหายหากล้างข้อมูลของ Safari</p></div><button type="button" onClick={exportJson}>สำรองข้อมูล</button></div>}
@@ -433,17 +420,23 @@ export default function App(){
         </div>
       </>}
             {view==='transactions'&&<>
-        {(pendingSlips.length>0||(iphonePending!==null&&iphonePending>0)||slipInboxTab||inboxTab)&&<div className="inbox-view-tabs" role="group" aria-label="หมวดรายการ">
+        <div className="inbox-view-tabs accountant-ledger-tabs" role="group" aria-label="สมุดบัญชี">
           <button type="button" className={!inboxTab&&!slipInboxTab?'active':''} aria-pressed={!inboxTab&&!slipInboxTab} onClick={()=>{setInboxTab(false);setSlipInboxTab(false);}}>บันทึกแล้ว</button>
-          <button type="button" className={slipInboxTab?'active':''} aria-pressed={slipInboxTab} onClick={()=>{setInboxTab(false);setSlipInboxTab(true);}}>
-            รอตรวจจากสลิป {pendingSlips.length>0?`(${pendingSlips.length})`:''}
+          <button type="button" className={inboxTab||slipInboxTab?'active':''} aria-pressed={inboxTab||slipInboxTab} onClick={()=>{setInboxTab(false);setSlipInboxTab(true);}}>
+            รอตรวจ {pendingSlips.length+(iphonePending||0)>0?`(${pendingSlips.length+(iphonePending||0)})`:''}
           </button>
-          <button type="button" className={inboxTab?'active':''} aria-pressed={inboxTab} onClick={()=>{setInboxTab(true);setSlipInboxTab(false);}}>
-            รอตรวจจาก iPhone {iphonePending!==null&&iphonePending>0?`(${iphonePending})`:''}
-          </button>
-        </div>}
-        {slipInboxTab?<PendingSlipsInbox items={pendingSlips} onSave={savePendingTransaction} onKeep={keepPendingDraft} onDiscard={discardPendingDraft} onAdd={openAdd}/>:
-         inboxTab?<IPhoneShortcutSettings variant="review" onImported={reload} onPendingChanged={setIphonePending}/>:
+        </div>
+        {(inboxTab||slipInboxTab)?<div className="accountant-review-inbox">
+          <div className="accountant-inbox-intro"><h2>งานรอตรวจ</h2><p>รวบรวมรายการจากสลิปและ iPhone ไว้ที่เดียว · ยังไม่รวมในยอดบัญชี</p></div>
+          <details className="accountant-queue" open={slipInboxTab}>
+            <summary>สลิปในเครื่อง <span>{pendingSlips.length} รายการ</span><ChevronRight size={18} aria-hidden="true"/></summary>
+            <div className="accountant-queue-content"><PendingSlipsInbox items={pendingSlips} onSave={savePendingTransaction} onKeep={keepPendingDraft} onDiscard={discardPendingDraft} onAdd={openAdd}/></div>
+          </details>
+          <details className="accountant-queue" open={inboxTab}>
+            <summary>จาก iPhone Cloud <span>{iphonePending===null?'ยังไม่เชื่อมต่อ':`${iphonePending} รายการ`}</span><ChevronRight size={18} aria-hidden="true"/></summary>
+            <div className="accountant-queue-content"><IPhoneShortcutSettings variant="review" onImported={reload} onPendingChanged={setIphonePending}/></div>
+          </details>
+        </div>:
       <>{accountantBucket&&<div className="accountant-filter-banner" role="status"><span>กำลังดู: {ACCOUNTANT_BUCKET_LABELS[accountantBucket]} · {filtered.length.toLocaleString('th-TH')} รายการ</span><button type="button" onClick={()=>{setAccountantBucket(null);setFilter('all');setSearch('');}}>ดูทั้งหมด</button></div>}<details className="transaction-month-summary"><summary>สรุปยอดรายรับ–รายจ่ายเดือนนี้</summary><div className="transaction-financial-summary" aria-label="สรุปรายรับรายจ่ายของเดือนที่เลือก"><div className="transaction-summary-income"><span>รายรับ <ArrowDownLeft size={18}/></span><strong>฿{baht(sums.income)}</strong></div><div className="transaction-summary-expense"><span>รายจ่าย <ArrowUpRight size={18}/></span><strong>฿{baht(sums.expense)}</strong></div></div></details><section className="surface transaction-page"><div className="list-tools"><div className="search-box"><Search size={19}/><input type="search" aria-label="ค้นหารายการ" placeholder="ค้นหาชื่อร้าน หมวดหมู่ หรือรหัสอ้างอิง" value={search} onChange={e=>setSearch(e.target.value)}/>{search&&<button className="search-clear" type="button" aria-label="ล้างคำค้นหา" onClick={()=>setSearch('')}><X size={16}/></button>}</div><div className="filter-tabs" aria-label="กรองประเภทรายการ">{([['all','ทั้งหมด'],['income','รายรับ'],['expense','รายจ่าย']] as const).map(([key,label])=><button key={key} className={filter===key?'selected':''} aria-pressed={filter===key} onClick={()=>{setAccountantBucket(null);setFilter(key);}}>{label}</button>)}</div></div><div className="list-count">{filtered.length} รายการ{filtered.length!==selected.length?` จาก ${selected.length}`:""}{(search||filter!=='all'||accountantBucket)&&<button className="filter-reset" type="button" onClick={()=>{setSearch('');setFilter('all');setAccountantBucket(null);}}>ล้างตัวกรอง</button>}</div>{filtered.length?<TxList items={filtered} onEdit={onEdit} onDelete={onDelete} groupByDay/>:<Empty icon="🔎" title={selected.length?'ไม่พบรายการตามเงื่อนไข':'ยังไม่มีรายการในเดือนนี้'} description={selected.length?'ลองล้างคำค้นหาหรือตัวกรองเพื่อดูรายการทั้งหมด':'สแกนสลิปหรือเพิ่มรายการแรกของเดือนนี้'} add={selected.length===0?openAdd:()=>{setSearch('');setFilter('all');}} actionLabel={selected.length?'ล้างตัวกรอง':'เพิ่มสลิป'}/>}</section></>
         }
       </>}
