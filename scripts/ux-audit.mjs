@@ -62,6 +62,8 @@ try {
     const errors=[];
     page.on('pageerror',e=>errors.push(e.message));
     await page.goto(base,{waitUntil:'networkidle'});
+    // IndexedDB initialization is async: audit the real Home, not its temporary loading screen.
+    await page.locator('.home-dashboard').waitFor({timeout:15000});
     await scan(page,'home',name);
     if(width<=660){
       const mobileHome=await page.evaluate(()=>{
@@ -77,7 +79,7 @@ try {
          categoryIcons:await page.locator('.money-category-icon').count(),
          pageErrors:errors});
     }
-    const menu=['รายการ','รายงาน','ตั้งค่า'];
+    const menu=['สมุดบัญชี','ตรวจบัญชี','ตั้งค่า'];
     const views=['transactions','reports','settings'];
     for(let i=0;i<menu.length;i++){
       const buttons=page.locator(width<=660?'.mobile-bottom-nav button':'.sidebar .nav-item').nth(i+1);
@@ -93,24 +95,18 @@ try {
         await buttons.evaluate(el=>el.click());
       }
       await scan(page,views[i],name);
-      if(i===1) {
-        const tabs=page.locator('.ref-report-tabs button');
+      if(i===1){
+        const tabs=page.locator('.accountant-report-disclosure>summary');
         const count=await tabs.count();
-        await tabs.nth(2).click();
-        const trendOnly=await page.locator('#report-trends').isVisible()
-          && await page.locator('#report-spending').count()===0
-          && await page.locator('#report-budget').count()===0;
-        await tabs.nth(3).click();
-        const budgetOnly=await page.locator('#report-budget').isVisible()
-          && await page.locator('#report-trends').count()===0;
-        await tabs.nth(1).click();
-        const categoryOnly=await page.locator('#report-spending').isVisible()
-          && await page.locator('#report-budget').count()===0
-          && await page.locator('#report-trends').count()===0;
+        const overview=await page.locator('.accountant-review').isVisible()
+          && await page.locator('#report-trends').isHidden()
+          && await page.locator('#report-budget').isHidden();
         await tabs.nth(0).click();
-        const overview=await page.locator('#report-spending').isVisible()
-          && await page.locator('#report-budget').isVisible()
-          && await page.locator('#report-trends').count()===0;
+        const trendOnly=await page.locator('#report-trends').isVisible()
+          && await page.locator('#report-budget').isHidden();
+        await tabs.nth(1).click();
+        const budgetOnly=await page.locator('#report-budget').isVisible();
+        const categoryOnly=await page.locator('.category-surface').isVisible();
         const noOverlay=width>660 || await page.locator('.mobile-fab').isHidden();
         record('report-view-switch',name,{count,trendOnly,budgetOnly,categoryOnly,overview,noOverlay,pageErrors:errors});
       }
@@ -141,7 +137,7 @@ try {
       await page.reload({waitUntil:'networkidle'});
       const homeBadge=await page.locator('.pending-home-alert').isVisible();
       await page.locator('.mobile-bottom-nav button').nth(1).click();
-      await page.getByRole('button',{name:/รอตรวจจากสลิป/}).click();
+      await page.locator('.accountant-ledger-tabs button').nth(1).click();
       const pendingBefore=await page.locator('.pending-slip-card').count();
       await page.getByRole('button',{name:'ตรวจและแก้ไข'}).click();
       const pendingReviewChrome=await page.evaluate(()=>{
@@ -200,7 +196,7 @@ try {
     if(state.modalOpen) await page.locator('.modal .modal-heading button').first().evaluate(el=>el.click());
     await page.evaluate(()=>{
       const nav=innerWidth<=660?document.querySelector('.mobile-bottom-nav'):document.querySelector('.sidebar');
-      const target=Array.from(nav?.querySelectorAll('button')||[]).find(x=>['รายการ','รายการทั้งหมด'].includes(x.textContent?.trim()||''));
+      const target=Array.from(nav?.querySelectorAll('button')||[]).find(x=>['สมุดบัญชี'].includes(x.textContent?.trim()||''));
       target?.click();
     });
     await page.waitForTimeout(180);
@@ -269,9 +265,9 @@ try {
     ||(x.view==='restore-smoke'&&(!x.initiallyDisabled||!x.enabledAfterAcknowledgement||!x.closed||x.pageErrors?.length))
     ||(x.view==='local-reset-smoke'&&(!x.initiallyDisabled||!x.enabledAfterAcknowledgement||!x.dialogClosed||x.wiped?.transactions!==0||x.wiped?.pending!==0||x.wiped?.paired||x.pageErrors?.length))
     ||(x.view==='mobile-home-actions'&&(!x.correctHierarchy||x.quickActionCount!==0||!x.noDuplicateActions||!x.bottomNavVisible||!x.openedOCR||x.pageErrors?.length))
-    ||(x.view==='report-view-switch'&&(x.count!==4||!x.trendOnly||!x.budgetOnly||!x.categoryOnly||!x.overview||!x.noOverlay||x.pageErrors?.length))
+    ||(x.view==='report-view-switch'&&(x.count!==2||!x.trendOnly||!x.budgetOnly||!x.categoryOnly||!x.overview||!x.noOverlay||x.pageErrors?.length))
     ||(x.view==='competitive-ledger-smoke'&&(!x.ledgerAvailable||!x.resetVisible||!x.searchReset||x.pageErrors?.length))
-  ).map(x=>({viewport:x.viewport,view:x.view,overflowPx:x.overflowPx,axe:x.axe?.violations?.map(v=>v.id),savedVisible:x.savedVisible,restore:[x.initiallyDisabled,x.enabledAfterAcknowledgement,x.closed]}));
+  ).map(x=>({viewport:x.viewport,view:x.view,overflowPx:x.overflowPx,axe:x.axe?.violations?.map(v=>v.id),savedVisible:x.savedVisible,saveState:x.saveState,reportChecks:{count:x.count,trend:x.trendOnly,budget:x.budgetOnly,categories:x.categoryOnly,overview:x.overview,overlay:x.noOverlay},restore:[x.initiallyDisabled,x.enabledAfterAcknowledgement,x.closed]}));
   if(critical.length){console.error('UX_ACCEPTANCE_FAIL',JSON.stringify(critical));process.exitCode=1;}
   else console.log('UX_ACCEPTANCE_PASS: 6 viewport, minimal home, slip-first, manual fallback, save, restore, responsive and WCAG scans');
 } catch (err) {

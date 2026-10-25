@@ -31,6 +31,9 @@ try{
       const day=todayLocal();
       await saveTransaction({id:'safari-fixture-income',type:'income',amountSatang:3240000,date:day,category:'เงินเดือน',note:'เงินเข้าทดสอบ',method:'bank',createdAt:Date.now()-5000});
       await saveTransaction({id:'safari-fixture-expense',type:'expense',amountSatang:775000,date:day,category:'อาหารและเครื่องดื่ม',note:'อาหารทดสอบ',method:'bank',createdAt:Date.now()});
+      await saveTransaction({id:'safari-fixture-debt',type:'expense',amountSatang:2000000,date:day,category:'ผ่อนชำระ/หนี้',note:'ชำระบัตรเครดิตทดสอบ',method:'bank',createdAt:Date.now()-3000});
+      await saveTransaction({id:'safari-fixture-wallet',type:'expense',amountSatang:30000,date:day,category:'อื่น ๆ',note:'เติมเงิน K PLUS (Gmail) | หมวดย่อย: เติมเงิน e-Wallet/มือถือ',method:'bank',createdAt:Date.now()-2000});
+      await saveTransaction({id:'safari-fixture-unknown',type:'expense',amountSatang:12000,date:day,category:'อื่น ๆ',note:'โอนทดสอบ ต้องตรวจ',method:'bank',createdAt:Date.now()-1000});
     });
     await page.reload({waitUntil:'networkidle'});
     await page.locator('.mt-home-transaction').first().waitFor({timeout:10000});
@@ -48,6 +51,11 @@ try{
     });
     const brandLoaded=await page.locator('.mt-home-brand-icon img').evaluate(img=>img.complete&&img.naturalWidth>0);
     await page.screenshot({path:`${directory}/${label}-home.png`,fullPage:true});
+    const homeAuditEntryVisible=await page.locator('.accountant-home-entry button').isVisible();
+    if(homeAuditEntryVisible)await page.locator('.accountant-home-entry button').click();
+    const homeAuditEntryReached=await page.locator('#accountant-review-title').isVisible();
+    await page.locator('.mobile-bottom-nav button').first().click();
+    const homeAuditEntryReturned=await page.locator('.mt-home-month-picker').isVisible();
     // The V2 prototype month menu must not be clipped by the green card.
     await page.locator('.mt-home-month-picker').click();
     const monthOptions=await page.locator('.mt-home-month-popover [role="option"]').count();
@@ -70,6 +78,13 @@ try{
     const transactions=await page.locator('.transaction-financial-summary>div').count();
     const list=await page.locator('.transaction-page').isVisible();
     await page.screenshot({path:`${directory}/${label}-transactions.png`,fullPage:true});
+    const ledgerTabCount=await page.locator('.accountant-ledger-tabs button').count();
+    await page.locator('.accountant-ledger-tabs button').nth(1).click();
+    const unifiedPending=await page.locator('.accountant-review-inbox').isVisible()
+      &&await page.locator('.accountant-queue').count()===2
+      &&await page.locator('.accountant-queue').first().getAttribute('open')!==null;
+    await page.locator('.accountant-ledger-tabs button').first().click();
+    const returnToLedger=await page.locator('.transaction-page').isVisible();
     await page.locator('.mobile-fab').click();
     const scanner=await page.locator('.slip-upload-box').isVisible();
     const compactUploadButtons=await page.locator('.slip-upload-box .slip-actions .btn').evaluateAll(buttons=>
@@ -94,20 +109,50 @@ try{
     await page.locator('.modal-heading button').click();
     await page.locator('.mobile-bottom-nav button').nth(2).click();
     const reportOverview=await page.locator('.reference-report-summary .metric').count()===3
-      &&await page.locator('.reference-overview-trends').isVisible()
-      &&await page.locator('.ref-report-spending').isVisible();
+      &&await page.locator('.accountant-review').isVisible()
+      &&await page.locator('.accountant-report-disclosure').count()===2
+      &&await page.locator('#report-trends').isHidden()
+      &&await page.locator('#report-budget').isHidden();
+    const accountant=await page.evaluate(()=>{
+      const card=document.querySelector('.accountant-review');
+      if(!card)return {visible:false,breakdown:false,flags:false,subtotalMatches:false};
+      const bucket=Array.from(card.querySelectorAll('.accountant-review-ledger>div'))
+        .map(el=>el.querySelector('strong')?.textContent?.trim()||'');
+      const moneyString='฿'+new Intl.NumberFormat('th-TH',{minimumFractionDigits:2,maximumFractionDigits:2}).format((775000+2000000+30000+12000)/100);
+      const flags=card.querySelector('.accountant-review-flags')?.textContent||'';
+      return {
+        visible:card.getBoundingClientRect().width>0,
+        breakdown:bucket.length===5&&bucket[0].includes('20,000.00')&&
+          bucket[1].includes('300.00')&&bucket[2].includes('120.00')&&
+          bucket[3].includes('7,750.00'),
+        flags:flags.includes('ชำระหนี้')&&flags.includes('นับซ้ำ')&&flags.includes('ยังระบุวัตถุประสงค์'),
+        subtotalMatches:bucket[4]===moneyString
+      };
+    });
     await page.screenshot({path:`${directory}/${label}-report-overview.png`,fullPage:true});
-    await page.locator('.ref-report-tabs button').nth(2).click();
-    const trendsOnly=await page.locator('#report-trends').isVisible()&&await page.locator('#report-budget').count()===0;
+    // Follow the real Reports → uncertain outflow → Transactions → clear filter journey.
+    await page.locator('.accountant-review-ledger>div>button').nth(2).click();
+    const accountantDrilldown={
+      filterVisible:await page.locator('.accountant-filter-banner').isVisible(),
+      uncertainOnly:await page.locator('.transaction-page .transaction-row').count()===1,
+    };
+    await page.screenshot({path:`${directory}/${label}-report-filter.png`,fullPage:true});
+    await page.locator('.accountant-filter-banner button').click();
+    accountantDrilldown.restoredAll=await page.locator('.transaction-page .transaction-row').count()===5;
+    await page.locator('.mobile-bottom-nav button').nth(2).click();
+    accountantDrilldown.backToAudit=await page.locator('.accountant-review').isVisible();
+    await page.locator('#report-analysis>summary').click();
+    const trendsOnly=await page.locator('#report-trends').isVisible()&&await page.locator('#report-budget').isHidden();
+    await page.locator('#report-budget-group>summary').click();
+    const budgetDisclosure=await page.locator('#report-budget').isVisible();
     const noReportsFab=await page.locator('.mobile-fab').isHidden();
     await page.screenshot({path:`${directory}/${label}-report-trends.png`,fullPage:true});
     await page.locator('.mobile-bottom-nav button').nth(3).click();
     const settings=await page.locator('#settings-about h3').isVisible();
-    const settingsDirectory=await page.locator('.reference-settings-link').count()===7;
-    const settingsAnchors=await page.locator('.reference-settings-link').evaluateAll(links=>links.every(link=>{
-      const target=link.getAttribute('href');
-      return target?.startsWith('#')&&!!document.querySelector(target);
-    }));
+    const settingsDirectory=await page.locator('.reference-settings-link').count()===0;
+    const settingsAnchors=await page.locator('.settings-quick-intro').isVisible()
+      &&await page.locator('#settings-owner').isVisible()
+      &&await page.locator('#settings-budget').isVisible();
     const noSettingsFab=await page.locator('.mobile-fab').count()===0;
     await page.screenshot({path:`${directory}/${label}-settings.png`,fullPage:true});
     // Universal design acceptance: control has a visible pressed state,
@@ -143,14 +188,14 @@ try{
       })
     );
     await page.locator('.modal-heading button').click();
-    findings.push({label,home,monthOptions,arrowNavigatesMonth,menuUnclipped,monthCloses,detailsOpen,detailsClose,transactions,list,brandLoaded,scanner,slipArtLoaded,compactUploadButtons,scannerColors,readableScanner,reportOverview,trendsOnly,noReportsFab,settings,settingsDirectory,settingsAnchors,noSettingsFab,largeSetting,largeHome,savedReadingMode,largeScanner,errors});
+    findings.push({label,home,ledgerTabCount,unifiedPending,returnToLedger,homeAuditEntryVisible,homeAuditEntryReached,homeAuditEntryReturned,monthOptions,arrowNavigatesMonth,menuUnclipped,monthCloses,detailsOpen,detailsClose,transactions,list,brandLoaded,scanner,slipArtLoaded,compactUploadButtons,scannerColors,readableScanner,reportOverview,accountant,accountantDrilldown,trendsOnly,budgetDisclosure,noReportsFab,settings,settingsDirectory,settingsAnchors,noSettingsFab,largeSetting,largeHome,savedReadingMode,largeScanner,errors});
     await context.close();
   }
   fs.writeFileSync(`${directory}/webkit-report.json`,JSON.stringify(findings,null,2));
   console.log('WEBKIT_SAFARI_VISUAL_RESULTS',JSON.stringify(findings));
   const failed=findings.filter(f=>f.home.overflow>1||!f.home.order||f.home.actionCount!==0||f.home.navCount!==4||
-    f.home.pageGrid!==4||f.home.homeGrid!==4||f.home.splitGrid!==4||
-    !f.home.navVisible||f.home.icons.some(icon=>icon.width<20||icon.height<20)||f.monthOptions!==13||!f.arrowNavigatesMonth||!f.menuUnclipped||!f.monthCloses||!f.detailsOpen||!f.detailsClose||f.transactions!==2||!f.list||!f.brandLoaded||!f.slipArtLoaded||!f.reportOverview||!f.settingsDirectory||!f.settingsAnchors||!f.scanner||!f.compactUploadButtons||!f.readableScanner||!f.trendsOnly||!f.noReportsFab||!f.settings||!f.noSettingsFab||!f.largeSetting.active||!f.largeSetting.selected||f.largeSetting.fontSize<16||f.largeHome.overflow>1||f.largeHome.textSize<16||!f.largeHome.navigation||!f.savedReadingMode||!f.largeScanner||f.errors.length);
+    f.home.pageGrid!==4||!f.homeAuditEntryVisible||!f.homeAuditEntryReached||!f.homeAuditEntryReturned||f.home.homeGrid!==4||f.home.splitGrid!==4||
+    !f.home.navVisible||f.home.icons.some(icon=>icon.width<20||icon.height<20)||f.monthOptions!==13||!f.arrowNavigatesMonth||!f.menuUnclipped||!f.monthCloses||!f.detailsOpen||!f.detailsClose||f.transactions!==2||!f.list||f.ledgerTabCount!==2||!f.unifiedPending||!f.returnToLedger||!f.brandLoaded||!f.slipArtLoaded||!f.reportOverview||!f.accountant.visible||!f.accountant.breakdown||!f.accountant.flags||!f.accountant.subtotalMatches||!f.accountantDrilldown.filterVisible||!f.accountantDrilldown.uncertainOnly||!f.accountantDrilldown.restoredAll||!f.accountantDrilldown.backToAudit||!f.settingsDirectory||!f.settingsAnchors||!f.scanner||!f.compactUploadButtons||!f.readableScanner||!f.trendsOnly||!f.budgetDisclosure||!f.noReportsFab||!f.settings||!f.noSettingsFab||!f.largeSetting.active||!f.largeSetting.selected||f.largeSetting.fontSize<16||f.largeHome.overflow>1||f.largeHome.textSize<16||!f.largeHome.navigation||!f.savedReadingMode||!f.largeScanner||f.errors.length);
   if(failed.length){console.error('WEBKIT_SAFARI_VISUAL_FAIL',JSON.stringify(failed));process.exitCode=1;}
   else console.log('WEBKIT_SAFARI_VISUAL_PASS: 4 phone sizes, essential home, icons, tabbar, scan, transactions, settings');
 }catch(error){

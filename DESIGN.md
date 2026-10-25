@@ -55,7 +55,7 @@ Flat by default. Use thin green-tinted borders and white backgrounds instead of 
 - **Month chooser**: real months, clear selected state, keyboard close and focus restoration; must not overflow the visual viewport.
 - **Primary upload**: visible on Home with one verb; use secondary text only to distinguish camera/gallery choices.
 - **Recent transactions**: one tappable row per saved entry, icon + counterparty/category + date + signed amount; truncate long titles but avoid clipping values.
-- **Bottom navigation**: exactly four persistent destinations — ภาพรวม, รายการ, รายงาน, ตั้งค่า; no duplicate Home shortcuts.
+- **Bottom navigation**: exactly four persistent destinations — ภาพรวม, สมุดบัญชี, ตรวจบัญชี, ตั้งค่า; no duplicate Home shortcuts. The Saved ledger and Pending queues use one two-state navigation inside สมุดบัญชี; local slips and iPhone Cloud remain independently reviewable within the unified Pending page. The accountant page shows an actionable summary with progressive disclosure for analysis and budget, not a second four-tab menu.
 - **Slip scanner and Pending**: truthful progress, duplicate and uncertain states; no false completed statuses; privacy/safety warnings remain readable.
 - **Settings**: advanced Shortcut, LINE and build information progressively disclosed, not mixed with daily options.
 - **Modal and menu**: focus-visible rings, Escape where appropriate, accessible labels, safe-area awareness and reduced-motion fallback.

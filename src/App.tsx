@@ -1,5 +1,5 @@
 import {useCallback,useEffect,useMemo,useRef,useState,type FormEvent} from 'react';
-import {ArrowDownLeft,ArrowRight,ArrowUpRight,BarChart3,CalendarDays,Check,ScanLine,ChevronLeft,ChevronRight,CloudOff,Download,FileSpreadsheet,Menu,MoreHorizontal,Pencil,Plus,Search,Settings as SettingsIcon,ShieldCheck,Trash2,TrendingDown,Upload,Wallet,WalletCards,X,House,ReceiptText,UtensilsCrossed,ShoppingBag,TrainFront,HandCoins,Ellipsis,} from 'lucide-react';
+import {ArrowDownLeft,ArrowRight,ArrowUpRight,BarChart3,CalendarDays,Check,ScanLine,ChevronLeft,ChevronRight,CloudOff,Download,FileSpreadsheet,Menu,MoreHorizontal,Pencil,Plus,Search,Settings as SettingsIcon,ShieldCheck,Trash2,Upload,Wallet,WalletCards,X,House,ReceiptText,UtensilsCrossed,ShoppingBag,TrainFront,HandCoins,Ellipsis,} from 'lucide-react';
 import {baht,DEFAULT_SETTINGS,EXPENSE_CATEGORIES,expenseByCategory,INCOME_CATEGORIES,lastMonths,METHODS,monthLocal,monthly,summarize,todayLocal,toSatang,transactionDisplayName,type EntryType,type Method,type Settings,type Transaction} from './lib/finance';
 import {deleteTransaction,loadSettings,loadTransactions,replaceAll,saveSettings,saveTransaction,loadPendingSlips,savePendingSlip,deletePendingSlip} from './lib/storage';
 import {makePendingSlip,pendingToSlipFields,matchingPendingBySlipHash,type PendingSlip} from './lib/pendingSlips';
@@ -8,13 +8,14 @@ import {createBackup,downloadText,parseBackup,toCsv} from './lib/backup';
 import SlipScanner from './SlipScanner';
 import HomeScreen,{HomeTopbar} from './HomeScreen';
 import ReadingPreferenceControl from './ReadingPreferenceControl';
-import ReferenceSettingsIndex from './ReferenceSettingsIndex';
 import brandSprout from './assets/brand-sprout.svg';
 import RestoreDialog from './RestoreDialog';
 import ResetDataDialog from './ResetDataDialog';
 import {eraseLocalMoneyTrackerData} from './lib/localDataReset';
 import LineSyncSettings from './LineSyncSettings';
 import IPhoneShortcutSettings from './IPhoneShortcutSettings';
+import AccountantReview from './AccountantReview';
+import {accountantAudit,accountantBucketFor,ACCOUNTANT_BUCKET_LABELS,type AccountantBucketKey} from './lib/accountantAudit';
 import {iphoneConfigured,iphoneConnected,iphoneDrafts,iphoneSync,iphoneCorrectRecipient,resetIphoneImportHistory} from './lib/iphoneSync';
 import {lineLinked,syncLineInbox} from './lib/lineSync';
 import type {SlipFields} from './lib/slip';
@@ -26,22 +27,11 @@ import {APP_DISPLAY_VERSION,APP_BUILD_SHA,APP_BUILT_AT,hasNewBundle} from './lib
 
 type Page='home'|'transactions'|'reports'|'settings';
 type Filter='all'|'income'|'expense';
-const pageLabels:Record<Page,string>={home:'ภาพรวม',transactions:'รายการ',reports:'รายงาน',settings:'ตั้งค่า'};
-const navItems=[{key:'home' as const,icon:House,label:'ภาพรวม'},{key:'transactions' as const,icon:ReceiptText,label:'รายการ'},{key:'reports' as const,icon:BarChart3,label:'รายงาน'},{key:'settings' as const,icon:SettingsIcon,label:'ตั้งค่า'}];
+const pageLabels:Record<Page,string>={home:'ภาพรวม',transactions:'สมุดบัญชี',reports:'ตรวจบัญชี',settings:'ตั้งค่า'};
+const navItems=[{key:'home' as const,icon:House,label:'ภาพรวม'},{key:'transactions' as const,icon:ReceiptText,label:'สมุดบัญชี'},{key:'reports' as const,icon:BarChart3,label:'ตรวจบัญชี'},{key:'settings' as const,icon:SettingsIcon,label:'ตั้งค่า'}];
 const monthText=(value:string)=>{const [year,m]=value.split('-').map(Number);return new Intl.DateTimeFormat('th-TH',{month:'long',year:'numeric'}).format(new Date(year,m-1,1));};
 const dateText=(date:string)=>new Intl.DateTimeFormat('th-TH',{day:'numeric',month:'short',year:'numeric'}).format(new Date(`${date}T12:00:00`));
 const percent=(n:number,d:number)=>d<=0?0:Math.round(n/d*100);
-const SPENDING_COLORS=['#16a34a','#fb6674','#3b82f6','#f59e0b','#a855f7'] as const;
-function spendingGradient(totals:readonly number[],grandTotal:number):string{
-  if(grandTotal<=0)return 'conic-gradient(#e8efec 0% 100%)';
-  let cursor=0;
-  const parts=totals.slice(0,4).map((amount,index)=>{
-    const start=cursor;cursor+=Math.max(0,amount)/grandTotal*100;
-    return `${SPENDING_COLORS[index]} ${start.toFixed(3)}% ${Math.min(cursor,100).toFixed(3)}%`;
-  });
-  if(cursor<100)parts.push(`${SPENDING_COLORS[4]} ${cursor.toFixed(3)}% 100%`);
-  return `conic-gradient(${parts.join(',')})`;
-}
 function CategoryGlyph({category,type}:{category:string;type:EntryType}){
   const food=/อาหาร|ข้าว|กาแฟ|เครื่องดื่ม|ร้าน|restaurant|cafe/i.test(category);
   const shop=/ซื้อ|ช้อป|สินค้า|shopping|shopee/i.test(category);
@@ -208,7 +198,7 @@ function EntryModal({initial,existing,startWithScanner,close,submit,submitImport
 }
 export default function App(){
   const [items,setItems]=useState<Transaction[]>([]);const [settings,setSettings]=useState<Settings>(DEFAULT_SETTINGS);
-  const [reportTab,setReportTab]=useState<'overview'|'categories'|'trends'|'budget'>('overview');
+  const [accountantBucket,setAccountantBucket]=useState<AccountantBucketKey|null>(null);
   const [view,setView]=useState<Page>('home');const [month,setMonth]=useState(monthLocal());const [modalOpen,setModalOpen]=useState(false);const [scanOnOpen,setScanOnOpen]=useState(false);const [editing,setEditing]=useState<Transaction|null>(null);
   const [updateAvailable,setUpdateAvailable]=useState(false);
   const [inboxTab,setInboxTab]=useState(false);
@@ -285,14 +275,14 @@ export default function App(){
   useEffect(()=>{if(!toast)return;const id=window.setTimeout(()=>setToast(''),3500);return()=>window.clearTimeout(id);},[toast]);
   const selected=useMemo(()=>monthly(items,month),[items,month]);
   const sums=useMemo(()=>summarize(selected),[selected]);
-  const allSums=useMemo(()=>summarize(items),[items]);
   const byCategory=useMemo(()=>expenseByCategory(selected),[selected]);
+  const audit=useMemo(()=>accountantAudit(selected),[selected]);
   const usedBudget=percent(sums.expense,settings.monthlyBudgetSatang);
-  const filtered=useMemo(()=>selected.filter(x=>(filter==='all'||x.type===filter) && (!search.trim()||`${x.category} ${x.note} ${x.recipient||''} ${x.time||''} ${x.receipt?.receiptId||''} ${(x.receipt?.items||[]).map(i=>i.name).join(' ')} ${METHODS[x.method]}`.toLocaleLowerCase('th-TH').includes(search.trim().toLocaleLowerCase('th-TH')))),[selected,filter,search]);
+  const filtered=useMemo(()=>selected.filter(x=>(filter==='all'||x.type===filter) && (!accountantBucket||accountantBucketFor(x)===accountantBucket) && (!search.trim()||`${x.category} ${x.note} ${x.recipient||''} ${x.time||''} ${x.receipt?.receiptId||''} ${(x.receipt?.items||[]).map(i=>i.name).join(' ')} ${METHODS[x.method]}`.toLocaleLowerCase('th-TH').includes(search.trim().toLocaleLowerCase('th-TH')))),[selected,filter,search,accountantBucket]);
   const history=useMemo(()=>{const [y,m]=month.split('-').map(Number);return lastMonths(6,new Date(y,m-1,1)).map(period=>({...period,...summarize(monthly(items,period.key))}));},[items,month]);
   const maxBar=Math.max(1,...history.map(x=>Math.max(x.income,x.expense)));
-  const openReview=()=>{setInboxTab(true);setSlipInboxTab(false);setView('transactions');};
-  const openPendingSlips=()=>{setInboxTab(false);setSlipInboxTab(true);setView('transactions');};
+  const openReview=()=>{setAccountantBucket(null);setInboxTab(true);setSlipInboxTab(false);setView('transactions');};
+  const openPendingSlips=()=>{setAccountantBucket(null);setInboxTab(false);setSlipInboxTab(true);setView('transactions');};
   const openAdd=()=>{setScanOnOpen(true);setEditing(null);setModalOpen(true)};
   const onSave=async(t:Transaction)=>{
     // Never silently keep a repaired iPhone payee only in IndexedDB:
@@ -406,7 +396,7 @@ export default function App(){
   };
   if(!ready) return <div className="loading-screen"><div className="loading-icon">฿</div>กำลังเปิดสมุดบันทึกของคุณ...</div>;
   if(loadingError) return <div className="loading-screen"><span>⚠️</span><h2>ไม่สามารถเปิดข้อมูลได้</h2><p>{loadingError}</p><button className="btn btn-primary" onClick={()=>window.location.reload()}>ลองอีกครั้ง</button></div>;
-  return <div className="app-shell"><a href="#main-content" className="skip-link">ข้ามไปยังเนื้อหาหลัก</a><aside className="sidebar"><Logo/><nav aria-label="เมนูหลัก">{navItems.map(({key,label,icon:Icon})=><button key={key} className={`nav-item ${view===key?'active':''}`} aria-label={label} aria-current={view===key?'page':undefined} onClick={()=>setView(key)}><Icon size={19} strokeWidth={1.9}/><span>{label}</span>{view===key&&<span className="nav-active-indicator"/>}</button>)}</nav><div className="sidebar-spacer"/></aside>
+  return <div className="app-shell"><a href="#main-content" className="skip-link">ข้ามไปยังเนื้อหาหลัก</a><aside className="sidebar"><Logo/><nav aria-label="เมนูหลัก">{navItems.map(({key,label,icon:Icon})=><button key={key} className={`nav-item ${view===key?'active':''}`} aria-label={label} aria-current={view===key?'page':undefined} onClick={()=>{if(key==='transactions'){setAccountantBucket(null);setInboxTab(false);setSlipInboxTab(false);}setView(key);}}><Icon size={19} strokeWidth={1.9}/><span>{label}</span>{view===key&&<span className="nav-active-indicator"/>}</button>)}</nav><div className="sidebar-spacer"/></aside>
     <div className="app-body"><header className={`topbar ${view==='home'?'topbar-home home-v2-topbar':''}`}>{view==='home'
       ?<HomeTopbar pendingCount={pendingSlips.length+(iphonePending||0)} onNotifications={()=>{if(pendingSlips.length)openPendingSlips();else if(iphonePending&&iphonePending>0)openReview();else setToast('ยังไม่มีรายการที่ต้องตรวจในตอนนี้');}} onSettings={()=>setView('settings')}/>
       :<><div className="topbar-left"><div className="ref-topbar-copy"><h1>{pageLabels[view]}</h1></div></div><div className="topbar-actions"><div className="today-chip"><CalendarDays size={16}/><span>{dateText(todayLocal())}</span></div><button className="btn btn-primary top-add" onClick={openAdd}><ScanLine size={18}/> <span>อัปโหลดสลิป</span></button></div></>}</header>
@@ -419,9 +409,10 @@ export default function App(){
           recent={selected}
           onMonthChange={setMonth}
           onUpload={openAdd}
-          onTransactions={()=>{setInboxTab(false);setSlipInboxTab(false);setView('transactions');}}
+          onTransactions={()=>{setAccountantBucket(null);setInboxTab(false);setSlipInboxTab(false);setView('transactions');}}
         />
         <div className="mt-home-below">
+          {audit.needsClassification.count>0&&<div className="accountant-home-entry"><div><strong>รายการยังไม่แยกประเภท {audit.needsClassification.count.toLocaleString('th-TH')} รายการ</strong><p>ตรวจหมวดเงินออกของเดือนนี้ได้จากรายงาน</p></div><button type="button" onClick={()=>{setView('reports');}}>ตรวจบัญชี <ArrowRight size={16}/></button></div>}
           {(settings.ownerNames||[]).length===0&&<div className="mt-home-advisory"><div><strong>ตั้งชื่อเจ้าของบัญชีก่อนอ่านสลิป</strong><p>ช่วยระบุเงินเข้าและเงินออกให้ตรงกับชื่อบนสลิป</p></div><button type="button" onClick={()=>setView('settings')}>ตั้งชื่อของฉัน <ArrowRight size={16}/></button></div>}
           {pendingSlips.length>0&&<div className="mt-home-advisory mt-home-review pending-home-alert"><div><strong>มีสลิปรอตรวจ {pendingSlips.length} รายการ</strong><p>รายการที่ยังไม่ตรวจจะไม่รวมในยอดเงิน</p></div><button type="button" onClick={openPendingSlips}>ตรวจรายการ <ArrowRight size={16}/></button></div>}
           {items.length>=5&&Date.now()-lastBackupAt>30*24*60*60*1000&&<div className="mt-home-advisory"><div><strong>สำรองข้อมูลการเงิน</strong><p>ข้อมูลในเครื่องอาจสูญหายหากล้างข้อมูลของ Safari</p></div><button type="button" onClick={exportJson}>สำรองข้อมูล</button></div>}
@@ -429,44 +420,48 @@ export default function App(){
         </div>
       </>}
             {view==='transactions'&&<>
-        {(pendingSlips.length>0||(iphonePending!==null&&iphonePending>0)||slipInboxTab||inboxTab)&&<div className="inbox-view-tabs" role="group" aria-label="หมวดรายการ">
+        <div className="inbox-view-tabs accountant-ledger-tabs" role="group" aria-label="สมุดบัญชี">
           <button type="button" className={!inboxTab&&!slipInboxTab?'active':''} aria-pressed={!inboxTab&&!slipInboxTab} onClick={()=>{setInboxTab(false);setSlipInboxTab(false);}}>บันทึกแล้ว</button>
-          <button type="button" className={slipInboxTab?'active':''} aria-pressed={slipInboxTab} onClick={()=>{setInboxTab(false);setSlipInboxTab(true);}}>
-            รอตรวจจากสลิป {pendingSlips.length>0?`(${pendingSlips.length})`:''}
+          <button type="button" className={inboxTab||slipInboxTab?'active':''} aria-pressed={inboxTab||slipInboxTab} onClick={()=>{setAccountantBucket(null);setSearch('');setFilter('all');setInboxTab(false);setSlipInboxTab(true);}}>
+            รอตรวจ {pendingSlips.length+(iphonePending||0)>0?`(${pendingSlips.length+(iphonePending||0)})`:''}
           </button>
-          <button type="button" className={inboxTab?'active':''} aria-pressed={inboxTab} onClick={()=>{setInboxTab(true);setSlipInboxTab(false);}}>
-            รอตรวจจาก iPhone {iphonePending!==null&&iphonePending>0?`(${iphonePending})`:''}
-          </button>
-        </div>}
-        {slipInboxTab?<PendingSlipsInbox items={pendingSlips} onSave={savePendingTransaction} onKeep={keepPendingDraft} onDiscard={discardPendingDraft} onAdd={openAdd}/>:
-         inboxTab?<IPhoneShortcutSettings variant="review" onImported={reload} onPendingChanged={setIphonePending}/>:
-      <><details className="transaction-month-summary"><summary>สรุปยอดรายรับ–รายจ่ายเดือนนี้</summary><div className="transaction-financial-summary" aria-label="สรุปรายรับรายจ่ายของเดือนที่เลือก"><div className="transaction-summary-income"><span>รายรับ <ArrowDownLeft size={18}/></span><strong>฿{baht(sums.income)}</strong></div><div className="transaction-summary-expense"><span>รายจ่าย <ArrowUpRight size={18}/></span><strong>฿{baht(sums.expense)}</strong></div></div></details><section className="surface transaction-page"><div className="list-tools"><div className="search-box"><Search size={19}/><input type="search" aria-label="ค้นหารายการ" placeholder="ค้นหาชื่อร้าน หมวดหมู่ หรือรหัสอ้างอิง" value={search} onChange={e=>setSearch(e.target.value)}/>{search&&<button className="search-clear" type="button" aria-label="ล้างคำค้นหา" onClick={()=>setSearch('')}><X size={16}/></button>}</div><div className="filter-tabs" aria-label="กรองประเภทรายการ">{([['all','ทั้งหมด'],['income','รายรับ'],['expense','รายจ่าย']] as const).map(([key,label])=><button key={key} className={filter===key?'selected':''} aria-pressed={filter===key} onClick={()=>setFilter(key)}>{label}</button>)}</div></div><div className="list-count">{filtered.length} รายการ{filtered.length!==selected.length?` จาก ${selected.length}`:""}{(search||filter!=='all')&&<button className="filter-reset" type="button" onClick={()=>{setSearch('');setFilter('all');}}>ล้างตัวกรอง</button>}</div>{filtered.length?<TxList items={filtered} onEdit={onEdit} onDelete={onDelete} groupByDay/>:<Empty icon="🔎" title={selected.length?'ไม่พบรายการตามเงื่อนไข':'ยังไม่มีรายการในเดือนนี้'} description={selected.length?'ลองล้างคำค้นหาหรือตัวกรองเพื่อดูรายการทั้งหมด':'สแกนสลิปหรือเพิ่มรายการแรกของเดือนนี้'} add={selected.length===0?openAdd:()=>{setSearch('');setFilter('all');}} actionLabel={selected.length?'ล้างตัวกรอง':'เพิ่มสลิป'}/>}</section></>
+        </div>
+        {(inboxTab||slipInboxTab)?<div className="accountant-review-inbox">
+          <div className="accountant-inbox-intro"><h2>งานรอตรวจ</h2><p>รวบรวมรายการจากสลิปและ iPhone ไว้ที่เดียว · ยังไม่รวมในยอดบัญชี</p></div>
+          <details className="accountant-queue" open={slipInboxTab}>
+            <summary>สลิปในเครื่อง <span>{pendingSlips.length} รายการ</span><ChevronRight size={18} aria-hidden="true"/></summary>
+            <div className="accountant-queue-content"><PendingSlipsInbox items={pendingSlips} onSave={savePendingTransaction} onKeep={keepPendingDraft} onDiscard={discardPendingDraft} onAdd={openAdd}/></div>
+          </details>
+          <details className="accountant-queue" open={inboxTab}>
+            <summary>จาก iPhone Cloud <span>{iphonePending===null?'ยังไม่เชื่อมต่อ':`${iphonePending} รายการ`}</span><ChevronRight size={18} aria-hidden="true"/></summary>
+            <div className="accountant-queue-content"><IPhoneShortcutSettings variant="review" onImported={reload} onPendingChanged={setIphonePending}/></div>
+          </details>
+        </div>:
+      <>{accountantBucket&&<div className="accountant-filter-banner" role="status"><span>กำลังดู: {ACCOUNTANT_BUCKET_LABELS[accountantBucket]} · {filtered.length.toLocaleString('th-TH')} รายการ</span><button type="button" onClick={()=>{setAccountantBucket(null);setFilter('all');setSearch('');}}>ดูทั้งหมด</button></div>}<details className="transaction-month-summary"><summary>สรุปยอดรายรับ–รายจ่ายเดือนนี้</summary><div className="transaction-financial-summary" aria-label="สรุปรายรับรายจ่ายของเดือนที่เลือก"><div className="transaction-summary-income"><span>รายรับ <ArrowDownLeft size={18}/></span><strong>฿{baht(sums.income)}</strong></div><div className="transaction-summary-expense"><span>รายจ่าย <ArrowUpRight size={18}/></span><strong>฿{baht(sums.expense)}</strong></div></div></details><section className="surface transaction-page"><div className="list-tools"><div className="search-box"><Search size={19}/><input type="search" aria-label="ค้นหารายการ" placeholder="ค้นหาชื่อร้าน หมวดหมู่ หรือรหัสอ้างอิง" value={search} onChange={e=>setSearch(e.target.value)}/>{search&&<button className="search-clear" type="button" aria-label="ล้างคำค้นหา" onClick={()=>setSearch('')}><X size={16}/></button>}</div><div className="filter-tabs" aria-label="กรองประเภทรายการ">{([['all','ทั้งหมด'],['income','รายรับ'],['expense','รายจ่าย']] as const).map(([key,label])=><button key={key} className={filter===key?'selected':''} aria-pressed={filter===key} onClick={()=>{setAccountantBucket(null);setFilter(key);}}>{label}</button>)}</div></div><div className="list-count">{filtered.length} รายการ{filtered.length!==selected.length?` จาก ${selected.length}`:""}{(search||filter!=='all'||accountantBucket)&&<button className="filter-reset" type="button" onClick={()=>{setSearch('');setFilter('all');setAccountantBucket(null);}}>ล้างตัวกรอง</button>}</div>{filtered.length?<TxList items={filtered} onEdit={onEdit} onDelete={onDelete} groupByDay/>:<Empty icon="🔎" title={selected.length?'ไม่พบรายการตามเงื่อนไข':'ยังไม่มีรายการในเดือนนี้'} description={selected.length?'ลองล้างคำค้นหาหรือตัวกรองเพื่อดูรายการทั้งหมด':'สแกนสลิปหรือเพิ่มรายการแรกของเดือนนี้'} add={selected.length===0?openAdd:()=>{setSearch('');setFilter('all');}} actionLabel={selected.length?'ล้างตัวกรอง':'เพิ่มสลิป'}/>}</section></>
         }
       </>}
       {view==='reports'&&<>
-        <div className="ref-report-tabs" role="group" aria-label="เลือกมุมมองรายงาน">{([['overview','ภาพรวม'],['categories','หมวดหมู่'],['trends','แนวโน้ม'],['budget','งบประมาณ']] as const).map(([key,label])=><button type="button" key={key} aria-pressed={reportTab===key} className={reportTab===key?'active':''} onClick={()=>setReportTab(key)}>{label}</button>)}</div>
-        {reportTab==='overview'&&<><div className="stat-triplet reference-report-summary"><MoneyCard title="รายรับรวม" value={sums.income} icon="income"/><MoneyCard title="รายจ่ายรวม" value={sums.expense} icon="expense"/><MoneyCard title="เงินสุทธิ (รายรับ − รายจ่าย)" value={sums.net} icon="net"/></div></>}
-        {(reportTab==='overview'||reportTab==='categories')&&<section id="report-spending" className="surface ref-report-spending" aria-label="สัดส่วนรายจ่าย"><div className="section-header"><h3>สัดส่วนรายจ่าย</h3><span className="ref-section-note">{monthText(month)}</span></div>{byCategory.length>0?<div className="home-spending-breakdown"><div className="spending-donut" role="img" aria-label={'สัดส่วนรายจ่าย ฿'+baht(sums.expense)} style={{background:spendingGradient(byCategory.map(x=>x.total),sums.expense)}}><div className="spending-donut-hole"><span>รายจ่ายรวม</span><strong>฿{baht(sums.expense)}</strong></div></div><div id="report-categories" className="spending-legend">{byCategory.slice(0,4).map((category,index)=><div key={category.name} className="spending-legend-row"><span className="spending-legend-dot" style={{background:SPENDING_COLORS[index]}}/><span>{category.name}</span><strong>{percent(category.total,sums.expense)}%</strong></div>)}{byCategory.length>4&&<div className="spending-legend-row"><span className="spending-legend-dot" style={{background:SPENDING_COLORS[4]}}/><span>อื่น ๆ</span><strong>{percent(byCategory.slice(4).reduce((s,x)=>s+x.total,0),sums.expense)}%</strong></div>}</div></div>:<p className="home-category-empty" id="report-categories">ยังไม่มีข้อมูลรายจ่ายในเดือนนี้</p>}</section>}
-        {(reportTab==='overview'||reportTab==='budget')&&<section id="report-budget" className="surface ref-report-budget"><div className="section-header"><h3>งบประมาณรายเดือน</h3><button type="button" className="text-action" onClick={()=>setView('settings')}>{settings.monthlyBudgetSatang?'แก้ไขงบ':'ตั้งงบ'} <ArrowRight size={15}/></button></div><div className="ref-report-budget-line"><span>ใช้ไป ฿{baht(sums.expense)}</span><strong>{settings.monthlyBudgetSatang?'จาก ฿'+baht(settings.monthlyBudgetSatang):'ยังไม่ตั้งงบ'}</strong></div>{settings.monthlyBudgetSatang>0?<><div className="ref-report-budget-track" role="progressbar" aria-label="ความคืบหน้างบประมาณรวม" aria-valuemin={0} aria-valuemax={100} aria-valuenow={Math.min(usedBudget,100)}><div style={{width:Math.min(usedBudget,100)+'%'}}/></div><p className="ref-budget-footnote">ใช้ไป {usedBudget}% ของงบเดือนนี้</p></>:<p className="ref-budget-footnote">แตะตั้งงบเพื่อเริ่มติดตามการใช้จ่ายในแต่ละเดือน</p>}</section>}
-        
-        {reportTab==='overview'&&<section className="surface reference-overview-trends" aria-label="แนวโน้มการเงิน">
-          <div className="section-header"><h3>แนวโน้มรายรับ–รายจ่าย</h3><button type="button" className="text-action" onClick={()=>setReportTab('trends')}>ดูแนวโน้ม <ArrowRight size={16}/></button></div>
-          {history.some(h=>h.income>0||h.expense>0)?<div className="reference-mini-bars" aria-label="ตัวอย่างรายรับรายจ่ายย้อนหลัง 6 เดือน">
-            {history.map(h=><div className="reference-mini-bar-group" key={h.key} title={h.label+' รายรับ ฿'+baht(h.income)+' รายจ่าย ฿'+baht(h.expense)}>
-              <div className="reference-mini-bar-pair"><span className="income" style={{height:`${h.income?Math.max(4,h.income/maxBar*100):0}%`}}/><span className="expense" style={{height:`${h.expense?Math.max(4,h.expense/maxBar*100):0}%`}}/></div><small>{h.label}</small>
-            </div>)}
-          </div>:<p className="reference-empty-chart">ยังไม่มีข้อมูลสำหรับแสดงแนวโน้ม</p>}
-          <div className="reference-chart-legend"><span><i className="income"/>รายรับ</span><span><i className="expense"/>รายจ่าย</span></div>
-        </section>}
-        {reportTab==='trends'&&<section id="report-trends" className="two-column"><div className="surface chart-surface"><div className="section-header"><div><span className="card-overline">รายรับและรายจ่าย</span><h3>แนวโน้ม 6 เดือนถึงเดือนที่เลือก</h3></div><div className="chart-legend"><span><i className="legend-income"/>รายรับ</span><span><i className="legend-expense"/>รายจ่าย</span></div></div>{history.some(h=>h.income>0||h.expense>0)?<div className="bars-chart" role="img" aria-label="แผนภูมิแท่งรายรับและรายจ่ายย้อนหลัง 6 เดือน"><div className="bars-grid"><div/><div/><div/><div/></div><span className="trend-axis-max" aria-hidden="true">฿{baht(maxBar)}</span>{history.map(h=><div className="bar-slot" key={h.key}><div className="bar-pair"><div className="bar income-bar" title={`รายรับ ${h.label}: ฿${baht(h.income)}`} style={{height:`${h.income?Math.max(3,(h.income/maxBar)*100):0}%`}}/><div className="bar expense-bar" title={`รายจ่าย ${h.label}: ฿${baht(h.expense)}`} style={{height:`${h.expense?Math.max(3,(h.expense/maxBar)*100):0}%`}}/></div><span>{h.label}</span></div>)}</div>:<div className="report-trend-empty">ยังไม่มีข้อมูลรายรับหรือรายจ่ายในช่วง 6 เดือนนี้</div>}
+        <div className="stat-triplet reference-report-summary"><MoneyCard title="รายรับรวม" value={sums.income} icon="income"/><MoneyCard title="เงินออกที่บันทึก" value={sums.expense} icon="expense"/><MoneyCard title="สุทธิจากรายการที่บันทึก" value={sums.net} icon="net"/></div>
+          <AccountantReview items={selected} localPending={pendingSlips.length} iphonePending={iphonePending}
+            onTransactions={()=>{setAccountantBucket(null);setInboxTab(false);setSlipInboxTab(false);setView('transactions');}}
+            onBucket={key=>{setAccountantBucket(key);setFilter('expense');setSearch('');setInboxTab(false);setSlipInboxTab(false);setView('transactions');}}
+            onLocalReview={openPendingSlips} onIphoneReview={openReview} onExport={exportCsv}/>
+        <details className="accountant-report-disclosure" id="report-analysis">
+          <summary><span><strong>วิเคราะห์รายการ</strong><small>แนวโน้ม 6 เดือนและหมวดเงินออก</small></span><ChevronRight size={18} aria-hidden="true"/></summary>
+          <div className="accountant-report-detail"><section id="report-trends" className="two-column"><div className="surface chart-surface"><div className="section-header"><div><span className="card-overline">รายรับและรายจ่าย</span><h3>แนวโน้ม 6 เดือนถึงเดือนที่เลือก</h3></div><div className="chart-legend"><span><i className="legend-income"/>รายรับ</span><span><i className="legend-expense"/>รายจ่าย</span></div></div>{history.some(h=>h.income>0||h.expense>0)?<div className="bars-chart" role="img" aria-label="แผนภูมิแท่งรายรับและรายจ่ายย้อนหลัง 6 เดือน"><div className="bars-grid"><div/><div/><div/><div/></div><span className="trend-axis-max" aria-hidden="true">฿{baht(maxBar)}</span>{history.map(h=><div className="bar-slot" key={h.key}><div className="bar-pair"><div className="bar income-bar" title={`รายรับ ${h.label}: ฿${baht(h.income)}`} style={{height:`${h.income?Math.max(3,(h.income/maxBar)*100):0}%`}}/><div className="bar expense-bar" title={`รายจ่าย ${h.label}: ฿${baht(h.expense)}`} style={{height:`${h.expense?Math.max(3,(h.expense/maxBar)*100):0}%`}}/></div><span>{h.label}</span></div>)}</div>:<div className="report-trend-empty">ยังไม่มีข้อมูลรายรับหรือรายจ่ายในช่วง 6 เดือนนี้</div>}
             {history.some(h=>h.income>0||h.expense>0)&&<details className="report-trend-breakdown"><summary>ดูยอดรายรับและรายจ่ายรายเดือน</summary><div className="report-trend-table-scroll"><table className="report-trend-table">
               <caption>ข้อมูลรายรับและรายจ่ายย้อนหลัง 6 เดือน</caption>
               <thead><tr><th scope="col">เดือน</th><th scope="col">รายรับ (บาท)</th><th scope="col">รายจ่าย (บาท)</th></tr></thead>
               <tbody>{history.map(h=><tr key={h.key}><th scope="row">{h.label}</th><td>{baht(h.income)}</td><td>{baht(h.expense)}</td></tr>)}</tbody>
             </table></div></details>}</div>
-          <div className="surface category-surface"><div className="section-header"><div><span className="card-overline">วิเคราะห์ค่าใช้จ่าย</span><h3>ใช้จ่ายไปกับอะไรบ้าง</h3></div></div>{byCategory.length? <div className="category-list">{byCategory.slice(0,5).map((c,i)=><div className="category-item" key={c.name}><div className="category-icon" aria-hidden="true"><CategoryGlyph category={c.name} type="expense"/></div><div className="category-line"><div><strong>{c.name}</strong><span>฿{baht(c.total)}</span></div><div className="track"><div style={{width:`${percent(c.total,sums.expense)}%`,background:['#2e8a78','#e7a969','#8a9bdd','#c39ac9','#93bfa0'][i%5]}}/></div></div></div>)}</div>:<Empty icon="🧾" title="ยังไม่มีข้อมูลรายจ่าย" description="เพิ่มรายการรายจ่ายเพื่อดูสัดส่วนการใช้เงิน"/>}</div></section>}
-        {reportTab==='categories'&&<section className="two-column report-panels"><div className="surface report-table"><div className="section-header"><div><span className="card-overline">สรุปตามหมวดหมู่</span><h3>รายจ่ายตามหมวดหมู่</h3></div><TrendingDown size={20} color="#9aa5a9"/></div>{byCategory.length?byCategory.map((x,i)=><div className="report-category" key={x.name}><span className="category-index">{String(i+1).padStart(2,'0')}</span><span className="report-cat-emoji" aria-hidden="true"><CategoryGlyph category={x.name} type="expense"/></span><div><strong>{x.name}</strong><span>{percent(x.total,sums.expense)}% ของรายจ่าย</span></div><b>฿{baht(x.total)}</b></div>):<Empty icon="📊" title="รอข้อมูลเพื่อสร้างรายงาน" description="รายงานจะแสดงเมื่อคุณบันทึกรายจ่าย"/>}</div><div className="surface report-summary"><div className="section-header"><div><h3>สรุปการเงิน</h3></div></div><div className="report-stat"><span>{sums.net<0?'รายจ่ายมากกว่ารายรับ':'อัตราเก็บเงินจากรายรับ'}</span><strong>{sums.income?`${Math.round(sums.net/sums.income*100)}%`:'—'}</strong></div><div className="report-stat"><span>จำนวนรายการ</span><strong>{selected.length.toLocaleString('th-TH')} รายการ</strong></div><div className="report-stat"><span>ค่าใช้จ่ายเฉลี่ยต่อวันที่ผ่านมา</span><strong>฿{baht(sums.expense/(month===monthLocal()?Number(todayLocal().slice(8)):new Date(Number(month.slice(0,4)),Number(month.slice(5)),0).getDate()))}</strong></div><div className="report-stat"><span>ยอดสุทธิสะสม</span><strong className={allSums.net>=0?'positive':'negative'}>฿{baht(allSums.net)}</strong></div><button className="btn btn-secondary full" onClick={exportCsv}><FileSpreadsheet size={17}/> ดาวน์โหลดรายการทั้งหมด (CSV)</button></div></section>}</>}
-      {view==='settings'&&<><ReferenceSettingsIndex ownerNames={settings.ownerNames||[]} budgetSatang={settings.monthlyBudgetSatang}/><div className="settings-grid"><ReadingPreferenceControl/>
+          <div className="surface category-surface"><div className="section-header"><div><span className="card-overline">วิเคราะห์ค่าใช้จ่าย</span><h3>เงินออกไปหมวดไหนบ้าง</h3></div></div>{byCategory.length? <div className="category-list">{byCategory.slice(0,5).map((c,i)=><div className="category-item" key={c.name}><div className="category-icon" aria-hidden="true"><CategoryGlyph category={c.name} type="expense"/></div><div className="category-line"><div><strong>{c.name}</strong><span>฿{baht(c.total)}</span></div><div className="track"><div style={{width:`${percent(c.total,sums.expense)}%`,background:['#2e8a78','#e7a969','#8a9bdd','#c39ac9','#93bfa0'][i%5]}}/></div></div></div>)}</div>:<Empty icon="🧾" title="ยังไม่มีข้อมูลรายจ่าย" description="เพิ่มรายการรายจ่ายเพื่อดูสัดส่วนการใช้เงิน"/>}</div></section></div>
+        </details>
+        <details className="accountant-report-disclosure" id="report-budget-group">
+          <summary><span><strong>งบประมาณ</strong><small>ดูวงเงินรายเดือนและความคืบหน้า</small></span><ChevronRight size={18} aria-hidden="true"/></summary>
+          <div className="accountant-report-detail"><section id="report-budget" className="surface ref-report-budget"><div className="section-header"><h3>งบประมาณรายเดือน</h3><button type="button" className="text-action" onClick={()=>setView('settings')}>{settings.monthlyBudgetSatang?'แก้ไขงบ':'ตั้งงบ'} <ArrowRight size={15}/></button></div><div className="ref-report-budget-line"><span>ใช้ไป ฿{baht(sums.expense)}</span><strong>{settings.monthlyBudgetSatang?'จาก ฿'+baht(settings.monthlyBudgetSatang):'ยังไม่ตั้งงบ'}</strong></div>{settings.monthlyBudgetSatang>0?<><div className="ref-report-budget-track" role="progressbar" aria-label="ความคืบหน้างบประมาณรวม" aria-valuemin={0} aria-valuemax={100} aria-valuenow={Math.min(usedBudget,100)}><div style={{width:Math.min(usedBudget,100)+'%'}}/></div><p className="ref-budget-footnote">เงินออก {usedBudget}% ของงบที่ตั้งไว้ (รวมยอดชำระหนี้และเติม Wallet ที่บันทึก)</p></>:<p className="ref-budget-footnote">แตะตั้งงบเพื่อเริ่มติดตามการใช้จ่ายในแต่ละเดือน</p>}</section></div>
+        </details>
+      </>}
+      {view==='settings'&&<><div className="settings-quick-intro"><h2>ตั้งค่าส่วนตัว</h2><p>ข้อมูลบนสลิป งบประมาณ และการจัดการข้อมูลอยู่ในหน้านี้ การเชื่อมต่อขั้นสูงอยู่ด้านล่าง</p></div><div className="settings-grid"><ReadingPreferenceControl/>
     <section id="settings-owner" className="surface settings-card ocr-owner-card">
       <div className="settings-icon blue"><ScanLine size={23}/></div>
       <h3>ชื่อของฉันบนสลิป</h3>
@@ -498,7 +493,7 @@ export default function App(){
     </div>
   </div></section><section id="settings-privacy" className="surface settings-card privacy-settings"><div className="settings-icon blue"><ShieldCheck size={24}/></div><h3>ข้อมูลและความเป็นส่วนตัว</h3><p>รายการที่เพิ่มในแอปจะเก็บไว้บนอุปกรณ์นี้ ส่วนรายการที่เชื่อมต่อจาก iPhone จะซิงก์ตามการตั้งค่าของคุณ</p><div className="info-banner"><CloudOff size={18}/><span>รายการในเครื่องใช้ได้แม้ไม่มีอินเทอร์เน็ต</span></div></section><details id="settings-connections" className="settings-connections"><summary>การเชื่อมต่อเพิ่มเติม</summary><div className="settings-connections-content"><IPhoneShortcutSettings onImported={reload}/><LineSyncSettings onImported={reload}/></div></details><section id="settings-about" className="surface settings-card privacy-settings"><div className="settings-icon lavender"><Menu size={24}/></div><h3>เกี่ยวกับแอป</h3><div className="app-meta"><span>เวอร์ชัน</span><strong>{APP_DISPLAY_VERSION}</strong></div><details className="app-technical-details"><summary>ข้อมูลเวอร์ชันเพิ่มเติม</summary><div className="app-meta"><span>Build</span><strong>{APP_BUILD_SHA}</strong></div><div className="app-meta"><span>อัปเดตเมื่อ</span><strong>{new Intl.DateTimeFormat('th-TH',{dateStyle:'medium',timeStyle:'short',timeZone:'Asia/Bangkok'}).format(new Date(APP_BUILT_AT))}</strong></div></details></section></div></>}
     </main></div>
-    {view==='transactions'&&!inboxTab&&!slipInboxTab&&!modalOpen&&<button aria-label="อัปโหลดสลิป" title="อัปโหลดสลิป" className="mobile-fab" onClick={openAdd}><ScanLine size={25}/></button>}<nav className="mobile-bottom-nav" aria-label="เมนูมือถือ">{navItems.map(({key,label,icon:Icon})=><button key={key} className={view===key?'active':''} aria-current={view===key?'page':undefined} onClick={()=>{if(key==='transactions'){setInboxTab(false);setSlipInboxTab(false);}setView(key);}}><Icon size={21}/><span>{label}</span></button>)}</nav>
+    {view==='transactions'&&!inboxTab&&!slipInboxTab&&!modalOpen&&<button aria-label="อัปโหลดสลิป" title="อัปโหลดสลิป" className="mobile-fab" onClick={openAdd}><ScanLine size={25}/></button>}<nav className="mobile-bottom-nav" aria-label="เมนูมือถือ">{navItems.map(({key,label,icon:Icon})=><button key={key} className={view===key?'active':''} aria-current={view===key?'page':undefined} onClick={()=>{if(key==='transactions'){setAccountantBucket(null);setInboxTab(false);setSlipInboxTab(false);}setView(key);}}><Icon size={21}/><span>{label}</span></button>)}</nav>
     {toast&&<div className="toast" role="status"><Check size={17}/>{toast}</div>}
     {modalOpen&&<EntryModal initial={editing} existing={items} startWithScanner={scanOnOpen} close={()=>setModalOpen(false)} submit={onSave} submitImported={onSaveImported} undoImported={undoImported} queuePending={queuePending} resolvePending={resolvePending} ownerNames={settings.ownerNames||[]} viewSaved={date=>{
       setModalOpen(false);setInboxTab(false);setSlipInboxTab(false);
