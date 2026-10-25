@@ -73,3 +73,12 @@ Run npm test, npm run typecheck, and npm run build. The synthetic fixtures verif
 - OCR startup has a 90-second deadline and each recognition pass has a 65-second deadline. A stuck recognition shows a Thai error and stops the remaining batch rather than reusing a potentially broken worker.
 - The stop action terminates the browser OCR worker rather than waiting for the current page to finish. No bank photo or OCR transcript is sent to the server.
 - These changes do not prove image accuracy on real iPhone Photos or HEIC. Reproduce using one original screenshot at a time, record whether the failure is loading, recognizing, retry, saving or pending review, and compare the parsed amount/date/time/merchant to the image. Redact identities and bank account numbers before sharing any evidence.
+
+## Structured inspection-style slip text (Issue #82)
+
+- The photo OCR parser also reads labelled Thai inspection text: ชื่อผู้โอน, โอนจาก (bank), ชื่อผู้รับ, โอนถึง (bank), เลขอ้างอิง, ยอดเงิน, วันที่ and เวลา HH:mm:ss.
+- The scanner displays these **transient OCR observations** per uploaded file in an expandable detail section; the user sees Saved, Duplicate or Pending **separately** from the untrusted status printed in the OCR text.
+- The written phrase "สถานะ: ตรวจสอบสลิปสำเร็จ" is **not** independent evidence of bank verification. A failed status or conflicting reference blocks automatic save. The owner-name rule still determines direction for generic sender/recipient reports. Missing owner match stays Pending.
+- For bank-led inspection-style slips, a valid labelled reference is stored as existing `receipt.receiptId` and participates in duplicate detection. No new storage schema, network or backend dependency.
+- Existing transaction time remains HH:mm for compatibility; HH:mm:ss is shown only on the immediate scan-result screen. Sender/recipient bank labels and OCR status are not persisted. Image/raw OCR text is not saved.
+- Unit tests use synthetic names, references and amounts. Real K PLUS OCR on iPhone Safari/PWA remains unverified until the private-image and physical-device gates in `docs/PROJECT_WORKFLOW.md` pass. Coordinate before merging the independent amount-recovery PR #81.
