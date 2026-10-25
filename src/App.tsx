@@ -1,6 +1,6 @@
 import {useCallback,useEffect,useMemo,useRef,useState,type FormEvent} from 'react';
 import {ArrowDownLeft,ArrowRight,ArrowUpRight,BarChart3,CalendarDays,Check,ScanLine,ChevronLeft,ChevronRight,CloudOff,Download,FileSpreadsheet,Menu,MoreHorizontal,Pencil,Plus,Search,Settings as SettingsIcon,ShieldCheck,Trash2,TrendingDown,Upload,Wallet,WalletCards,X,House,ReceiptText,UtensilsCrossed,ShoppingBag,TrainFront,HandCoins,Ellipsis,} from 'lucide-react';
-import {baht,DEFAULT_SETTINGS,EXPENSE_CATEGORIES,expenseByCategory,INCOME_CATEGORIES,lastMonths,METHODS,monthLocal,monthly,summarize,todayLocal,toSatang,transactionDisplayName,type EntryType,type Method,type Settings,type Transaction} from './lib/finance';
+import {baht,DEFAULT_SETTINGS,EXPENSE_CATEGORIES,expenseByCategory,INCOME_CATEGORIES,lastMonths,METHODS,monthLocal,monthly,summarize,todayLocal,toSatang,transactionDisplayName,isTrackingDate,TRACKING_START_DATE,type EntryType,type Method,type Settings,type Transaction} from './lib/finance';
 import {deleteTransaction,loadSettings,loadTransactions,replaceAll,saveSettings,saveTransaction,loadPendingSlips,savePendingSlip,deletePendingSlip} from './lib/storage';
 import {makePendingSlip,pendingToSlipFields,matchingPendingBySlipHash,type PendingSlip} from './lib/pendingSlips';
 import PendingSlipsInbox from './PendingSlipsInbox';
@@ -161,11 +161,13 @@ function EntryModal({initial,existing,startWithScanner,close,submit,submitImport
     if(similar.length&&!duplicateAcknowledged){setError('พบรายการคล้ายกัน กรุณายืนยันก่อนบันทึกซ้ำ');return;}
     const sats=toSatang(amount);if(!sats){setError('กรุณากรอกจำนวนเงินมากกว่า 0 และทศนิยมไม่เกิน 2 ตำแหน่ง');return;}
     if(!/^\d{4}-\d\d-\d\d$/.test(date)){setError('กรุณาเลือกวันที่');return;}
+    if(!isTrackingDate(date)){setError('บันทึกได้เฉพาะรายการตั้งแต่วันที่ 25 ต.ค. 2569 เป็นต้นไป');return;}
     setPending(true);setError('');try{await submit({id:initial?.id||uuid(),type,amountSatang:sats,date,time:time||undefined,recipient:recipient.trim()||undefined,sender:sender.trim()||undefined,category,note:note.trim().slice(0,500),method,...(initial?.receipt&&sats===initial.amountSatang?{receipt:initial.receipt}:{}),createdAt:initial?.createdAt||Date.now()});close();}catch(err){setError(err instanceof Error?err.message:'บันทึกไม่สำเร็จ');setPending(false);}
   };
   const switchType=(newType:EntryType)=>{setType(newType);setCategory(newType==='expense'?EXPENSE_CATEGORIES[0]:INCOME_CATEGORIES[0]);setError('');};
   const autoImportSlip=async(data:SlipFields):Promise<SlipBatchOutcome>=>{
     // Re-query IndexedDB: another tab or inbox sync might have added the same payment.
+    if(data.date&&!isTrackingDate(data.date))return {status:'error',reason:'ไม่บันทึกสลิปก่อนวันที่ 25 ต.ค. 2569'};
     const latest=await loadTransactions();
     const decision=prepareAutoSlip(data,latest,uuid(),Date.now());
     if(decision.status!=='ready')return {status:decision.status,reason:decision.reason};
@@ -194,7 +196,7 @@ function EntryModal({initial,existing,startWithScanner,close,submit,submitImport
   <div className="type-switch" role="group" aria-label="ประเภทรายการ"><button type="button" aria-pressed={type==='expense'} className={type==='expense'?'selected expense':''} onClick={()=>switchType('expense')}><ArrowUpRight size={16}/> เงินออก / รายจ่าย</button><button type="button" aria-pressed={type==='income'} className={type==='income'?'selected income':''} onClick={()=>switchType('income')}><ArrowDownLeft size={16}/> เงินเข้า / รายรับ</button></div>
   <label className="field-label" htmlFor="amount">จำนวนเงิน (บาท)</label><div className="amount-input"><span>฿</span><input id="amount" ref={first} inputMode="decimal" autoComplete="off" placeholder="0.00" value={amount} onChange={e=>setAmount(e.target.value)} required /></div>
   {similar.length>0&&<div className="duplicate-warning" role="status"><strong>พบ {similar.length} รายการที่อาจซ้ำ</strong><p>มียอด {amount} บาท วันที่ {date} และช่องทางเดียวกัน</p><label><input type="checkbox" checked={duplicateAcknowledged} onChange={e=>setDuplicateAcknowledged(e.target.checked)}/> ยืนยันว่าต้องการบันทึกรายการนี้ซ้ำ</label></div>}
-  <div className="field-grid slip-date-time"><div><label className="field-label" htmlFor="entry-date">วันที่ทำรายการ</label><input id="entry-date" type="date" value={date} onChange={e=>setDate(e.target.value)} required/></div><div><label className="field-label" htmlFor="entry-time">เวลาทำรายการ (ถ้ามี)</label><input id="entry-time" type="time" value={time} onChange={e=>setTime(e.target.value)} /></div></div>
+  <div className="field-grid slip-date-time"><div><label className="field-label" htmlFor="entry-date">วันที่ทำรายการ</label><input id="entry-date" type="date" min={TRACKING_START_DATE} value={date} onChange={e=>setDate(e.target.value)} required/></div><div><label className="field-label" htmlFor="entry-time">เวลาทำรายการ (ถ้ามี)</label><input id="entry-time" type="time" value={time} onChange={e=>setTime(e.target.value)} /></div></div>
   {type==='income'
     ?<><label className="field-label" htmlFor="sender">ชื่อผู้โอนเงิน (ถ้ามี)</label>
       <input id="sender" maxLength={160} placeholder="ชื่อบุคคลหรือบริษัทที่โอนให้" value={sender} onChange={e=>setSender(e.target.value)}/>
@@ -207,7 +209,9 @@ function EntryModal({initial,existing,startWithScanner,close,submit,submitImport
   <div className="modal-footer"><button type="button" className="btn btn-ghost" disabled={pending} onClick={close}>ยกเลิก</button><button type="submit" className="btn btn-primary" disabled={pending}><Check size={17}/>{pending?'กำลังบันทึก...':'บันทึกรายการ'}</button></div></>}</form></section></div>;
 }
 export default function App(){
-  const [items,setItems]=useState<Transaction[]>([]);const [settings,setSettings]=useState<Settings>(DEFAULT_SETTINGS);
+  const [allItems,setAllItems]=useState<Transaction[]>([]);const [settings,setSettings]=useState<Settings>(DEFAULT_SETTINGS);
+  // Keep original local history and JSON backups intact; active ledger starts 2026-10-25.
+  const items=useMemo(()=>allItems.filter(t=>isTrackingDate(t.date)),[allItems]);
   const [reportTab,setReportTab]=useState<'overview'|'categories'|'trends'|'budget'>('overview');
   const [view,setView]=useState<Page>('home');const [month,setMonth]=useState(monthLocal());const [modalOpen,setModalOpen]=useState(false);const [scanOnOpen,setScanOnOpen]=useState(false);const [editing,setEditing]=useState<Transaction|null>(null);
   const [updateAvailable,setUpdateAvailable]=useState(false);
@@ -232,7 +236,7 @@ export default function App(){
     window.scrollTo({top:0,behavior:'auto'});
   },[view]);
   const reloadPending=useCallback(async()=>{setPendingSlips(await loadPendingSlips());},[]);
-  const reload=useCallback(async()=>{const [rows,s,pending]=await Promise.all([loadTransactions(),loadSettings(),loadPendingSlips()]);setItems(rows);setSettings(s);setPendingSlips(pending);setBudgetEdit(s.monthlyBudgetSatang?String(s.monthlyBudgetSatang/100):'');setOwnerNamesEdit((s.ownerNames||[]).join('\n'));},[]);
+  const reload=useCallback(async()=>{const [rows,s,pending]=await Promise.all([loadTransactions(),loadSettings(),loadPendingSlips()]);setAllItems(rows);setSettings(s);setPendingSlips(pending);setBudgetEdit(s.monthlyBudgetSatang?String(s.monthlyBudgetSatang/100):'');setOwnerNamesEdit((s.ownerNames||[]).join('\n'));},[]);
   useEffect(()=>{reload().catch(e=>setLoadingError(e instanceof Error?e.message:'เปิดฐานข้อมูลไม่สำเร็จ')).finally(()=>setReady(true));},[reload]);
   useEffect(()=>{const onVisible=()=>{if(document.visibilityState==='visible')reload().catch(console.error);};document.addEventListener('visibilitychange',onVisible);return()=>document.removeEventListener('visibilitychange',onVisible);},[reload]);
   useEffect(()=>{
@@ -323,6 +327,7 @@ export default function App(){
   };
   const undoImported=async(ids:string[])=>{for(const id of ids)await deleteTransaction(id);await reload();setToast('ยกเลิกการบันทึกจากสลิปแล้ว');};
   const queuePending=async(slip:SlipFields,name:string,reason:string)=>{
+    if(slip.date&&!isTrackingDate(slip.date))throw new Error('ไม่เก็บสลิปก่อนวันที่ 25 ต.ค. 2569');
     const result=await savePendingSlip(makePendingSlip(slip,name,reason,uuid()));
     await reloadPending();
     return result;
@@ -330,6 +335,7 @@ export default function App(){
   const resolvePending=async(id:string)=>{await deletePendingSlip(id);await reloadPending();};
   const savePendingTransaction=async(draft:PendingSlip):Promise<{status:'saved'|'duplicate'|'incomplete';reason?:string}>=>{
     const slip=pendingToSlipFields(draft);
+    if(slip.date&&!isTrackingDate(slip.date))return {status:'incomplete',reason:'ไม่บันทึกรายการก่อนวันที่ 25 ต.ค. 2569'};
     const decision=prepareAutoSlip(slip,await loadTransactions(),uuid(),Date.now());
     if(decision.status==='incomplete')return {status:'incomplete',reason:decision.reason};
     if(decision.status==='duplicate'){
@@ -362,7 +368,7 @@ export default function App(){
     }catch(err){setToast(err instanceof Error?err.message:'บันทึกชื่อบัญชีไม่สำเร็จ');}
     finally{setOwnerNamesSaving(false);}
   };
-  const exportJson=()=>{downloadText(`ngoentoday-backup-${todayLocal()}.json`,createBackup(items,settings),'application/json;charset=utf-8');const timestamp=Date.now();try{localStorage.setItem('ngoentoday-last-backup',String(timestamp));}catch{}setLastBackupAt(timestamp);setToast('ดาวน์โหลดข้อมูลสำรองแล้ว โปรดเก็บไฟล์อย่างปลอดภัย');};
+  const exportJson=()=>{downloadText(`ngoentoday-backup-${todayLocal()}.json`,createBackup(allItems,settings),'application/json;charset=utf-8');const timestamp=Date.now();try{localStorage.setItem('ngoentoday-last-backup',String(timestamp));}catch{}setLastBackupAt(timestamp);setToast('ดาวน์โหลดข้อมูลสำรองแล้ว โปรดเก็บไฟล์อย่างปลอดภัย');};
   const exportCsv=()=>downloadText(`ngoentoday-${todayLocal()}.csv`,toCsv(items),'text/csv;charset=utf-8');
   const importBackup=async(file:File)=>{try{
     if(file.size>25*1024*1024)throw new Error('ไฟล์ใหญ่เกิน 25 MB');
@@ -421,7 +427,7 @@ export default function App(){
           onUpload={openAdd}
           onTransactions={()=>{setInboxTab(false);setSlipInboxTab(false);setView('transactions');}}
         />
-        <div className="mt-home-below">
+        <div className="mt-home-below"><div className="mt-home-advisory"><div><strong>เริ่มนับรายการ 25 ต.ค. 2569</strong><p>ยอดสรุปรวมเฉพาะรายการตั้งแต่วันเริ่มต้น ประวัติเก่ายังคงอยู่ในไฟล์สำรอง JSON</p></div></div>
           {(settings.ownerNames||[]).length===0&&<div className="mt-home-advisory"><div><strong>ตั้งชื่อเจ้าของบัญชีก่อนอ่านสลิป</strong><p>ช่วยระบุเงินเข้าและเงินออกให้ตรงกับชื่อบนสลิป</p></div><button type="button" onClick={()=>setView('settings')}>ตั้งชื่อของฉัน <ArrowRight size={16}/></button></div>}
           {pendingSlips.length>0&&<div className="mt-home-advisory mt-home-review pending-home-alert"><div><strong>มีสลิปรอตรวจ {pendingSlips.length} รายการ</strong><p>รายการที่ยังไม่ตรวจจะไม่รวมในยอดเงิน</p></div><button type="button" onClick={openPendingSlips}>ตรวจรายการ <ArrowRight size={16}/></button></div>}
           {items.length>=5&&Date.now()-lastBackupAt>30*24*60*60*1000&&<div className="mt-home-advisory"><div><strong>สำรองข้อมูลการเงิน</strong><p>ข้อมูลในเครื่องอาจสูญหายหากล้างข้อมูลของ Safari</p></div><button type="button" onClick={exportJson}>สำรองข้อมูล</button></div>}
@@ -512,8 +518,8 @@ export default function App(){
       else if(summary.incomplete+summary.errors>0)setToast((summary.incomplete>0?'รอตรวจข้อมูล '+summary.incomplete+' รูป':'')+(summary.errors>0?(summary.incomplete>0?' · ':'')+'อ่านไม่สำเร็จ '+summary.errors+' รูป กรุณาลองเลือกรูปใหม่':''));
       else if((summary.excluded||0)>0)setToast('ไม่นับการโอนเงินระหว่างบัญชี '+summary.excluded+' รายการ');
     }}/>}
-    {pendingRestore&&<RestoreDialog existingCount={items.length} importedCount={pendingRestore.transactions.length} busy={restoreBusy} onBackup={exportJson} onConfirm={()=>{void confirmRestore();}} onClose={()=>setPendingRestore(null)}/>}
-    {resetDialogOpen&&<ResetDataDialog transactionCount={items.length} pendingCount={pendingSlips.length}
+    {pendingRestore&&<RestoreDialog existingCount={allItems.length} importedCount={pendingRestore.transactions.length} busy={restoreBusy} onBackup={exportJson} onConfirm={()=>{void confirmRestore();}} onClose={()=>setPendingRestore(null)}/>}
+    {resetDialogOpen&&<ResetDataDialog transactionCount={allItems.length} pendingCount={pendingSlips.length}
       busy={resetBusy} error={resetError} onBackup={exportJson} onConfirm={()=>{void eraseDeviceData();}}
       onClose={()=>{if(!resetBusy)setResetDialogOpen(false);}}/>}
   </div>;
