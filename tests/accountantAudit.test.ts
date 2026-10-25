@@ -1,5 +1,5 @@
 import {describe,expect,it} from 'vitest';
-import {accountantAudit} from '../src/lib/accountantAudit';
+import {accountantAudit,accountantBucketFor} from '../src/lib/accountantAudit';
 import type {Transaction} from '../src/lib/finance';
 
 const record=(id:string,amountSatang:number,category:string,note='',type:'income'|'expense'='expense',
@@ -44,6 +44,28 @@ describe('Accountant read-only cash movement review',()=>{
     const r=accountantAudit(inputs);
     expect(r.possibleDuplicatePairs).toBe(1);
     expect(r.outflow.count).toBe(5);
+  });
+  it('uses the same deterministic group for the report and the transaction drill-down',()=>{
+    const items=[
+      record('debt',1100,'ผ่อนชำระ/หนี้','ชำระบัตรเครดิต'),
+      record('wallet',2200,'อื่น ๆ','หมวดย่อย: เติมเงิน e-Wallet/มือถือ'),
+      record('unknown',3300,'อื่น ๆ','โอนโดยไม่ทราบประเภท'),
+      record('known',4400,'สุขภาพ',''),
+      record('fine',50,'อื่น ๆ','หมวดย่อย: ค่าปรับ'),
+      record('income',9900,'เงินเดือน','','income'),
+    ];
+    const summary=accountantAudit(items);
+    for(const key of ['debtPayments','walletTopups','needsClassification','otherCategorized'] as const){
+      const matches=items.filter(item=>accountantBucketFor(item)===key);
+      expect(matches.reduce((sum,item)=>sum+item.amountSatang,0)).toBe(summary[key].amountSatang);
+      expect(matches.length).toBe(summary[key].count);
+    }
+    expect(accountantBucketFor(items[5])).toBeNull();
+    expect(summary.outflow.amountSatang).toBe(11050);
+  });
+  it('does not silently treat a saved unlabeled transfer as a categorized expense',()=>{
+    const unknown=record('u',30000,'อื่น ๆ','ธนาคารโอนเงิน', 'expense','บัญชีส่วนบุคคล');
+    expect(accountantBucketFor(unknown)).toBe('needsClassification');
   });
   it('works for empty and incoming-only months without inventing a bank balance',()=>{
     expect(accountantAudit([])).toEqual({
