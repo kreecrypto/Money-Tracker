@@ -1,4 +1,4 @@
-import {isValidTransaction,type Transaction} from './finance';
+import {isValidTransaction,isTrackingDate,type Transaction} from './finance';
 import {loadTransactions,saveTransaction} from './storage';
 
 export type IPhoneDraft={
@@ -59,12 +59,13 @@ export async function iphoneCorrectRecipient(id:string,recipient:string|null):Pr
 
 export async function iphoneDrafts():Promise<IPhoneDraft[]>{
   const r=await call('/api/iphone/drafts','GET');
-  return Array.isArray(r.drafts)?(r.drafts as IPhoneDraft[]):[];
+  return Array.isArray(r.drafts)?(r.drafts as IPhoneDraft[]).filter(d=>!d.date||isTrackingDate(d.date)):[];
 }
 export async function iphoneReview(id:string,decision:'confirm'|'discard',input?:{
   type:'income'|'expense';amountSatang:number;date:string;
   category:string;note:string;method:'cash'|'bank'|'card'|'wallet';time?:string|null;recipient?:string|null;
 }){
+  if(decision==='confirm'&&input&&!isTrackingDate(input.date))throw new Error('ไม่บันทึกรายการก่อนวันที่ 25 ต.ค. 2569');
   return call('/api/iphone/drafts','POST',{id,decision,...(input||{})});
 }
 /** Retain Review Token; clear only the import cursor for a safe repair retry. */
@@ -79,10 +80,11 @@ function seen(){
 export async function iphoneSync():Promise<{imported:number;repaired?:number;received:number;invalid:number}>{
   const r=await call('/api/iphone/ledger','GET');
   if(!Array.isArray(r.transactions))throw new Error('ข้อมูลจาก iPhone ไม่ถูกต้อง');
-  const rows=r.transactions.filter(isValidTransaction) as Transaction[];
+  const valid=r.transactions.filter(isValidTransaction) as Transaction[];
+  const rows=valid.filter(t=>isTrackingDate(t.date));
   // Never silently treat rejected cloud rows as a successful import.
   // Keep valid records flowing while surfacing malformed rows to the UI.
-  const invalid=r.transactions.length-rows.length;
+  const invalid=r.transactions.length-valid.length;
   const existing=await loadTransactions();
   const local=new Map(existing.map(x=>[x.id,x]));
   const seenItems=seen();
