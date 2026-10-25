@@ -196,7 +196,7 @@ try {
     if(state.modalOpen) await page.locator('.modal .modal-heading button').first().evaluate(el=>el.click());
     await page.evaluate(()=>{
       const nav=innerWidth<=660?document.querySelector('.mobile-bottom-nav'):document.querySelector('.sidebar');
-      const target=Array.from(nav?.querySelectorAll('button')||[]).find(x=>['รายการ','รายการทั้งหมด'].includes(x.textContent?.trim()||''));
+      const target=Array.from(nav?.querySelectorAll('button')||[]).find(x=>['สมุดบัญชี'].includes(x.textContent?.trim()||''));
       target?.click();
     });
     await page.waitForTimeout(180);
