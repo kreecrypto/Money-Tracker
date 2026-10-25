@@ -78,6 +78,13 @@ try{
     const transactions=await page.locator('.transaction-financial-summary>div').count();
     const list=await page.locator('.transaction-page').isVisible();
     await page.screenshot({path:`${directory}/${label}-transactions.png`,fullPage:true});
+    const ledgerTabCount=await page.locator('.accountant-ledger-tabs button').count();
+    await page.locator('.accountant-ledger-tabs button').nth(1).click();
+    const unifiedPending=await page.locator('.accountant-review-inbox').isVisible()
+      &&await page.locator('.accountant-queue').count()===2
+      &&await page.locator('.accountant-queue').first().getAttribute('open')!==null;
+    await page.locator('.accountant-ledger-tabs button').first().click();
+    const returnToLedger=await page.locator('.transaction-page').isVisible();
     await page.locator('.mobile-fab').click();
     const scanner=await page.locator('.slip-upload-box').isVisible();
     const compactUploadButtons=await page.locator('.slip-upload-box .slip-actions .btn').evaluateAll(buttons=>
@@ -103,9 +110,9 @@ try{
     await page.locator('.mobile-bottom-nav button').nth(2).click();
     const reportOverview=await page.locator('.reference-report-summary .metric').count()===3
       &&await page.locator('.accountant-review').isVisible()
-      &&await page.locator('.reference-overview-trends').count()===0
-      &&await page.locator('#report-spending').count()===0
-      &&await page.locator('#report-budget').count()===0;
+      &&await page.locator('.accountant-report-disclosure').count()===2
+      &&await page.locator('#report-trends').isHidden()
+      &&await page.locator('#report-budget').isHidden();
     const accountant=await page.evaluate(()=>{
       const card=document.querySelector('.accountant-review');
       if(!card)return {visible:false,breakdown:false,flags:false,subtotalMatches:false};
@@ -134,17 +141,18 @@ try{
     accountantDrilldown.restoredAll=await page.locator('.transaction-page .transaction-row').count()===5;
     await page.locator('.mobile-bottom-nav button').nth(2).click();
     accountantDrilldown.backToAudit=await page.locator('.accountant-review').isVisible();
-    await page.locator('.ref-report-tabs button').nth(2).click();
-    const trendsOnly=await page.locator('#report-trends').isVisible()&&await page.locator('#report-budget').count()===0;
+    await page.locator('#report-analysis>summary').click();
+    const trendsOnly=await page.locator('#report-trends').isVisible()&&await page.locator('#report-budget').isHidden();
+    await page.locator('#report-budget-group>summary').click();
+    const budgetDisclosure=await page.locator('#report-budget').isVisible();
     const noReportsFab=await page.locator('.mobile-fab').isHidden();
     await page.screenshot({path:`${directory}/${label}-report-trends.png`,fullPage:true});
     await page.locator('.mobile-bottom-nav button').nth(3).click();
     const settings=await page.locator('#settings-about h3').isVisible();
-    const settingsDirectory=await page.locator('.reference-settings-link').count()===7;
-    const settingsAnchors=await page.locator('.reference-settings-link').evaluateAll(links=>links.every(link=>{
-      const target=link.getAttribute('href');
-      return target?.startsWith('#')&&!!document.querySelector(target);
-    }));
+    const settingsDirectory=await page.locator('.reference-settings-link').count()===0;
+    const settingsAnchors=await page.locator('.settings-quick-intro').isVisible()
+      &&await page.locator('#settings-owner').isVisible()
+      &&await page.locator('#settings-budget').isVisible();
     const noSettingsFab=await page.locator('.mobile-fab').count()===0;
     await page.screenshot({path:`${directory}/${label}-settings.png`,fullPage:true});
     // Universal design acceptance: control has a visible pressed state,
@@ -180,14 +188,14 @@ try{
       })
     );
     await page.locator('.modal-heading button').click();
-    findings.push({label,home,homeAuditEntryVisible,homeAuditEntryReached,homeAuditEntryReturned,monthOptions,arrowNavigatesMonth,menuUnclipped,monthCloses,detailsOpen,detailsClose,transactions,list,brandLoaded,scanner,slipArtLoaded,compactUploadButtons,scannerColors,readableScanner,reportOverview,accountant,accountantDrilldown,trendsOnly,noReportsFab,settings,settingsDirectory,settingsAnchors,noSettingsFab,largeSetting,largeHome,savedReadingMode,largeScanner,errors});
+    findings.push({label,home,ledgerTabCount,unifiedPending,returnToLedger,homeAuditEntryVisible,homeAuditEntryReached,homeAuditEntryReturned,monthOptions,arrowNavigatesMonth,menuUnclipped,monthCloses,detailsOpen,detailsClose,transactions,list,brandLoaded,scanner,slipArtLoaded,compactUploadButtons,scannerColors,readableScanner,reportOverview,accountant,accountantDrilldown,trendsOnly,budgetDisclosure,noReportsFab,settings,settingsDirectory,settingsAnchors,noSettingsFab,largeSetting,largeHome,savedReadingMode,largeScanner,errors});
     await context.close();
   }
   fs.writeFileSync(`${directory}/webkit-report.json`,JSON.stringify(findings,null,2));
   console.log('WEBKIT_SAFARI_VISUAL_RESULTS',JSON.stringify(findings));
   const failed=findings.filter(f=>f.home.overflow>1||!f.home.order||f.home.actionCount!==0||f.home.navCount!==4||
     f.home.pageGrid!==4||!f.homeAuditEntryVisible||!f.homeAuditEntryReached||!f.homeAuditEntryReturned||f.home.homeGrid!==4||f.home.splitGrid!==4||
-    !f.home.navVisible||f.home.icons.some(icon=>icon.width<20||icon.height<20)||f.monthOptions!==13||!f.arrowNavigatesMonth||!f.menuUnclipped||!f.monthCloses||!f.detailsOpen||!f.detailsClose||f.transactions!==2||!f.list||!f.brandLoaded||!f.slipArtLoaded||!f.reportOverview||!f.accountant.visible||!f.accountant.breakdown||!f.accountant.flags||!f.accountant.subtotalMatches||!f.accountantDrilldown.filterVisible||!f.accountantDrilldown.uncertainOnly||!f.accountantDrilldown.restoredAll||!f.accountantDrilldown.backToAudit||!f.settingsDirectory||!f.settingsAnchors||!f.scanner||!f.compactUploadButtons||!f.readableScanner||!f.trendsOnly||!f.noReportsFab||!f.settings||!f.noSettingsFab||!f.largeSetting.active||!f.largeSetting.selected||f.largeSetting.fontSize<16||f.largeHome.overflow>1||f.largeHome.textSize<16||!f.largeHome.navigation||!f.savedReadingMode||!f.largeScanner||f.errors.length);
+    !f.home.navVisible||f.home.icons.some(icon=>icon.width<20||icon.height<20)||f.monthOptions!==13||!f.arrowNavigatesMonth||!f.menuUnclipped||!f.monthCloses||!f.detailsOpen||!f.detailsClose||f.transactions!==2||!f.list||f.ledgerTabCount!==2||!f.unifiedPending||!f.returnToLedger||!f.brandLoaded||!f.slipArtLoaded||!f.reportOverview||!f.accountant.visible||!f.accountant.breakdown||!f.accountant.flags||!f.accountant.subtotalMatches||!f.accountantDrilldown.filterVisible||!f.accountantDrilldown.uncertainOnly||!f.accountantDrilldown.restoredAll||!f.accountantDrilldown.backToAudit||!f.settingsDirectory||!f.settingsAnchors||!f.scanner||!f.compactUploadButtons||!f.readableScanner||!f.trendsOnly||!f.budgetDisclosure||!f.noReportsFab||!f.settings||!f.noSettingsFab||!f.largeSetting.active||!f.largeSetting.selected||f.largeSetting.fontSize<16||f.largeHome.overflow>1||f.largeHome.textSize<16||!f.largeHome.navigation||!f.savedReadingMode||!f.largeScanner||f.errors.length);
   if(failed.length){console.error('WEBKIT_SAFARI_VISUAL_FAIL',JSON.stringify(failed));process.exitCode=1;}
   else console.log('WEBKIT_SAFARI_VISUAL_PASS: 4 phone sizes, essential home, icons, tabbar, scan, transactions, settings');
 }catch(error){
