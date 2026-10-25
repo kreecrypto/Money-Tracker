@@ -267,7 +267,7 @@ try {
     ||(x.view==='mobile-home-actions'&&(!x.correctHierarchy||x.quickActionCount!==0||!x.noDuplicateActions||!x.bottomNavVisible||!x.openedOCR||x.pageErrors?.length))
     ||(x.view==='report-view-switch'&&(x.count!==2||!x.trendOnly||!x.budgetOnly||!x.categoryOnly||!x.overview||!x.noOverlay||x.pageErrors?.length))
     ||(x.view==='competitive-ledger-smoke'&&(!x.ledgerAvailable||!x.resetVisible||!x.searchReset||x.pageErrors?.length))
-  ).map(x=>({viewport:x.viewport,view:x.view,overflowPx:x.overflowPx,axe:x.axe?.violations?.map(v=>v.id),savedVisible:x.savedVisible,restore:[x.initiallyDisabled,x.enabledAfterAcknowledgement,x.closed]}));
+  ).map(x=>({viewport:x.viewport,view:x.view,overflowPx:x.overflowPx,axe:x.axe?.violations?.map(v=>v.id),savedVisible:x.savedVisible,saveState:x.saveState,reportChecks:{count:x.count,trend:x.trendOnly,budget:x.budgetOnly,categories:x.categoryOnly,overview:x.overview,overlay:x.noOverlay},restore:[x.initiallyDisabled,x.enabledAfterAcknowledgement,x.closed]}));
   if(critical.length){console.error('UX_ACCEPTANCE_FAIL',JSON.stringify(critical));process.exitCode=1;}
   else console.log('UX_ACCEPTANCE_PASS: 6 viewport, minimal home, slip-first, manual fallback, save, restore, responsive and WCAG scans');
 } catch (err) {
