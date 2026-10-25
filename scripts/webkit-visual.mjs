@@ -51,6 +51,11 @@ try{
     });
     const brandLoaded=await page.locator('.mt-home-brand-icon img').evaluate(img=>img.complete&&img.naturalWidth>0);
     await page.screenshot({path:`${directory}/${label}-home.png`,fullPage:true});
+    const homeAuditEntryVisible=await page.locator('.accountant-home-entry button').isVisible();
+    if(homeAuditEntryVisible)await page.locator('.accountant-home-entry button').click();
+    const homeAuditEntryReached=await page.locator('#accountant-review-title').isVisible();
+    await page.locator('.mobile-bottom-nav button').first().click();
+    const homeAuditEntryReturned=await page.locator('.mt-home-month-picker').isVisible();
     // The V2 prototype month menu must not be clipped by the green card.
     await page.locator('.mt-home-month-picker').click();
     const monthOptions=await page.locator('.mt-home-month-popover [role="option"]').count();
@@ -175,13 +180,13 @@ try{
       })
     );
     await page.locator('.modal-heading button').click();
-    findings.push({label,home,monthOptions,arrowNavigatesMonth,menuUnclipped,monthCloses,detailsOpen,detailsClose,transactions,list,brandLoaded,scanner,slipArtLoaded,compactUploadButtons,scannerColors,readableScanner,reportOverview,accountant,accountantDrilldown,trendsOnly,noReportsFab,settings,settingsDirectory,settingsAnchors,noSettingsFab,largeSetting,largeHome,savedReadingMode,largeScanner,errors});
+    findings.push({label,home,homeAuditEntryVisible,homeAuditEntryReached,homeAuditEntryReturned,monthOptions,arrowNavigatesMonth,menuUnclipped,monthCloses,detailsOpen,detailsClose,transactions,list,brandLoaded,scanner,slipArtLoaded,compactUploadButtons,scannerColors,readableScanner,reportOverview,accountant,accountantDrilldown,trendsOnly,noReportsFab,settings,settingsDirectory,settingsAnchors,noSettingsFab,largeSetting,largeHome,savedReadingMode,largeScanner,errors});
     await context.close();
   }
   fs.writeFileSync(`${directory}/webkit-report.json`,JSON.stringify(findings,null,2));
   console.log('WEBKIT_SAFARI_VISUAL_RESULTS',JSON.stringify(findings));
   const failed=findings.filter(f=>f.home.overflow>1||!f.home.order||f.home.actionCount!==0||f.home.navCount!==4||
-    f.home.pageGrid!==4||f.home.homeGrid!==4||f.home.splitGrid!==4||
+    f.home.pageGrid!==4||!f.homeAuditEntryVisible||!f.homeAuditEntryReached||!f.homeAuditEntryReturned||f.home.homeGrid!==4||f.home.splitGrid!==4||
     !f.home.navVisible||f.home.icons.some(icon=>icon.width<20||icon.height<20)||f.monthOptions!==13||!f.arrowNavigatesMonth||!f.menuUnclipped||!f.monthCloses||!f.detailsOpen||!f.detailsClose||f.transactions!==2||!f.list||!f.brandLoaded||!f.slipArtLoaded||!f.reportOverview||!f.accountant.visible||!f.accountant.breakdown||!f.accountant.flags||!f.accountant.subtotalMatches||!f.accountantDrilldown.filterVisible||!f.accountantDrilldown.uncertainOnly||!f.accountantDrilldown.restoredAll||!f.accountantDrilldown.backToAudit||!f.settingsDirectory||!f.settingsAnchors||!f.scanner||!f.compactUploadButtons||!f.readableScanner||!f.trendsOnly||!f.noReportsFab||!f.settings||!f.noSettingsFab||!f.largeSetting.active||!f.largeSetting.selected||f.largeSetting.fontSize<16||f.largeHome.overflow>1||f.largeHome.textSize<16||!f.largeHome.navigation||!f.savedReadingMode||!f.largeScanner||f.errors.length);
   if(failed.length){console.error('WEBKIT_SAFARI_VISUAL_FAIL',JSON.stringify(failed));process.exitCode=1;}
   else console.log('WEBKIT_SAFARI_VISUAL_PASS: 4 phone sizes, essential home, icons, tabbar, scan, transactions, settings');
