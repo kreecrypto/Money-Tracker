@@ -344,6 +344,8 @@ export function parseSlipText(rawText:string,layoutLines:string[]=[],ownerNames:
       ...(recipient?{storeName:recipient}:{}),
     }:undefined;
   const warnings:string[]=[...inspection.warnings];
+  if(inspection.reportedStatus&&/(?:ไม่สำเร็จ|ไม่ผ่าน|ล้มเหลว|failed|invalid|error)/iu.test(inspection.reportedStatus))
+    warnings.push('ข้อความสถานะตรวจสลิปขัดแย้งกับการบันทึก กรุณาตรวจสอบก่อน');
   if(kplus?.reference&&inspection.reference&&kplus.reference!==inspection.reference)
     warnings.push('OCR พบเลขอ้างอิงขัดแย้งกัน กรุณาตรวจจากสลิป');
   if(amountResult?.ambiguous)warnings.push('พบยอดเงินที่ขัดแย้งกันในสลิปเดียวกัน กรุณาตรวจยอดก่อนบันทึก');
