@@ -5,7 +5,8 @@ const SUPPORTED_IMAGE_TYPES=new Set(['image/jpeg','image/png','image/webp']);
 
 export type SlipBatchStatus='saved'|'duplicate'|'incomplete'|'error'|'cancelled'|'undone'|'excluded';
 export type SlipBatchOutcome={status:SlipBatchStatus;reason?:string;transactionId?:string;recipient?:string;amountSatang?:number;date?:string;pendingId?:string;direction?:EntryType};
-export type SlipBatchRow={name:string;status:SlipBatchStatus;reason?:string;transactionId?:string;recipient?:string;amountSatang?:number;date?:string;pendingId?:string;direction?:EntryType};
+export type SlipBatchDetails={sender?:string;senderBank?:string;recipientBank?:string;reference?:string;time?:string;reportedStatus?:string};
+export type SlipBatchRow={name:string;status:SlipBatchStatus;reason?:string;transactionId?:string;recipient?:string;amountSatang?:number;date?:string;pendingId?:string;direction?:EntryType;details?:SlipBatchDetails};
 
 export function validateSlipImage(file:Pick<File,'size'|'type'>&{name?:string}):string|null {
   const heic=/\.(?:heic|heif)$/iu.test(file.name||'');
