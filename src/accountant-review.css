@@ -1,32 +1,76 @@
-.accountant-review{padding:20px;min-width:0}
-.accountant-review .section-header{margin-bottom:16px}
-.accountant-review .section-header h3{display:flex;align-items:center;gap:8px}
-.accountant-review .section-header p{margin:5px 0 0;color:#466456;font-size:13px;line-height:1.6}
-.accountant-review-totals{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;margin-bottom:16px}
-.accountant-review-totals>div{min-width:0;display:flex;flex-direction:column;gap:5px;padding:14px;background:#f6faf7;border:1px solid #e0ebe5;border-radius:14px}
-.accountant-review-totals span,.accountant-review-ledger span{font-size:13px;color:#395548}
-.accountant-review-totals strong{font-size:clamp(16px,3.8vw,22px);color:#234b39;overflow-wrap:anywhere;font-variant-numeric:tabular-nums}
-.accountant-review-totals small,.accountant-review-ledger small{font-size:12px;color:#536d5d}
+/* Accountant UX: a guided, non-destructive review using existing brand tokens. */
+.accountant-review{padding:clamp(15px,3vw,24px);min-width:0;background:#fff;box-shadow:none}
+.accountant-review-heading{margin-bottom:16px}
+.accountant-review-kicker{display:flex;align-items:center;gap:6px;font-size:13px;font-weight:750;color:#08783f;margin-bottom:6px}
+.accountant-review-heading h3{margin:0 0 5px;font-size:clamp(19px,4.5vw,24px);font-weight:800;line-height:1.35;color:#162e23}
+.accountant-review-heading p{margin:0;color:#456354;font-size:14px;line-height:1.65}
+.accountant-review-totals{display:grid;grid-template-columns:minmax(0,1fr);gap:9px;margin:0 0 12px}
+.accountant-review-totals>div{display:flex;flex-direction:column;min-width:0;gap:4px;padding:16px;border-radius:14px}
+.accountant-review-totals span{font-size:13px;font-weight:700}
+.accountant-review-totals strong{font-size:clamp(20px,5.8vw,32px);line-height:1.3;font-weight:800;font-variant-numeric:tabular-nums;overflow-wrap:anywhere}
+.accountant-review-totals small{font-size:12px;line-height:1.5}
+.accountant-review-cashout{color:#fff;background:#10583e}
+.accountant-review-cashout span,.accountant-review-cashout small{color:#e9f5ee}
+.accountant-review-incoming{background:#f1f8f3;color:#174f38;border:1px solid #dcece2}
+.accountant-review-incoming span,.accountant-review-incoming small{color:#3a6450}
+.accountant-review-focus{display:flex;gap:10px;align-items:center;border:1px solid #e8d9ae;border-radius:12px;background:#fff9ed;padding:12px;color:#805814;margin-bottom:19px}
+.accountant-review-focus>svg{flex:none}
+.accountant-review-focus>div{min-width:0;flex:1;display:flex;flex-direction:column;gap:2px}
+.accountant-review-focus strong{font-size:14px;line-height:1.45}
+.accountant-review-focus span{font-size:12px;line-height:1.5}
+.accountant-review-focus button{border:1px solid #ead5a5;background:#fff8e8;color:#805814;min-width:44px;min-height:44px;border-radius:12px;display:grid;place-items:center}
+.accountant-review-subheading{display:flex;flex-wrap:wrap;gap:4px 10px;justify-content:space-between;align-items:baseline;margin:0 0 9px}
+.accountant-review-subheading h4{font-size:16px;line-height:1.45;font-weight:800;color:#203d2e;margin:0}
+.accountant-review-subheading>span{font-size:12px;color:#506d5d}
 .accountant-review-ledger{border:1px solid #e0ebe5;border-radius:14px;overflow:hidden}
-.accountant-review-ledger>div{display:flex;align-items:center;justify-content:space-between;min-width:0;gap:14px;padding:12px 14px;border-bottom:1px solid #e7efe9}
+.accountant-review-ledger>div{border-bottom:1px solid #e7efe9}
 .accountant-review-ledger>div:last-child{border-bottom:0}
-.accountant-review-ledger span{min-width:0}
-.accountant-review-ledger small{display:block;margin-top:2px}
-.accountant-review-ledger strong{font-size:14px;color:#234b39;font-variant-numeric:tabular-nums;white-space:nowrap}
-.accountant-review-ledger .accountant-review-check{background:#f3f8f5}
-.accountant-review-check span,.accountant-review-check strong{font-weight:750}
-.accountant-review-empty{color:#536d5d;margin:10px 0}
-.accountant-review-flags{margin-top:17px}
-.accountant-review-flags h4{font-size:15px;margin:0 0 9px;color:#2d4d3e}
-.accountant-review-flags ul{padding-left:20px;margin:0;display:grid;gap:7px}
-.accountant-review-flags li,.accountant-review-flags p{font-size:13px;line-height:1.65;color:#465f51}
-.accountant-review-flags p{margin:12px 0 0}
-.accountant-review-actions{display:flex;flex-wrap:wrap;gap:8px;margin-top:16px}
-.accountant-review-actions button{min-height:48px;display:inline-flex;align-items:center;justify-content:center;gap:7px}
+.accountant-review-ledger>div>button{display:flex;align-items:center;gap:10px;width:100%;min-height:64px;padding:10px 12px;background:#fff;text-align:left;border:0;color:#243c2f;cursor:pointer}
+.accountant-review-ledger>div>button:hover:not(:disabled){background:#f2f8f4}
+.accountant-review-ledger>div>button:disabled{opacity:.6;cursor:default}
+.accountant-review-number{width:32px;height:32px;flex:0 0 32px;background:#e9f5ed;color:#165d3c;border-radius:10px;display:grid;place-items:center;font-size:12px;font-weight:800;font-variant-numeric:tabular-nums}
+.accountant-review-number.group-1{background:#f4eced;color:#994a57}
+.accountant-review-number.group-2{background:#eaf2fc;color:#38628f}
+.accountant-review-number.group-3{background:#fff3db;color:#865b16}
+.accountant-review-group-label{display:flex;flex:1;min-width:0;flex-direction:column;gap:2px}
+.accountant-review-group-label b{font-size:14px;line-height:1.5;font-weight:750;color:#243b2d}
+.accountant-review-group-label small{font-size:12px;line-height:1.4;color:#546b5f}
+.accountant-review-ledger button>strong{flex:none;font-size:14px;color:#234b39;font-variant-numeric:tabular-nums;white-space:nowrap}
+.accountant-review-row-arrow{flex:none;color:#5e7567}
+.accountant-review-check{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:13px 14px;background:#eff7f1}
+.accountant-review-check span,.accountant-review-check strong{font-size:14px;font-weight:800;color:#1d5639}
+.accountant-review-check strong{font-variant-numeric:tabular-nums}
+.accountant-review-empty{color:#506957;margin:12px 0}
+.accountant-review-flags{margin-top:19px;padding:15px 0;border-top:1px solid #e6eee9}
+.accountant-review-flags h4{font-size:15px;font-weight:800;margin:0 0 9px;color:#294534}
+.accountant-review-flags ul{margin:0;padding-left:20px;display:grid;gap:7px}
+.accountant-review-flags li,.accountant-review-flags p{font-size:13px;line-height:1.7;color:#435e50}
+.accountant-review-flags p{margin:12px 0 0;color:#536b5d}
+.accountant-review-actions{display:flex;gap:8px;flex-wrap:wrap}
+.accountant-review-actions button{display:inline-flex;align-items:center;justify-content:center;gap:7px;min-height:48px;white-space:normal;font-size:13px}
+.accountant-filter-banner{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:11px 14px;border-radius:12px;background:#eaf5ee;border:1px solid #d1e7d9;margin-bottom:12px;min-width:0}
+.accountant-filter-banner>span{font-size:13px;font-weight:750;color:#24533b;min-width:0}
+.accountant-filter-banner button{min-height:44px;flex:none;background:#fff;border:1px solid #bedac7;border-radius:10px;padding:7px 12px;font-size:13px;color:#1d5839}
+.accountant-home-entry{display:flex;align-items:center;gap:11px;background:#fff;border:1px solid #deebe0;border-radius:14px;padding:15px;box-shadow:0 2px 9px #16402c08}
+.accountant-home-entry>div{flex:1;min-width:0}
+.accountant-home-entry strong{font-size:14px;color:#1d432e}
+.accountant-home-entry p{margin:3px 0 0;font-size:13px;line-height:1.5;color:#466755}
+.accountant-home-entry button{display:flex;align-items:center;justify-content:center;gap:5px;background:#edf7f0;border:1px solid #cbe3d4;border-radius:11px;color:#145c38;font-weight:750;font-size:13px;min-height:48px;padding:0 11px;white-space:nowrap}
+@media(min-width:700px){
+ .accountant-review-totals{grid-template-columns:minmax(0,1.7fr) minmax(0,1fr)}
+}
+@media(max-width:530px){
+ .accountant-review-ledger>div>button{display:grid;grid-template-columns:32px minmax(0,1fr) 16px;gap:3px 9px}
+ .accountant-review-number{grid-row:1/span 2;grid-column:1}
+ .accountant-review-group-label{grid-column:2;grid-row:1}
+ .accountant-review-ledger button>strong{grid-column:2;grid-row:2;white-space:normal;font-size:15px}
+ .accountant-review-row-arrow{grid-column:3;grid-row:1/span 2}
+ .accountant-review-actions button{flex:1 1 auto}
+}
 @media(max-width:375px){
  .accountant-review{padding:14px}
- .accountant-review-totals{grid-template-columns:minmax(0,1fr)}
- .accountant-review-ledger>div{gap:8px}
- .accountant-review-ledger strong{font-size:13px}
- .accountant-review-actions button{flex:1 1 100%}
+ .accountant-home-entry{flex-wrap:wrap}
+ .accountant-home-entry button{width:100%}
+ .accountant-filter-banner{flex-wrap:wrap}
+ .accountant-filter-banner button{min-width:90px}
 }
