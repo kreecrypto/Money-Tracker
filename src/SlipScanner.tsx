@@ -287,7 +287,16 @@ export default function SlipScanner({onApply,onComplete,onBusyChange,onUndoBatch
                   (error instanceof Error?error.message:'โปรดลองใหม่');
               }
             }
-            publish({name:file.name,...outcome,recipient:outcome.recipient||reading.recipient||undefined,amountSatang:outcome.amountSatang||reading.amountSatang||undefined,date:outcome.date||reading.date||undefined,direction:outcome.direction||reading.direction||undefined});
+            publish({name:file.name,...outcome,recipient:outcome.recipient||reading.recipient||undefined,
+              amountSatang:outcome.amountSatang||reading.amountSatang||undefined,
+              date:outcome.date||reading.date||undefined,direction:outcome.direction||reading.direction||undefined,
+              details:{
+                sender:reading.sender||undefined,senderBank:reading.senderBank||undefined,
+                recipientBank:reading.recipientBank||undefined,
+                reference:reading.reference||reading.receipt?.receiptId||undefined,
+                time:reading.timeWithSeconds||reading.time||undefined,
+                reportedStatus:reading.reportedStatus||undefined,
+              }});
             if(outcome.status==='incomplete'){
               // Keep the photo only in volatile browser memory for same-session
               // review. Do not persist or send it through the API.
@@ -480,9 +489,22 @@ export default function SlipScanner({onApply,onComplete,onBusyChange,onUndoBatch
       <strong>ผลของแต่ละสลิป</strong>
       <ul>{rows.map((row,i)=><li key={i+'-'+row.name} className="slip-result-row">
         <span className="slip-result-main"><span className="slip-batch-file">{row.recipient||row.name}</span>{row.date&&<small>{row.date}</small>}</span>
-        {row.amountSatang!==undefined&&<b className="slip-result-amount">฿{baht(row.amountSatang)}</b>}
+        {row.amountSatang!==undefined&&<b className={'slip-result-amount '+(row.direction==='expense'?'negative':row.direction==='income'?'positive':'')}>{row.direction==='expense'?'−':row.direction==='income'?'+':''}฿{baht(row.amountSatang)}</b>}
         <span className={'slip-batch-status '+row.status}>{statusLabels[row.status]}</span>
         {row.reason&&row.status!=='saved'&&<small className="slip-result-reason">{row.reason}</small>}
+        {row.details&&<details className="slip-check-details"><summary>ดูข้อมูลที่อ่านได้จากสลิป</summary>
+          <dl>
+            {row.details.reportedStatus&&<div><dt>สถานะที่พิมพ์ในสลิป</dt><dd>{row.details.reportedStatus}<small>เป็นข้อความจากภาพ ไม่ใช่ผลยืนยันกับธนาคาร</small></dd></div>}
+            {row.details.sender&&<div><dt>ชื่อผู้โอน</dt><dd>{row.details.sender}</dd></div>}
+            {row.details.senderBank&&<div><dt>โอนจาก</dt><dd>{row.details.senderBank}</dd></div>}
+            {row.recipient&&<div><dt>ชื่อผู้รับ</dt><dd>{row.recipient}</dd></div>}
+            {row.details.recipientBank&&<div><dt>โอนถึง</dt><dd>{row.details.recipientBank}</dd></div>}
+            {row.details.reference&&<div><dt>เลขอ้างอิง</dt><dd>{row.details.reference}</dd></div>}
+            {row.date&&<div><dt>วันที่</dt><dd>{row.date}</dd></div>}
+            {row.details.time&&<div><dt>เวลา</dt><dd>{row.details.time}{row.details.time.length===8&&<small>ในสมุดบัญชีบันทึกเวลาถึงระดับนาที</small>}</dd></div>}
+            <div><dt>ผลของ Money Tracker</dt><dd>{statusLabels[row.status]}{row.direction?' · '+(row.direction==='expense'?'รายจ่าย':'รายรับ'):' · ยังไม่สรุปรายรับรายจ่าย'}</dd></div>
+          </dl>
+        </details>}
         {row.status==='incomplete'&&corrections[i]&&<button type="button" className="slip-result-fix" onClick={()=>focusReview(i)}>ตรวจยอดเงินจากสลิป <Check size={16}/></button>}
       </li>)}</ul>
     </div>}
