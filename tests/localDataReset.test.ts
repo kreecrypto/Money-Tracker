@@ -23,11 +23,11 @@ const remote={
   id:'iphone-00000000-0000-4000-8000-000000000001',
   type:'expense',
   amountSatang:19900,
-  date:'2026-10-15',
+  date:'2026-10-25',
   category:'อื่น ๆ',
   note:'K PLUS · Shortcut Auto Import',
   method:'bank',
-  createdAt:Date.parse('2026-10-15T09:01:00Z')
+  createdAt:Date.parse('2026-10-25T09:01:00Z')
 };
 beforeEach(()=>{
   mem.clear();
@@ -58,6 +58,13 @@ describe('local-only data reset',()=>{
     resetIphoneImportHistory();
     expect(local.getItem('money-tracker-iphone-seen-v1')).toBeNull();
     expect(local.getItem('money-tracker-iphone-review-token-v1')).toBe('A'.repeat(64));
+  });
+  it('does not import historical cloud rows before 25 October 2026',async()=>{
+    local.setItem('money-tracker-iphone-review-token-v1','A'.repeat(64));
+    const old={...remote,date:'2026-10-24'};
+    vi.stubGlobal('fetch',vi.fn().mockResolvedValue(new Response(JSON.stringify({transactions:[old]}),{status:200})));
+    expect(await iphoneSync()).toEqual({imported:0,received:1,invalid:0});
+    expect(mocks.save).not.toHaveBeenCalled();
   });
   it('repairs a missing transaction only after the user resets import history',async()=>{
     local.setItem('money-tracker-iphone-review-token-v1','A'.repeat(64));
