@@ -1,4 +1,4 @@
-import {DEFAULT_SETTINGS,type Settings,type Transaction,isValidTransaction} from './finance';
+import {DEFAULT_SETTINGS,type Settings,type Transaction,isValidTransaction,isTrackingDate} from './finance';
 import {isValidPendingSlip,pendingFingerprintMatch,type PendingSlip} from './pendingSlips';
 import {sanitizeOwnerNames} from './slipIdentity';
 const DB_NAME='ngoentoday-db';
@@ -25,7 +25,7 @@ function getDB():Promise<IDBDatabase>{
 }
 function request<T>(req:IDBRequest<T>):Promise<T>{return new Promise((resolve,reject)=>{req.onsuccess=()=>resolve(req.result);req.onerror=()=>reject(req.error);});}
 export async function loadTransactions(){ const db=await getDB(); const data=await request<Transaction[]>(db.transaction(STORE,'readonly').objectStore(STORE).getAll()); return data.filter(isValidTransaction).sort((a,b)=>b.date.localeCompare(a.date)||(b.time||'').localeCompare(a.time||'')||b.createdAt-a.createdAt); }
-export async function saveTransaction(item:Transaction){const db=await getDB(); const tx=db.transaction(STORE,'readwrite'); await request(tx.objectStore(STORE).put(item)); await completed(tx);}
+export async function saveTransaction(item:Transaction){if(!isTrackingDate(item.date))throw new Error('บันทึกได้เฉพาะรายการตั้งแต่วันที่ 25 ต.ค. 2569 เป็นต้นไป');const db=await getDB(); const tx=db.transaction(STORE,'readwrite'); await request(tx.objectStore(STORE).put(item)); await completed(tx);}
 /** Clear only this browser's Money Tracker data. Never touches Supabase. */
 export async function clearLocalData():Promise<void>{
   const db=await getDB();
@@ -63,7 +63,7 @@ export async function replaceAll(transactions:Transaction[],settings:Settings){
 export async function loadPendingSlips():Promise<PendingSlip[]>{
   const db=await getDB();
   const rows=await request<unknown[]>(db.transaction(PENDING,'readonly').objectStore(PENDING).getAll());
-  return rows.filter(isValidPendingSlip).sort((a,b)=>b.updatedAt-a.updatedAt);
+  return rows.filter(isValidPendingSlip).filter(x=>x.date===null||isTrackingDate(x.date)).sort((a,b)=>b.updatedAt-a.updatedAt);
 }
 
 /** Use one read/write transaction so simultaneous batches cannot duplicate a pending slip. */
