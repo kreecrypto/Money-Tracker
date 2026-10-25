@@ -127,3 +127,14 @@
   .local-reset-modal .modal-footer{flex-direction:column-reverse;align-items:stretch}
   .local-reset-modal .modal-footer .btn{width:100%}
 }
+
+/* Structured OCR inspection appears only in the transient post-scan result. */
+.slip-check-details{grid-column:1/-1;width:100%;min-width:0;border-top:1px solid #e8eeea;padding-top:8px}
+.slip-check-details summary{cursor:pointer;color:#276d5b;font-size:.875rem;font-weight:700;padding:8px 0;min-height:40px}
+.slip-check-details summary:focus-visible{outline:3px solid #7dc8b9;outline-offset:2px}
+.slip-check-details dl{display:grid;gap:0;margin:6px 0 0;font-size:.875rem}
+.slip-check-details dl>div{display:grid;grid-template-columns:minmax(95px,37%) minmax(0,1fr);gap:12px;padding:9px 0;border-top:1px solid #edf1ef;align-items:start}
+.slip-check-details dt{color:#677873}
+.slip-check-details dd{margin:0;min-width:0;overflow-wrap:anywhere;color:#263c33;font-weight:600}
+.slip-check-details dd small{display:block;margin-top:3px;color:#6b7c75;font-weight:400}
+@media(max-width:360px){.slip-check-details dl>div{grid-template-columns:minmax(82px,34%) minmax(0,1fr);gap:8px}}

@@ -3,6 +3,7 @@ import {readReceiptDetails} from './receiptIntelligence.js';
 import {parseSpecialReceipt,type ReceiptSource} from './receiptFormats.js';
 import {parseKPlusSlip,parseKPlusTopUp,isKPlusPromoNoise} from './kplus.js';
 import {classifyByAccountNames,extractSlipParties,sanitizeOwnerNames} from './slipIdentity.js';
+import {readSlipInspection} from './slipInspection.js';
 
 /** OCR parsing is intentionally conservative: uncertain values stay empty for human review. */
 export type SlipFields = {
@@ -12,6 +13,12 @@ export type SlipFields = {
   recipient: string | null;
   /** Payer extracted from the slip; not uploaded or stored in transactions. */
   sender?: string | null;
+  /** OCR-only metadata for the post-scan detail view, never a bank verification. */
+  senderBank?: string | null;
+  recipientBank?: string | null;
+  reference?: string | null;
+  timeWithSeconds?: string | null;
+  reportedStatus?: string | null;
   /** Null when the receipt cannot reliably establish the user's cash-flow direction. */
   direction: EntryType | null;
   directionReason: string;
@@ -269,6 +276,7 @@ export function parseSlipText(rawText:string,layoutLines:string[]=[],ownerNames:
   const lines=normalizeSlipOcrText(rawText).split(/\r?\n/u)
     .map(x=>x.replace(/^[0◯○•●@]\s+(?=[A-Z])/u,'').trim())
     .filter(Boolean);
+  const inspection=readSlipInspection(lines);
   const special=parseSpecialReceipt(lines);
   const textKplus=special?null:parseKPlusSlip(lines);
   // Tesseract's plain-text stream can interleave the bank watermark and QR;
@@ -326,13 +334,20 @@ export function parseSlipText(rawText:string,layoutLines:string[]=[],ownerNames:
   const source=special?.source;
   const method:Method|undefined=walletTopUp?'bank':special?.method;
   const category=special?.category;
+  const reference=kplus?.reference||inspection.reference;
+  const reportKplus=/(?:กสิกรไทย|kbank|kasikorn)/iu.test(inspection.senderBank||'');
   const receipt=special?readReceiptDetails(special.source,lines,amountSatang,layoutLines,recipient):
-    kplus&&amountSatang!==null?{
-      source:'kplus' as const,items:[],paidSatang:amountSatang,itemsComplete:true,
-      ...(kplus.reference?{receiptId:kplus.reference}:{}),
+    (kplus||(inspection.senderBank&&inspection.reference))&&amountSatang!==null?{
+      source:(kplus||reportKplus?'kplus':'generic') as 'kplus'|'generic',
+      items:[],paidSatang:amountSatang,itemsComplete:true,
+      ...(reference?{receiptId:reference}:{}),
       ...(recipient?{storeName:recipient}:{}),
     }:undefined;
-  const warnings:string[]=[];
+  const warnings:string[]=[...inspection.warnings];
+  if(inspection.reportedStatus&&/(?:ไม่สำเร็จ|ไม่ผ่าน|ล้มเหลว|failed|invalid|error)/iu.test(inspection.reportedStatus))
+    warnings.push('ข้อความสถานะตรวจสลิปขัดแย้งกับการบันทึก กรุณาตรวจสอบก่อน');
+  if(kplus?.reference&&inspection.reference&&kplus.reference!==inspection.reference)
+    warnings.push('OCR พบเลขอ้างอิงขัดแย้งกัน กรุณาตรวจจากสลิป');
   if(amountResult?.ambiguous)warnings.push('พบยอดเงินที่ขัดแย้งกันในสลิปเดียวกัน กรุณาตรวจยอดก่อนบันทึก');
   if(walletTopUp)warnings.push('การเติมเงิน e-Wallet นับเป็นรายจ่ายจากธนาคารแล้ว โปรดอย่าบันทึกการใช้ Wallet ซ้ำ');
   if(!lines.length)warnings.push('ไม่พบตัวอักษรในรูปภาพ ลองถ่ายใหม่ให้ชัดขึ้น');
@@ -340,7 +355,9 @@ export function parseSlipText(rawText:string,layoutLines:string[]=[],ownerNames:
   if(date===null)warnings.push('อ่านวันที่ไม่ชัดเจน กรุณาตรวจและกรอกวันที่ก่อนบันทึก');
   if(time===null)warnings.push('อ่านเวลาไม่ชัดเจน กรุณากรอกเวลาตามสลิป');
   if(recipient===null)warnings.push('อ่านชื่อผู้รับไม่ชัดเจน กรุณาตรวจและกรอกชื่อผู้รับ');
-  return {amountSatang,date,time,sender,recipient,direction,directionReason,source,method,category,receipt:receipt||undefined,rawText,warnings};
+  return {amountSatang,date,time,sender,recipient,direction,directionReason,source,method,category,receipt:receipt||undefined,
+    senderBank:inspection.senderBank,recipientBank:inspection.recipientBank,reference,timeWithSeconds:inspection.timeWithSeconds,
+    reportedStatus:inspection.reportedStatus,rawText,warnings};
 }
 
 
@@ -382,6 +399,11 @@ export function mergeSlipOcrReadings(first:SlipFields,second:SlipFields):SlipFie
   const time=select('เวลา',first.time,second.time);
   const recipient=select('ชื่อผู้รับ',first.recipient,second.recipient);
   const sender=select('ชื่อผู้ส่ง',first.sender??null,second.sender??null);
+  const senderBank=select('ธนาคารต้นทาง',first.senderBank??null,second.senderBank??null);
+  const recipientBank=select('ธนาคารปลายทาง',first.recipientBank??null,second.recipientBank??null);
+  const reference=select('เลขอ้างอิง',first.reference??null,second.reference??null);
+  const timeWithSeconds=select('เวลาที่มีวินาที',first.timeWithSeconds??null,second.timeWithSeconds??null);
+  const reportedStatus=select('ข้อความสถานะ',first.reportedStatus??null,second.reportedStatus??null);
   // The K PLUS funding confirmation is explicitly an expense by product rule.
   // Keep contradictory OCR evidence as a separate financial safety gate.
   const candidateDirection=select('ประเภทรายรับรายจ่าย',first.direction,second.direction);
@@ -421,6 +443,7 @@ export function mergeSlipOcrReadings(first:SlipFields,second:SlipFields):SlipFie
   if(date===null&&!conflicts.some(x=>x.includes('วันที่')))warnings.push('อ่านวันที่ไม่ได้ กรุณากรอกเอง');
   if(time===null&&!conflicts.some(x=>x.includes('เวลา')))warnings.push('อ่านเวลาไม่ได้ กรุณากรอกเอง');
   if(recipient===null&&!conflicts.some(x=>x.includes('ชื่อผู้รับ')))warnings.push('อ่านชื่อผู้รับไม่ได้ กรุณากรอกเอง');
-  return {amountSatang,date,time,sender,recipient,direction,directionReason,source,method,category,receipt,warnings,rawText:
+  return {amountSatang,date,time,sender,recipient,senderBank,recipientBank,reference,timeWithSeconds,reportedStatus,
+    direction,directionReason,source,method,category,receipt,warnings,rawText:
     first.rawText+'\n\n--- รอบปรับภาพ ---\n'+second.rawText};
 }
