@@ -73,3 +73,10 @@ Run npm test, npm run typecheck, and npm run build. The synthetic fixtures verif
 - OCR startup has a 90-second deadline and each recognition pass has a 65-second deadline. A stuck recognition shows a Thai error and stops the remaining batch rather than reusing a potentially broken worker.
 - The stop action terminates the browser OCR worker rather than waiting for the current page to finish. No bank photo or OCR transcript is sent to the server.
 - These changes do not prove image accuracy on real iPhone Photos or HEIC. Reproduce using one original screenshot at a time, record whether the failure is loading, recognizing, retry, saving or pending review, and compare the parsed amount/date/time/merchant to the image. Redact identities and bank account numbers before sharing any evidence.
+
+
+## K PLUS focused amount evidence fix — 25 October 2026 (PR pending)
+- Source-level bug: the focused third OCR pass parses both plain text and Tesseract spatial rows, but the former caller accepted the paid amount only if its **plain text alone** contained a payment label. When the visual word rows retained `จำนวน:` but the plain-text stream did not, a labelled amount was discarded.
+- `recoverKPlusFocusedAmount(text, layoutLines)` accepts a figure only when a trusted labelled source yields the same integer-satang value as the combined parser, and there are no conflicting labelled totals. Bare numbers, fee/reference values and contradictory evidence remain unverified and Pending.
+- This adjusts only acceptance of the existing focused K PLUS crop pass; it does not add OCR passes, modify traineddata, store images, call a server or bypass the low-confidence gate.
+- Public regression uses fictional text/spatial OCR layouts. **The user's failing real image has not been supplied or reproduced at the pixel level**; the production gate still requires private K PLUS sample verification and iPhone Safari/PWA upload evidence (camera/gallery, amount, Pending and duplicate).
