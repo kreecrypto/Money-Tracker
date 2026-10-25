@@ -97,8 +97,10 @@ try{
     await page.locator('.modal-heading button').click();
     await page.locator('.mobile-bottom-nav button').nth(2).click();
     const reportOverview=await page.locator('.reference-report-summary .metric').count()===3
-      &&await page.locator('.reference-overview-trends').isVisible()
-      &&await page.locator('.ref-report-spending').isVisible();
+      &&await page.locator('.accountant-review').isVisible()
+      &&await page.locator('.reference-overview-trends').count()===0
+      &&await page.locator('#report-spending').count()===0
+      &&await page.locator('#report-budget').count()===0;
     const accountant=await page.evaluate(()=>{
       const card=document.querySelector('.accountant-review');
       if(!card)return {visible:false,breakdown:false,flags:false,subtotalMatches:false};
