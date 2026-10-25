@@ -106,7 +106,7 @@ try {
           && await page.locator('#report-budget').isHidden();
         await tabs.nth(1).click();
         const budgetOnly=await page.locator('#report-budget').isVisible();
-        const categoryOnly=await page.locator('.category-list').isVisible();
+        const categoryOnly=await page.locator('.category-surface').isVisible();
         const noOverlay=width>660 || await page.locator('.mobile-fab').isHidden();
         record('report-view-switch',name,{count,trendOnly,budgetOnly,categoryOnly,overview,noOverlay,pageErrors:errors});
       }
