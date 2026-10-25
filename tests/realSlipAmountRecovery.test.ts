@@ -1,5 +1,5 @@
 import {describe,expect,it} from 'vitest';
-import {parseSlipText,needsSlipOcrRecovery,describeMissingSlipAmount} from '../src/lib/slip';
+import {parseSlipText,needsSlipOcrRecovery,describeMissingSlipAmount,recoverKPlusFocusedAmount} from '../src/lib/slip';
 import {prepareAutoSlip} from '../src/lib/slipAutoSave';
 
 /** Fictional bank layout only; no private source screenshots or identifiers. */
@@ -134,5 +134,33 @@ describe('K PLUS amount-only crop safety',()=>{
     ]){
       expect(parseSlipText(text).amountSatang).toBeNull();
     }
+  });
+});
+
+describe('focused K PLUS payment amount accepts trusted spatial-only labels',()=>{
+  it('recovers payment when Tesseract plain text loses the label but layout keeps it',()=>{
+    const text='90.00 บาท';
+    const layout=['จำนวน:', '90.00 บาท', 'ค่าธรรมเนียม 0.00 บาท'];
+    expect(parseSlipText(text,layout).amountSatang).toBe(9000);
+    expect(recoverKPlusFocusedAmount(text,layout)).toBe(9000);
+  });
+
+  it('keeps fee and reference only readings pending even beside an isolated label',()=>{
+    expect(recoverKPlusFocusedAmount('ค่าธรรมเนียม 0.00 บาท',
+      ['จำนวน:', 'ค่าธรรมเนียม 0.00 บาท', 'เลขที่รายการ 9000'])).toBeNull();
+    expect(recoverKPlusFocusedAmount('90.00 บาท',['เลขอ้างอิง 9000'])).toBeNull();
+    expect(recoverKPlusFocusedAmount('90.00 บาท',[])).toBeNull();
+  });
+
+  it('rejects disagreements within and across visual amount readings',()=>{
+    expect(recoverKPlusFocusedAmount('จำนวน: 90.00 บาท',
+      ['จำนวน: 80.00 บาท'])).toBeNull();
+    expect(recoverKPlusFocusedAmount('90.00 บาท',
+      ['จำนวน: 90.00 บาท', 'ยอดชำระ 80.00 บาท'])).toBeNull();
+  });
+
+  it('retains working explicit text amount even without geometric word boxes',()=>{
+    expect(recoverKPlusFocusedAmount('จำนวน: 90.00 บาท',[])).toBe(9000);
+    expect(recoverKPlusFocusedAmount('ค่าธรรมเนียม 50.00 บาท',[])).toBeNull();
   });
 });

@@ -344,6 +344,22 @@ export function parseSlipText(rawText:string,layoutLines:string[]=[],ownerNames:
 }
 
 
+/** Accept a K PLUS amount-crop only when an explicit paid label in one
+ * recognition representation supports that exact value. Tesseract can omit a
+ * heading from plain text but keep it in reconstructed visual rows. */
+export function recoverKPlusFocusedAmount(rawText:string,layoutLines:string[]=[]):number|null {
+  const reading=parseSlipText(rawText,layoutLines);
+  if(reading.amountSatang===null||
+     reading.warnings.some(w=>w.includes('ขัดแย้ง')||w.includes('ต่างกัน')))return null;
+  const textLines=normalizeSlipOcrText(rawText).split(/\r?\n/u).map(x=>x.trim()).filter(Boolean);
+  const visualLines=layoutLines.map(x=>normalizeSlipOcrText(x).trim()).filter(Boolean);
+  // Do not promote a naked figure just because another OCR representation
+  // sees an unrelated heading. The labelled *source* must yield this value.
+  return [parseAmount(textLines),parseAmount(visualLines)]
+    .some(result=>result.labelled&&!result.ambiguous&&result.amountSatang===reading.amountSatang)
+    ?reading.amountSatang:null;
+}
+
 /** Provide a clear, privacy-preserving reason for a missing amount.
  * Only the two OCR readings are inspected in memory; no raw text is logged. */
 export function describeMissingSlipAmount(first:SlipFields,recovery:SlipFields|null):string {
