@@ -108,8 +108,9 @@ try {
           && await page.locator('#report-budget').count()===0
           && await page.locator('#report-trends').count()===0;
         await tabs.nth(0).click();
-        const overview=await page.locator('#report-spending').isVisible()
-          && await page.locator('#report-budget').isVisible()
+        const overview=await page.locator('.accountant-review').isVisible()
+          && await page.locator('#report-spending').count()===0
+          && await page.locator('#report-budget').count()===0
           && await page.locator('#report-trends').count()===0;
         const noOverlay=width>660 || await page.locator('.mobile-fab').isHidden();
         record('report-view-switch',name,{count,trendOnly,budgetOnly,categoryOnly,overview,noOverlay,pageErrors:errors});
