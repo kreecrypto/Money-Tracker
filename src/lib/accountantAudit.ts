@@ -11,6 +11,24 @@ export type AccountantAudit={
   possibleDuplicatePairs:number;
 };
 
+export type AccountantBucketKey='debtPayments'|'walletTopups'|'needsClassification'|'otherCategorized';
+export const ACCOUNTANT_BUCKET_LABELS:Record<AccountantBucketKey,string>={
+  debtPayments:'ชำระหนี้ / บัตรเครดิต',
+  walletTopups:'เติมเงิน Wallet',
+  needsClassification:'ยังจำแนกไม่ชัดเจน',
+  otherCategorized:'รายการที่จัดหมวดแล้ว'
+};
+
+/** Same classifier for audit totals and drill-down; unknown purpose stays unknown. */
+export function accountantBucketFor(item:Transaction):AccountantBucketKey|null{
+  if(item.type!=='expense')return null;
+  if(item.category==='ผ่อนชำระ/หนี้')return 'debtPayments';
+  if(/^เติมเงิน K PLUS \(Gmail\)|หมวดย่อย:\s*เติมเงิน e-Wallet/i.test(item.note))return 'walletTopups';
+  if(item.category==='อื่น ๆ'&&!/หมวดย่อย:\s*(?:ค่าปรับ|ประกันชีวิต|บริการส่วนบุคคล\/ตัดผม)/.test(item.note))
+    return 'needsClassification';
+  return 'otherCategorized';
+}
+
 /** Read-only cash-out review. This is NOT a bank reconciliation or profit/loss statement. */
 export function accountantAudit(items:readonly Transaction[]):AccountantAudit{
   const income={amountSatang:0,count:0};
@@ -26,11 +44,9 @@ export function accountantAudit(items:readonly Transaction[]):AccountantAudit{
       continue;
     }
     outflow.amountSatang+=item.amountSatang;outflow.count++;
-    const topup=/^เติมเงิน K PLUS \(Gmail\)|หมวดย่อย:\s*เติมเงิน e-Wallet/i.test(item.note);
-    const knownOther=/หมวดย่อย:\s*(?:ค่าปรับ|ประกันชีวิต|บริการส่วนบุคคล\/ตัดผม)/.test(item.note);
-    const group=item.category==='ผ่อนชำระ/หนี้'?debtPayments:
-      topup?walletTopups:item.category==='อื่น ๆ'&&!knownOther?needsClassification:otherCategorized;
-    group.amountSatang+=item.amountSatang;group.count++;
+    const key=accountantBucketFor(item)!;
+    const buckets={debtPayments,walletTopups,needsClassification,otherCategorized};
+    buckets[key].amountSatang+=item.amountSatang;buckets[key].count++;
     // Names are used only locally. Matching payments are review suggestions, not duplicates.
     const name=item.recipient?.trim().replace(/\s+/g,' ').toLocaleLowerCase('th-TH');
     if(!name||!item.time||!/^([01]\d|2[0-3]):[0-5]\d$/.test(item.time))continue;
