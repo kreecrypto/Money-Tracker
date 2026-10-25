@@ -5,6 +5,18 @@
 
 **Priority:** P1 usability improvement with P0 guardrails for financial semantics. Builds on PR #79; no financial mutations, no new external service/schema, no auto-confirmation of pending rows.
 
+## IA consolidation — Accountant app (2026-10-25)
+
+**Persistent navigation:** `ภาพรวม | สมุดบัญชี | ตรวจบัญชี | ตั้งค่า`. Existing underlying routes remain `home | transactions | reports | settings` for state and current app compatibility.
+
+- `สมุดบัญชี`: exactly two selections — `บันทึกแล้ว` and `รอตรวจ`. The latter holds both the local pending slip queue and the iPhone Cloud queue in separate expandable sources with independent save/review semantics. No hidden deletion or auto-confirmation.
+- `ตรวจบัญชี`: monthly saved-income and saved-outflow summary and four accountant classifications stay visible. Expand `วิเคราะห์รายการ` for trend and categories, or `งบประมาณ` for budget; there is **no nested 4-tab menu**. Accountant report drill-down still opens filtered saved transactions.
+- `ตั้งค่า`: remove the redundant seven-link menu index; existing owner-name, reading-size, budget, backup/restore, privacy, integrations and version controls remain in their actual sections.
+- `ภาพรวม`: retains prominent slip upload and recent records; qualified unclassified-entry link opens the accountant page.
+- No API/schema/transaction mutations; Wallet top-up still an expense according to current product rules. Production source stays unchanged pending release gates.
+
+**Acceptance:** Four accessible bottom/side menu destinations and correct labels; 2 ledger tabs; both pending sources reachable; no report nested tabs; two native details for analysis/budget; no duplicate settings index; existing risk warnings and deep links preserved. QA Chromium 320/375/390/430/768/1280, WebKit 320/375/390/430, physical iPhone still required.
+
 ## Before → After
 
 | Screen | Previously | Revamp (in this PR) |
