@@ -10,7 +10,7 @@
 | Screen | Previously | Revamp (in this PR) |
 |---|---|---|
 | Home | Total, upload, recent, generic alerts | Same simple Home hierarchy + contextual entry **รายการยังไม่แยกประเภท** (only when selected-month rows exist) leading to accountant summary |
-| Reports → ภาพรวม | Monetary metrics, non-interactive accountant breakdown among charts | Clear cash-out headline; four exclusive satang-conserving groups; one-tap report → filtered transactions; task-oriented warnings |
+| Reports → ภาพรวม | Monetary metrics, non-interactive accountant breakdown among charts | Focused overview (money metrics + guided audit only); charts and budget move to their own existing tabs; four exclusive satang-conserving groups; one-tap report → filtered transactions; task-oriented warnings |
 | Transactions | All/income/expense search and manual correction | Filter banner **กำลังดู: ...** from report bucket, exact underlying bucket helper, explicit **ดูทั้งหมด** reset; existing edit/undo/delete confirmations unchanged |
 | Pending | Separate local-slip/iPhone queues | No silent reconciliation. From the report use existing queue review actions; monthly saved rows and all-month pending counts are labeled distinctly |
 | Reports terminology | "รายจ่าย" sometimes implied consumption spending | "เงินออกที่บันทึก" and accurate category, budget, monthly-net labels; still not bank balance or audited P&L |
