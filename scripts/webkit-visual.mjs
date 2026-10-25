@@ -116,6 +116,17 @@ try{
       };
     });
     await page.screenshot({path:`${directory}/${label}-report-overview.png`,fullPage:true});
+    // Follow the real Reports → uncertain outflow → Transactions → clear filter journey.
+    await page.locator('.accountant-review-ledger>div>button').nth(2).click();
+    const accountantDrilldown={
+      filterVisible:await page.locator('.accountant-filter-banner').isVisible(),
+      uncertainOnly:await page.locator('.transaction-page .transaction-row').count()===1,
+    };
+    await page.screenshot({path:`${directory}/${label}-report-filter.png`,fullPage:true});
+    await page.locator('.accountant-filter-banner button').click();
+    accountantDrilldown.restoredAll=await page.locator('.transaction-page .transaction-row').count()===5;
+    await page.locator('.mobile-bottom-nav button').nth(2).click();
+    accountantDrilldown.backToAudit=await page.locator('.accountant-review').isVisible();
     await page.locator('.ref-report-tabs button').nth(2).click();
     const trendsOnly=await page.locator('#report-trends').isVisible()&&await page.locator('#report-budget').count()===0;
     const noReportsFab=await page.locator('.mobile-fab').isHidden();
@@ -162,14 +173,14 @@ try{
       })
     );
     await page.locator('.modal-heading button').click();
-    findings.push({label,home,monthOptions,arrowNavigatesMonth,menuUnclipped,monthCloses,detailsOpen,detailsClose,transactions,list,brandLoaded,scanner,slipArtLoaded,compactUploadButtons,scannerColors,readableScanner,reportOverview,accountant,trendsOnly,noReportsFab,settings,settingsDirectory,settingsAnchors,noSettingsFab,largeSetting,largeHome,savedReadingMode,largeScanner,errors});
+    findings.push({label,home,monthOptions,arrowNavigatesMonth,menuUnclipped,monthCloses,detailsOpen,detailsClose,transactions,list,brandLoaded,scanner,slipArtLoaded,compactUploadButtons,scannerColors,readableScanner,reportOverview,accountant,accountantDrilldown,trendsOnly,noReportsFab,settings,settingsDirectory,settingsAnchors,noSettingsFab,largeSetting,largeHome,savedReadingMode,largeScanner,errors});
     await context.close();
   }
   fs.writeFileSync(`${directory}/webkit-report.json`,JSON.stringify(findings,null,2));
   console.log('WEBKIT_SAFARI_VISUAL_RESULTS',JSON.stringify(findings));
   const failed=findings.filter(f=>f.home.overflow>1||!f.home.order||f.home.actionCount!==0||f.home.navCount!==4||
     f.home.pageGrid!==4||f.home.homeGrid!==4||f.home.splitGrid!==4||
-    !f.home.navVisible||f.home.icons.some(icon=>icon.width<20||icon.height<20)||f.monthOptions!==13||!f.arrowNavigatesMonth||!f.menuUnclipped||!f.monthCloses||!f.detailsOpen||!f.detailsClose||f.transactions!==2||!f.list||!f.brandLoaded||!f.slipArtLoaded||!f.reportOverview||!f.accountant.visible||!f.accountant.breakdown||!f.accountant.flags||!f.accountant.subtotalMatches||!f.settingsDirectory||!f.settingsAnchors||!f.scanner||!f.compactUploadButtons||!f.readableScanner||!f.trendsOnly||!f.noReportsFab||!f.settings||!f.noSettingsFab||!f.largeSetting.active||!f.largeSetting.selected||f.largeSetting.fontSize<16||f.largeHome.overflow>1||f.largeHome.textSize<16||!f.largeHome.navigation||!f.savedReadingMode||!f.largeScanner||f.errors.length);
+    !f.home.navVisible||f.home.icons.some(icon=>icon.width<20||icon.height<20)||f.monthOptions!==13||!f.arrowNavigatesMonth||!f.menuUnclipped||!f.monthCloses||!f.detailsOpen||!f.detailsClose||f.transactions!==2||!f.list||!f.brandLoaded||!f.slipArtLoaded||!f.reportOverview||!f.accountant.visible||!f.accountant.breakdown||!f.accountant.flags||!f.accountant.subtotalMatches||!f.accountantDrilldown.filterVisible||!f.accountantDrilldown.uncertainOnly||!f.accountantDrilldown.restoredAll||!f.accountantDrilldown.backToAudit||!f.settingsDirectory||!f.settingsAnchors||!f.scanner||!f.compactUploadButtons||!f.readableScanner||!f.trendsOnly||!f.noReportsFab||!f.settings||!f.noSettingsFab||!f.largeSetting.active||!f.largeSetting.selected||f.largeSetting.fontSize<16||f.largeHome.overflow>1||f.largeHome.textSize<16||!f.largeHome.navigation||!f.savedReadingMode||!f.largeScanner||f.errors.length);
   if(failed.length){console.error('WEBKIT_SAFARI_VISUAL_FAIL',JSON.stringify(failed));process.exitCode=1;}
   else console.log('WEBKIT_SAFARI_VISUAL_PASS: 4 phone sizes, essential home, icons, tabbar, scan, transactions, settings');
 }catch(error){
