@@ -64,6 +64,9 @@ export const formatter = new Intl.NumberFormat('th-TH', { minimumFractionDigits:
 export const baht = (satang:number) => formatter.format(satang/100);
 export const todayLocal = (date = new Date()) => [date.getFullYear(),String(date.getMonth()+1).padStart(2,'0'),String(date.getDate()).padStart(2,'0')].join('-');
 export const monthLocal = (date = new Date()) => todayLocal(date).slice(0,7);
+/** Thailand ledger begins on 25 Oct 2026; preserve older records for backups only. */
+export const TRACKING_START_DATE = '2026-10-25';
+export const isTrackingDate = (date:string) => /^\d{4}-\d{2}-\d{2}$/.test(date) && date>=TRACKING_START_DATE;
 export const toSatang = (input: string): number | null => {
   const cleaned = input.replace(/,/g,'').trim();
   if (!/^\d+(\.\d{1,2})?$/.test(cleaned)) return null;
