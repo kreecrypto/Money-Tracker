@@ -1,0 +1,32 @@
+.accountant-review{padding:20px;min-width:0}
+.accountant-review .section-header{margin-bottom:16px}
+.accountant-review .section-header h3{display:flex;align-items:center;gap:8px}
+.accountant-review .section-header p{margin:5px 0 0;color:#466456;font-size:13px;line-height:1.6}
+.accountant-review-totals{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;margin-bottom:16px}
+.accountant-review-totals>div{min-width:0;display:flex;flex-direction:column;gap:5px;padding:14px;background:#f6faf7;border:1px solid #e0ebe5;border-radius:14px}
+.accountant-review-totals span,.accountant-review-ledger span{font-size:13px;color:#395548}
+.accountant-review-totals strong{font-size:clamp(16px,3.8vw,22px);color:#234b39;overflow-wrap:anywhere;font-variant-numeric:tabular-nums}
+.accountant-review-totals small,.accountant-review-ledger small{font-size:12px;color:#536d5d}
+.accountant-review-ledger{border:1px solid #e0ebe5;border-radius:14px;overflow:hidden}
+.accountant-review-ledger>div{display:flex;align-items:center;justify-content:space-between;min-width:0;gap:14px;padding:12px 14px;border-bottom:1px solid #e7efe9}
+.accountant-review-ledger>div:last-child{border-bottom:0}
+.accountant-review-ledger span{min-width:0}
+.accountant-review-ledger small{display:block;margin-top:2px}
+.accountant-review-ledger strong{font-size:14px;color:#234b39;font-variant-numeric:tabular-nums;white-space:nowrap}
+.accountant-review-ledger .accountant-review-check{background:#f3f8f5}
+.accountant-review-check span,.accountant-review-check strong{font-weight:750}
+.accountant-review-empty{color:#536d5d;margin:10px 0}
+.accountant-review-flags{margin-top:17px}
+.accountant-review-flags h4{font-size:15px;margin:0 0 9px;color:#2d4d3e}
+.accountant-review-flags ul{padding-left:20px;margin:0;display:grid;gap:7px}
+.accountant-review-flags li,.accountant-review-flags p{font-size:13px;line-height:1.65;color:#465f51}
+.accountant-review-flags p{margin:12px 0 0}
+.accountant-review-actions{display:flex;flex-wrap:wrap;gap:8px;margin-top:16px}
+.accountant-review-actions button{min-height:48px;display:inline-flex;align-items:center;justify-content:center;gap:7px}
+@media(max-width:375px){
+ .accountant-review{padding:14px}
+ .accountant-review-totals{grid-template-columns:minmax(0,1fr)}
+ .accountant-review-ledger>div{gap:8px}
+ .accountant-review-ledger strong{font-size:13px}
+ .accountant-review-actions button{flex:1 1 100%}
+}
