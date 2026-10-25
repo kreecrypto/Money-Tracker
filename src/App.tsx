@@ -422,7 +422,7 @@ export default function App(){
             {view==='transactions'&&<>
         <div className="inbox-view-tabs accountant-ledger-tabs" role="group" aria-label="สมุดบัญชี">
           <button type="button" className={!inboxTab&&!slipInboxTab?'active':''} aria-pressed={!inboxTab&&!slipInboxTab} onClick={()=>{setInboxTab(false);setSlipInboxTab(false);}}>บันทึกแล้ว</button>
-          <button type="button" className={inboxTab||slipInboxTab?'active':''} aria-pressed={inboxTab||slipInboxTab} onClick={()=>{setInboxTab(false);setSlipInboxTab(true);}}>
+          <button type="button" className={inboxTab||slipInboxTab?'active':''} aria-pressed={inboxTab||slipInboxTab} onClick={()=>{setAccountantBucket(null);setSearch('');setFilter('all');setInboxTab(false);setSlipInboxTab(true);}}>
             รอตรวจ {pendingSlips.length+(iphonePending||0)>0?`(${pendingSlips.length+(iphonePending||0)})`:''}
           </button>
         </div>
