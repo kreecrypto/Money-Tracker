@@ -93,3 +93,18 @@ export function partitionEmailLedger(items:Transaction[],existing:Transaction[])
   }
   return {ready,duplicates};
 }
+
+/** Email evidence links are rendered only when they stay on Gmail over HTTPS. */
+export function emailLedgerEvidence(note:string):string|undefined {
+  const match=note.match(/(?:^|\n)Gmail: (https:\/\/mail\.google\.com\/[^\s]+)/);
+  if(!match)return undefined;
+  try{return gmailEvidence(match[1]);}catch{return undefined;}
+}
+export function emailLedgerCategory(item:Transaction):string {
+  if(!item.id.startsWith('email-'))return item.category;
+  return item.note.match(/^หมวดย่อย: ([^\n]+)/)?.[1]||item.category;
+}
+export function emailLedgerExplanation(item:Transaction):string {
+  if(!item.id.startsWith('email-'))return item.note;
+  return item.note.replace(/^หมวดย่อย: [^\n]*\n/,'').replace(/\nGmail: https:\/\/mail\.google\.com\/[^\s]+/,'');
+}
