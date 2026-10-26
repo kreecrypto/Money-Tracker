@@ -57,11 +57,11 @@ describe('private email ledger import',()=>{
     expect(emailLedgerEvidence('Gmail: https://mail.google.com.evil.example/path')).toBeUndefined();
   });
   it('separates income collisions and catches missing-time payee duplicates',()=>{
-    const entry=parseEmailLedgerCsv(makeCsv([entry()])).confirmed[0];
-    expect(isLikelyEmailDuplicate(entry,{...entry,id:'different-income',type:'income'})).toBe(false);
-    expect(isLikelyEmailDuplicate(entry,{...entry,id:'older-slip',time:undefined})).toBe(true);
-    expect(isLikelyEmailDuplicate(entry,{...entry,id:'other-payee',recipient:'ร้านอื่น',time:undefined})).toBe(false);
-    expect(isLikelyEmailDuplicate(entry,{...entry,id:'reference-prefix',amountSatang:999, note:'เลขอ้างอิง: TEST202610250001XYZ'})).toBe(false);
+    const tx=parseEmailLedgerCsv(makeCsv([entry()])).confirmed[0];
+    expect(isLikelyEmailDuplicate(tx,{...tx,id:'different-income',type:'income'})).toBe(false);
+    expect(isLikelyEmailDuplicate(tx,{...tx,id:'older-slip',time:undefined})).toBe(true);
+    expect(isLikelyEmailDuplicate(tx,{...tx,id:'other-payee',recipient:'ร้านอื่น',time:undefined})).toBe(false);
+    expect(isLikelyEmailDuplicate(tx,{...tx,id:'reference-prefix',amountSatang:999, note:'เลขอ้างอิง: TEST202610250001XYZ'})).toBe(false);
   });
   it('never treats pending transfers as confirmed expenses',()=>{
     const result=parseEmailLedgerCsv(makeCsv([entry({8:'รอตรวจประเภท',9:'0'})]));
