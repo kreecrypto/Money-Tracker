@@ -63,6 +63,14 @@ try {
     page.on('pageerror',e=>errors.push(e.message));
     await page.goto(base,{waitUntil:'networkidle'});
     await scan(page,'home',name);
+    const secretaryHome=await page.evaluate(()=>{
+      const report=document.querySelector('.accounting-secretary')?.getBoundingClientRect();
+      const upload=document.querySelector('.mt-home-upload')?.getBoundingClientRect();
+      return {visible:!!(report&&report.width>0&&report.height>0),
+        beforeUpload:!!(report&&upload&&report.bottom<upload.top),
+        questions:document.querySelectorAll('.accounting-secretary-questions button').length};
+    });
+    record('report-first-home',name,{...secretaryHome,pageErrors:errors});
     if(width<=660){
       const mobileHome=await page.evaluate(()=>{
         const el=name=>document.querySelector(name)?.getBoundingClientRect();
@@ -93,6 +101,15 @@ try {
         await buttons.evaluate(el=>el.click());
       }
       await scan(page,views[i],name);
+      if(i===1){
+        const accountantReport=await page.evaluate(()=>{
+          const audit=document.querySelector('#accountant-review')?.getBoundingClientRect();
+          const tabs=document.querySelector('.ref-report-tabs')?.getBoundingClientRect();
+          return {visible:!!(audit&&audit.height>0),beforeCharts:!!(audit&&tabs&&audit.bottom<=tabs.top),
+            safetyText:document.querySelector('#accountant-review')?.textContent?.includes('ไม่ใช่ยอดคงเหลือ')||false};
+        });
+        record('accountant-report-first',name,{...accountantReport,pageErrors:errors});
+      }
       if(i===1) {
         const tabs=page.locator('.ref-report-tabs button');
         const count=await tabs.count();
@@ -289,7 +306,9 @@ try {
   console.log('AXE_DETAILS_START');
   console.log(JSON.stringify(focus.map(x=>({viewport:x.viewport,view:x.view,violations:x.axe?.violations,smallTouchTargets:x.smallTouchTargets})),null,2));
   console.log('AXE_DETAILS_END');
-  const critical=findings.filter(x=>x.view==='navigation-obstruction'
+  const critical=findings.filter(x=>(x.view==='report-first-home'&&(!x.visible||!x.beforeUpload||x.questions!==4||x.pageErrors?.length))
+    ||(x.view==='accountant-report-first'&&(!x.visible||!x.beforeCharts||!x.safetyText||x.pageErrors?.length))
+    ||x.view==='navigation-obstruction'
     ||x.overflowPx>0
     ||x.gridMain!==x.gridExpected
     ||(x.gridHome!==null&&x.gridHome!==x.gridExpected)
