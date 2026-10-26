@@ -88,13 +88,13 @@ export default function IPhoneShortcutSettings({onImported,variant='settings',on
     try{
       iphoneConnect(token.trim());setLinked(true);setToken('');
       const result=await refresh();
-      setNote('เชื่อมสำเร็จ · ซิงก์รายการใหม่ '+result.imported+' รายการ'+(result.invalid?' · มี '+result.invalid+' รายการข้อมูลไม่ถูกต้อง ยังไม่ได้นำเข้า':''));
+      setNote('เชื่อมสำเร็จ · ซิงก์รายการใหม่ '+result.imported+' รายการ'+(result.categorized?' · ปรับหมวดย่อย '+result.categorized+' รายการ':'')+(result.invalid?' · มี '+result.invalid+' รายการข้อมูลไม่ถูกต้อง ยังไม่ได้นำเข้า':''));
     }catch(e){setLinked(iphoneConnected());setNote(e instanceof Error?e.message:'เชื่อมไม่สำเร็จ');}
     finally{setBusy(false);}
   };
   const sync=async()=>{
     setBusy(true);setNote('');
-    try{const result=await refresh();setNote('นำเข้าใหม่ '+result.imported+' จาก Cloud '+result.received+' รายการ'+(result.repaired?' · แก้ชื่อผู้รับที่อ่านผิด '+result.repaired+' รายการ':'')+' · รอตรวจ '+result.pending+' รายการ'+(result.invalid?' · ข้อมูลไม่ถูกต้อง '+result.invalid+' รายการ':'')+(result.imported===0&&result.received>0?' · หากไม่พบในหน้า “รายการ” ให้เลือกเดือนตามวันที่สลิป':''));}
+    try{const result=await refresh();setNote('นำเข้าใหม่ '+result.imported+' จาก Cloud '+result.received+' รายการ'+(result.repaired?' · แก้ชื่อผู้รับที่อ่านผิด '+result.repaired+' รายการ':'')+(result.categorized?' · ปรับหมวดย่อย '+result.categorized+' รายการ':'')+' · รอตรวจ '+result.pending+' รายการ'+(result.invalid?' · ข้อมูลไม่ถูกต้อง '+result.invalid+' รายการ':'')+(result.imported===0&&result.received>0?' · หากไม่พบในหน้า “รายการ” ให้เลือกเดือนตามวันที่สลิป':''));}
     catch(e){setLinked(iphoneConnected());setNote(e instanceof Error?e.message:'ซิงก์ไม่สำเร็จ');}
     finally{setBusy(false);}
   };

@@ -67,6 +67,18 @@ export async function iphoneReview(id:string,decision:'confirm'|'discard',input?
 }){
   return call('/api/iphone/drafts','POST',{id,decision,...(input||{})});
 }
+/** Only enrich untouched Gmail imports. Never change money, dates, recipient or manually edited notes. */
+export function reconcileGmailCategory(previous:Transaction,cloud:Transaction):Transaction|null{
+  if(previous.id!==cloud.id||previous.type!==cloud.type||
+    previous.amountSatang!==cloud.amountSatang||previous.date!==cloud.date||
+    previous.time!==cloud.time)return null;
+  const defaults=['นำเข้าจาก K PLUS Gmail','เติมเงิน K PLUS (Gmail)'];
+  if(!defaults.includes(previous.note)||
+    !cloud.note.startsWith(previous.note+' | หมวดย่อย: '))return null;
+  return {...previous,note:cloud.note,
+    category:previous.category==='อื่น ๆ'&&cloud.type==='expense'?cloud.category:previous.category};
+}
+
 /** Retain Review Token; clear only the import cursor for a safe repair retry. */
 export function resetIphoneImportHistory():void{
   localStorage.removeItem(SEEN_KEY);
@@ -76,7 +88,7 @@ function seen(){
     return new Set<string>(Array.isArray(v)?v.filter((x):x is string=>typeof x==='string'&&x.startsWith('iphone-')):[]);
   }catch{return new Set<string>();}
 }
-export async function iphoneSync():Promise<{imported:number;repaired?:number;received:number;invalid:number}>{
+export async function iphoneSync():Promise<{imported:number;repaired?:number;categorized?:number;received:number;invalid:number}>{
   const r=await call('/api/iphone/ledger','GET');
   if(!Array.isArray(r.transactions))throw new Error('ข้อมูลจาก iPhone ไม่ถูกต้อง');
   const rows=r.transactions.filter(isValidTransaction) as Transaction[];
@@ -88,22 +100,24 @@ export async function iphoneSync():Promise<{imported:number;repaired?:number;rec
   const seenItems=seen();
   let imported=0;
   let repaired=0;
+  let categorized=0;
   for(const row of rows){
     // Preserve deliberate local deletions; only an explicit repair resets this history.
     if(!row.id.startsWith('iphone-'))continue;
     const previous=local.get(row.id);
-    // Reconcile only the known corrupted OCR watermark. Preserve any recipient
-    // that the user already corrected locally, and retain all financial fields.
     if(previous){
+      let updated=previous;
+      // Preserve locally edited categories/notes; only enrich untouched Gmail imports.
+      const detailed=reconcileGmailCategory(previous,row);
+      if(detailed){updated=detailed;categorized++;}
       if(/^THAILAND(?:\s+2026)?$/i.test(previous.recipient?.trim()||'')&&
         previous.recipient!==row.recipient){
-        const repairedRow={...previous};
-        if(row.recipient)repairedRow.recipient=row.recipient;
-        else delete repairedRow.recipient;
-        await saveTransaction(repairedRow);
-        local.set(row.id,repairedRow);
+        updated={...updated};
+        if(row.recipient)updated.recipient=row.recipient;
+        else delete updated.recipient;
         repaired++;
       }
+      if(updated!==previous){await saveTransaction(updated);local.set(row.id,updated);}
       continue;
     }
     if(seenItems.has(row.id))continue; // preserve intentionally deleted entries
@@ -111,5 +125,5 @@ export async function iphoneSync():Promise<{imported:number;repaired?:number;rec
     seenItems.add(row.id);local.set(row.id,row);imported++;
     localStorage.setItem(SEEN_KEY,JSON.stringify([...seenItems].slice(-3000)));
   }
-  return {imported,...(repaired>0?{repaired}:{}),received:r.transactions.length,invalid};
+  return {imported,...(repaired>0?{repaired}:{}),...(categorized>0?{categorized}:{}),received:r.transactions.length,invalid};
 }
