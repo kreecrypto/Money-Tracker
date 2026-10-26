@@ -28,6 +28,17 @@ describe('Accountant read-only cash movement review',()=>{
       r.needsClassification.amountSatang+r.otherCategorized.amountSatang).toBe(r.outflow.amountSatang);
     expect(JSON.stringify(transactions)).toBe(before);
   });
+  it('classifies explicit wallet and Easy Pass top-ups imported from an email ledger',()=>{
+    const wallet=record('email-wallet',10000,'อื่น ๆ','หมวดย่อย: เติมเงิน/Wallet\\nรายการเติมเงินตามอีเมล');
+    const pass=record('email-pass',30000,'เดินทาง','หมวดย่อย: เติมเงิน Easy Pass');
+    const purchase=record('ordinary-wallet-payment',900,'อาหารและเครื่องดื่ม','จ่ายจาก e-Wallet');
+    expect(accountantBucketFor(wallet)).toBe('walletTopups');
+    expect(accountantBucketFor(pass)).toBe('walletTopups');
+    expect(accountantBucketFor(purchase)).toBe('otherCategorized');
+    const report=accountantAudit([wallet,pass,purchase]);
+    expect(report.walletTopups.amountSatang).toBe(40000);
+    expect(report.outflow.amountSatang).toBe(40900);
+  });
   it('does not infer top-ups solely from recipient name or a generic note',()=>{
     const r=accountantAudit([record('wallet',1200,'อื่น ๆ','ร้านทรูมันนี่')]);
     expect(r.walletTopups.count).toBe(0);
