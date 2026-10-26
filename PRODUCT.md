@@ -4,17 +4,17 @@
 web (mobile-first responsive PWA, optimized for iPhone Safari; not a native iOS application).
 
 ## Product
-A private, practical Thai-language income and expense tracker for everyday use. The primary path is **upload or capture a K PLUS transfer slip → extract date, time, amount, sender/receiver → classify → save**, with clear Pending review for ambiguous evidence. Manual entry, transaction history, reports, backup and settings remain accessible.
+A private Thai-language **personal accounting secretary and financial reporting app**. The primary experience is **open the app → read a factual financial briefing → see what needs review → drill into classified cash movements and their evidence**. Upload/capture K PLUS slips, email-ledger CSV import, Pending review, manual entry, backup, settings and transaction history remain the evidence-capture and correction tools; the app does not fabricate or certify financial statements.
 
 ## Audience
 People in Thailand who routinely handle bank transfer slips on their phones and want a dependable record of money received and spent without bookkeeping jargon.
 
 ## Jobs to be done
-1. Record a K PLUS slip with minimal taps.
-2. Confirm that the amount, direction (income vs expense), date and counterparty were saved correctly.
-3. Review ambiguous items instead of silently fabricating missing facts.
-4. Understand how much came in and went out this month.
-5. Find, correct, export, back up or delete personal records.
+1. Receive a useful, understandable report without having to start by adding a transaction.
+2. Know exactly how much came in, went out and was classified this month, with explicit caveats about wallet top-ups and debt repayment.
+3. See Pending/uncategorized/possible-duplicate review work and open the supporting evidence.
+4. Capture or correct transactions using K PLUS slip OCR, local email CSV and manual entry without silently fabricating missing fields.
+5. Drill down, export, back up, reconcile manually and delete records safely.
 
 ## Brand commitments
 - UI name: **เงินวันนี้**; Thai-first, warm, calm, trustworthy, precise.
@@ -34,7 +34,7 @@ People in Thailand who routinely handle bank transfer slips on their phones and 
 - Ensure 320–430px layouts, safe areas, VoiceOver labels, 44px touch targets, focus and reduced motion.
 
 ## Success criteria
-The Home screen answers: what is the monthly net? how much came in/went out? how to scan a slip? what was saved recently? Additional pages support the next action without restating the dashboard.
+The Home screen answers: what happened this month, what is important today, and what needs my attention? The Reports screen groups saved cash out into debt repayments, wallet top-ups, unknown-purpose items and classified spending with an exact transaction drill-down. Monthly net is **not** a bank balance or certified accounting profit. Upload is visible but secondary to reading the brief; existing personal data remains local unless the user enables separate integrations.
 
 ## Source of truth
 - App: `src/App.tsx`, `src/HomeScreen.tsx`, `src/SlipScanner.tsx`.
