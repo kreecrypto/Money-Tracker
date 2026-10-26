@@ -211,6 +211,41 @@ try {
       const nav=innerWidth<=660?document.querySelector('.mobile-bottom-nav'):document.querySelector('.sidebar');
       Array.from(nav?.querySelectorAll('button')||[]).find(x=>x.textContent?.includes('ตั้งค่า')||x.getAttribute('aria-label')==='ตั้งค่า')?.click();
     });
+    // Synthetic email-ledger E2E: private user CSV must never enter public CI artifacts.
+    if(name==='iphone390'){
+      const csvCells=values=>values.map(v=>'"'+String(v).replaceAll('"','""')+'"').join(',');
+      const columns=['วันที่','เวลา','ประเภทธุรกรรม','ผู้รับเงิน/ร้านค้า','รายละเอียดชี้แจง','หมวดหมู่','จำนวนเงิน','ค่าธรรมเนียม','สถานะ','รวมรายจ่าย','เลขอ้างอิง','Gmail URL'];
+      const rows=[
+        ['2026-10-25','13:34','จ่าย QR','ร้านกาแฟทดสอบ','กาแฟและเครื่องดื่ม','อาหาร/เครื่องดื่ม','42.50','0.00','ยืนยันรายจ่าย','42.50','AUDIT20261025001','https://mail.google.com/mail/u/0/#all/synthetic-1'],
+        ['2026-10-26','08:05','จ่าย QR','ร้านค้าทดสอบ','สินค้าทดสอบ','ช้อปปิ้ง','65.00','0.00','ยืนยันรายจ่าย','65.00','AUDIT20261026002','https://mail.google.com/mail/u/0/#all/synthetic-2'],
+        ['2026-10-25','18:00','โอน','รายการรอตรวจ','ไม่ทราบวัตถุประสงค์','อื่น ๆ','99.00','0.00','รอตรวจประเภท','0.00','','https://mail.google.com/mail/u/0/#all/synthetic-3']
+      ];
+      const file={name:'synthetic-email-ledger.csv',mimeType:'text/csv',buffer:Buffer.from([columns,...rows].map(csvCells).join('\\r\\n'))};
+      await page.locator('#email-ledger-file').setInputFiles(file);
+      await page.getByText('ตรวจสอบก่อนบันทึก').waitFor();
+      const previewText=await page.locator('.email-ledger-preview').innerText();
+      const previewValid=previewText.includes('฿107.50')&&previewText.includes('2 รายการ')&&previewText.includes('1 รายการ');
+      await page.getByRole('button',{name:/ยืนยันเพิ่ม 2 รายการ/}).click();
+      await page.locator('.email-ledger-result').waitFor({timeout:10000});
+      let stored=await page.evaluate(async()=>{
+        const {loadTransactions}=await import('/src/lib/storage.ts');
+        const entries=(await loadTransactions()).filter(x=>x.id.startsWith('email-AUDIT'));
+        return {count:entries.length,satang:entries.reduce((t,x)=>t+x.amountSatang,0),haveEvidence:entries.every(x=>x.note.includes('Gmail: https://mail.google.com/'))};
+      });
+      await page.reload({waitUntil:'networkidle'});
+      await page.evaluate(()=>document.querySelector('#settings-email-ledger')?.scrollIntoView());
+      const reloaded=await page.evaluate(async()=>{
+        const {loadTransactions}=await import('/src/lib/storage.ts');
+        return (await loadTransactions()).filter(x=>x.id.startsWith('email-AUDIT')).length;
+      });
+      await page.locator('#email-ledger-file').setInputFiles(file);
+      await page.getByText('ตรวจสอบก่อนบันทึก').waitFor();
+      const repeat=await page.locator('.email-ledger-preview').innerText();
+      const repeated=repeat.includes('0 รายการ')&&repeat.includes('2 รายการ')&&
+        await page.getByRole('button',{name:/ยืนยันเพิ่ม/}).isDisabled();
+      record('email-ledger-import-smoke',name,{previewValid,stored,reloaded,repeatBlocked:repeated,pageErrors:errors});
+      await page.getByRole('button',{name:'ยกเลิก',exact:true}).last().click();
+    }
     const sample={app:'ngoentoday',version:1,exportedAt:new Date().toISOString(),transactions:[],settings:{monthlyBudgetSatang:0}};
     await page.locator('input[accept=".json,application/json"]').setInputFiles({name:'audit-backup.json',mimeType:'application/json',buffer:Buffer.from(JSON.stringify(sample))});
     const restoreDialog=page.getByRole('alertdialog');
@@ -271,6 +306,7 @@ try {
     ||(x.view==='mobile-home-actions'&&(!x.correctHierarchy||x.quickActionCount!==0||!x.noDuplicateActions||!x.bottomNavVisible||!x.openedOCR||x.pageErrors?.length))
     ||(x.view==='report-view-switch'&&(x.count!==4||!x.trendOnly||!x.budgetOnly||!x.categoryOnly||!x.overview||!x.noOverlay||x.pageErrors?.length))
     ||(x.view==='competitive-ledger-smoke'&&(!x.ledgerAvailable||!x.resetVisible||!x.searchReset||x.pageErrors?.length))
+    ||(x.view==='email-ledger-import-smoke'&&(!x.previewValid||x.stored?.count!==2||x.stored?.satang!==10750||!x.stored?.haveEvidence||x.reloaded!==2||!x.repeatBlocked||x.pageErrors?.length))
   ).map(x=>({viewport:x.viewport,view:x.view,overflowPx:x.overflowPx,axe:x.axe?.violations?.map(v=>v.id),savedVisible:x.savedVisible,restore:[x.initiallyDisabled,x.enabledAfterAcknowledgement,x.closed]}));
   if(critical.length){console.error('UX_ACCEPTANCE_FAIL',JSON.stringify(critical));process.exitCode=1;}
   else console.log('UX_ACCEPTANCE_PASS: 6 viewport, minimal home, slip-first, manual fallback, save, restore, responsive and WCAG scans');
