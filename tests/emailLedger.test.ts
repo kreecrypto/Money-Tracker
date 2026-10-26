@@ -7,7 +7,7 @@ const record=(row:string[])=>row.map(value=>'"'+value.replaceAll('"','""')+'"').
 const makeCsv=(entries:string[][])=>'\uFEFF'+[record(headers),...entries.map(record)].join('\r\n');
 const entry=(overrides:Partial<Record<number,string>>={})=>{
   const row=['2026-10-25','13:34','จ่าย QR','ร้านทดสอบ','ซื้อกาแฟ, เครื่องดื่ม','อาหาร/เครื่องดื่ม','125.50','0.00','ยืนยันรายจ่าย','125.50','TEST202610250001','https://mail.google.com/mail/u/0/#all/abc123'];
-  for(const [k,v] of Object.entries(overrides))row[Number(k)]=v;
+  for(const [k,v] of Object.entries(overrides))if(v!==undefined)row[Number(k)]=v;
   return row;
 };
 
