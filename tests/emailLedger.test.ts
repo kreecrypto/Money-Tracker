@@ -59,8 +59,9 @@ describe('private email ledger import',()=>{
   it('separates income collisions and catches missing-time payee duplicates',()=>{
     const tx=parseEmailLedgerCsv(makeCsv([entry()])).confirmed[0];
     expect(isLikelyEmailDuplicate(tx,{...tx,id:'different-income',type:'income'})).toBe(false);
-    expect(isLikelyEmailDuplicate(tx,{...tx,id:'older-slip',time:undefined})).toBe(true);
-    expect(isLikelyEmailDuplicate(tx,{...tx,id:'other-payee',recipient:'ร้านอื่น',time:undefined})).toBe(false);
+    const prior={...tx,id:'older-slip',time:undefined,note:'รายการธนาคารเดิม'};
+    expect(isLikelyEmailDuplicate(tx,prior)).toBe(true);
+    expect(isLikelyEmailDuplicate(tx,{...prior,id:'other-payee',recipient:'ร้านอื่น'})).toBe(false);
     expect(isLikelyEmailDuplicate(tx,{...tx,id:'reference-prefix',amountSatang:999, note:'เลขอ้างอิง: TEST202610250001XYZ'})).toBe(false);
   });
   it('never treats pending transfers as confirmed expenses',()=>{
