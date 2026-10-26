@@ -1,5 +1,5 @@
 import {describe,it,expect} from 'vitest';
-import {csvRows,parseEmailLedgerCsv,partitionEmailLedger,emailLedgerEvidence,emailLedgerCategory,emailLedgerExplanation} from '../src/lib/emailLedger';
+import {csvRows,parseEmailLedgerCsv,partitionEmailLedger,isLikelyEmailDuplicate,emailLedgerEvidence,emailLedgerCategory,emailLedgerExplanation} from '../src/lib/emailLedger';
 import type {Transaction} from '../src/lib/finance';
 
 const headers=['วันที่','เวลา','ประเภทธุรกรรม','ผู้รับเงิน/ร้านค้า','รายละเอียดชี้แจง','หมวดหมู่','จำนวนเงิน','ค่าธรรมเนียม','สถานะ','รวมรายจ่าย','เลขอ้างอิง','Gmail URL'];
@@ -55,6 +55,13 @@ describe('private email ledger import',()=>{
     expect(()=>parseEmailLedgerCsv(makeCsv([entry({11:'https://mail.google.com.evil.example/path'})]))).toThrow();
     expect(()=>parseEmailLedgerCsv(makeCsv([entry({10:''})]))).toThrow();
     expect(emailLedgerEvidence('Gmail: https://mail.google.com.evil.example/path')).toBeUndefined();
+  });
+  it('separates income collisions and catches missing-time payee duplicates',()=>{
+    const entry=parseEmailLedgerCsv(makeCsv([entry()])).confirmed[0];
+    expect(isLikelyEmailDuplicate(entry,{...entry,id:'different-income',type:'income'})).toBe(false);
+    expect(isLikelyEmailDuplicate(entry,{...entry,id:'older-slip',time:undefined})).toBe(true);
+    expect(isLikelyEmailDuplicate(entry,{...entry,id:'other-payee',recipient:'ร้านอื่น',time:undefined})).toBe(false);
+    expect(isLikelyEmailDuplicate(entry,{...entry,id:'reference-prefix',amountSatang:999, note:'เลขอ้างอิง: TEST202610250001XYZ'})).toBe(false);
   });
   it('never treats pending transfers as confirmed expenses',()=>{
     const result=parseEmailLedgerCsv(makeCsv([entry({8:'รอตรวจประเภท',9:'0'})]));
