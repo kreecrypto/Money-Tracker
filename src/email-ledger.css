@@ -1,0 +1,25 @@
+.email-ledger-import{display:grid;gap:12px;min-width:0}
+.email-ledger-import>p{margin:0}
+.email-ledger-file-button{display:inline-flex;align-items:center;gap:8px;justify-content:center;cursor:pointer;width:fit-content;min-height:48px}
+.email-ledger-preview{min-width:0;border:1px solid var(--border,#e1e8e3);border-radius:16px;padding:14px;display:grid;gap:12px}
+.email-ledger-preview-title{display:flex;align-items:center;gap:8px}
+.email-ledger-filename{overflow-wrap:anywhere;color:var(--text-muted,#64756a)}
+.email-ledger-summary{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;margin:0}
+.email-ledger-summary>div{display:grid;gap:3px}.email-ledger-summary dt{font-size:.78rem;color:var(--text-muted,#64756a)}
+.email-ledger-summary dd{margin:0;font-weight:700;font-variant-numeric:tabular-nums}
+.email-ledger-warning{font-size:.86rem;line-height:1.5;color:var(--text-muted,#64756a)}
+.email-ledger-scroll{max-height:320px;overflow:auto}
+.email-ledger-items,.email-ledger-excluded ul{list-style:none;padding:0;margin:0}
+.email-ledger-items li{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:11px 0;border-bottom:1px solid var(--border,#e1e8e3)}
+.email-ledger-items li>div{display:grid;gap:2px;min-width:0}.email-ledger-items strong,.email-ledger-items span{overflow-wrap:anywhere}
+.email-ledger-items span{font-size:.77rem;color:var(--text-muted,#64756a)}
+.email-ledger-items b{white-space:nowrap;font-variant-numeric:tabular-nums}
+.email-ledger-excluded summary{cursor:pointer;min-height:44px;display:flex;align-items:center}
+.email-ledger-excluded li{padding:9px 0;border-top:1px solid var(--border,#e1e8e3);font-size:.83rem;overflow-wrap:anywhere}
+.email-ledger-excluded li span{display:block;color:var(--text-muted,#64756a)}
+.email-ledger-actions{display:flex;flex-wrap:wrap;gap:8px;justify-content:flex-end}
+.email-ledger-actions .btn{min-height:48px}
+.email-ledger-error{color:#b42318}.email-ledger-result{color:#137547}
+.email-ledger-document-note{white-space:pre-wrap;overflow-wrap:anywhere}
+.email-ledger-evidence-link{display:inline-block;padding:7px 0;overflow-wrap:anywhere}
+@media(max-width:360px){.email-ledger-summary{grid-template-columns:1fr}.email-ledger-actions .btn{flex:1}}
