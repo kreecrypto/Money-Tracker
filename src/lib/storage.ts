@@ -1,6 +1,7 @@
 import {DEFAULT_SETTINGS,type Settings,type Transaction,isValidTransaction} from './finance';
 import {isValidPendingSlip,pendingFingerprintMatch,type PendingSlip} from './pendingSlips';
 import {sanitizeOwnerNames} from './slipIdentity';
+import {isLikelyEmailDuplicate} from './emailLedger';
 const DB_NAME='ngoentoday-db';
 const VERSION=2;
 const STORE='transactions';
@@ -26,6 +27,23 @@ function getDB():Promise<IDBDatabase>{
 function request<T>(req:IDBRequest<T>):Promise<T>{return new Promise((resolve,reject)=>{req.onsuccess=()=>resolve(req.result);req.onerror=()=>reject(req.error);});}
 export async function loadTransactions(){ const db=await getDB(); const data=await request<Transaction[]>(db.transaction(STORE,'readonly').objectStore(STORE).getAll()); return data.filter(isValidTransaction).sort((a,b)=>b.date.localeCompare(a.date)||(b.time||'').localeCompare(a.time||'')||b.createdAt-a.createdAt); }
 export async function saveTransaction(item:Transaction){const db=await getDB(); const tx=db.transaction(STORE,'readwrite'); await request(tx.objectStore(STORE).put(item)); await completed(tx);}
+/** Append private email records atomically; never erase or overwrite existing transactions. */
+export async function appendEmailTransactions(candidates:Transaction[]):Promise<{imported:number;duplicates:number}>{
+  if(candidates.length>2000||candidates.some(item=>!isValidTransaction(item)||!item.id.startsWith('email-')))
+    throw new Error('รายการนำเข้าไม่ถูกต้อง');
+  const db=await getDB();
+  const tx=db.transaction(STORE,'readwrite'),store=tx.objectStore(STORE);
+  const existing=(await request<Transaction[]>(store.getAll())).filter(isValidTransaction);
+  let imported=0,duplicates=0;
+  for(const item of candidates){
+    if(existing.some(other=>isLikelyEmailDuplicate(item,other))){duplicates++;continue;}
+    store.add(item);
+    existing.push(item);
+    imported++;
+  }
+  await completed(tx);
+  return {imported,duplicates};
+}
 /** Clear only this browser's Money Tracker data. Never touches Supabase. */
 export async function clearLocalData():Promise<void>{
   const db=await getDB();
