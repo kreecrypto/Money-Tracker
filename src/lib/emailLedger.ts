@@ -80,10 +80,15 @@ export function parseEmailLedgerCsv(csv:string,now=Date.now()):EmailLedgerParsed
 /** Treat same minute, date and amount as a collision requiring manual review, not a new expense. */
 export function isLikelyEmailDuplicate(item:Transaction,other:Transaction):boolean {
   if(item.id===other.id)return true;
+  if(item.type!==other.type)return false;
   const reference=item.id.startsWith('email-')?item.id.slice(6):'';
-  if(reference&&(other.receipt?.receiptId===reference||other.note.includes('เลขอ้างอิง: '+reference)))return true;
-  return item.date===other.date&&item.amountSatang===other.amountSatang&&
-    Boolean(item.time&&other.time&&item.time===other.time);
+  if(reference&&(other.receipt?.receiptId===reference||
+    other.note.split('\\n').includes('เลขอ้างอิง: '+reference)))return true;
+  if(item.date!==other.date||item.amountSatang!==other.amountSatang)return false;
+  if(item.time&&other.time)return item.time===other.time;
+  // shortcut: a missing clock time requires matching counterpart before treating the amount as possibly duplicated.
+  const counterpart=(s?:string)=>s?.trim().toLocaleLowerCase('th-TH')||'';
+  return counterpart(item.recipient)!==''&&counterpart(item.recipient)===counterpart(other.recipient);
 }
 export function partitionEmailLedger(items:Transaction[],existing:Transaction[]){
   const ready:Transaction[]=[],duplicates:Transaction[]=[];
