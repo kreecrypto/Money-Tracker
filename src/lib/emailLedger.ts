@@ -83,7 +83,7 @@ export function isLikelyEmailDuplicate(item:Transaction,other:Transaction):boole
   if(item.type!==other.type)return false;
   const reference=item.id.startsWith('email-')?item.id.slice(6):'';
   if(reference&&(other.receipt?.receiptId===reference||
-    other.note.split('\\n').includes('เลขอ้างอิง: '+reference)))return true;
+    other.note.split('\n').includes('เลขอ้างอิง: '+reference)))return true;
   if(item.date!==other.date||item.amountSatang!==other.amountSatang)return false;
   if(item.time&&other.time)return item.time===other.time;
   // shortcut: a missing clock time requires matching counterpart before treating the amount as possibly duplicated.
