@@ -6,6 +6,7 @@ import {
   UtensilsCrossed, ShoppingBag, TrainFront, HandCoins, Ellipsis, Wallet,
 } from 'lucide-react';
 import {baht, METHODS, transactionDisplayName, type Transaction} from './lib/finance';
+import {emailLedgerEvidence,emailLedgerExplanation,emailLedgerCategory} from './lib/emailLedger';
 import sproutBrand from './assets/brand-sprout.svg';
 
 type Props={
@@ -139,7 +140,9 @@ function TransactionDetail({value,onClose}:{
        {value.recipient&&<div><dt>ผู้รับเงินบนสลิป</dt><dd>{value.recipient}</dd></div>}
        <div><dt>วันที่และเวลา</dt><dd>{shortDate(value.date,value.time)}</dd></div>
        <div><dt>ประเภท</dt><dd>{value.type==='income'?'รายรับ':'รายจ่าย'}</dd></div>
-       <div><dt>หมวดหมู่</dt><dd>{value.category}</dd></div>
+       <div><dt>หมวดหมู่</dt><dd>{emailLedgerCategory(value)}</dd></div>
+       {value.note&&<div><dt>{value.id.startsWith('email-')?'คำชี้แจง':'หมายเหตุ'}</dt><dd className="email-ledger-document-note">{emailLedgerExplanation(value)}</dd></div>}
+       {emailLedgerEvidence(value.note)&&<div><dt>หลักฐาน</dt><dd><a className="email-ledger-evidence-link" href={emailLedgerEvidence(value.note)} target="_blank" rel="noopener noreferrer">เปิดอีเมลใน Gmail</a></dd></div>}
        <div><dt>ช่องทาง</dt><dd>{METHODS[value.method]}</dd></div>
      </dl>
      <button type="button" className="mt-home-detail-done" onClick={onClose}>ปิดรายละเอียด</button>
