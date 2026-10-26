@@ -1,7 +1,7 @@
 # Money Tracker — Design System
 
 ## Overview
-**Creative North Star: Quiet Financial Clarity.** Money Tracker should feel like a finished utility on a phone: one primary action, clear real financial values, low-friction navigation, reassuring states and no unnecessary marketing copy. In Impeccable terms each operational screen is in **Operate** mode. Preserve the existing green fintech identity rather than introducing a new dashboard template. The Home visual hierarchy is **monthly net → income/expense → upload slip → recent transactions**. Use spacing to group information rather than nested cards.
+**Creative North Star: Quiet Financial Clarity.** Money Tracker should feel like a finished utility on a phone: one primary action, clear real financial values, low-friction navigation, reassuring states and no unnecessary marketing copy. In Impeccable terms each operational screen is in **Operate** mode. Preserve the existing green fintech identity rather than introducing a new dashboard template. The Home visual hierarchy is **monthly net → accounting secretary briefing and next action → upload supporting evidence → recent transactions**. The Reports screen leads with accounting review and classified cash movements before secondary charts and budget. This is a reporting experience rather than a form-first ledger. Use spacing to group information rather than nested cards.
 
 ## Colors
 Use CSS tokens and the current palette as authoritative; the source has older color variants that should be progressively consolidated, not treated as new colors to invent.
@@ -53,7 +53,9 @@ Flat by default. Use thin green-tinted borders and white backgrounds instead of 
 - **Topbar**: “เงินวันนี้” identity, accessible notifications and settings controls; 44×44px hit areas.
 - **Monthly summary**: month chooser, monthly net, split income/expense in compact internal white surfaces; no fabricated trends.
 - **Month chooser**: real months, clear selected state, keyboard close and focus restoration; must not overflow the visual viewport.
-- **Primary upload**: visible on Home with one verb; use secondary text only to distinguish camera/gallery choices.
+- **Accounting secretary**: display a truthful daily briefing, concise question-driven answers and any Pending next steps before the upload control. No AI-generated claims or artificial balances.
+- **Detailed accountant review**: separate recorded cash out into debt, wallet top-ups, unknown-purpose and classified spending; exact bucket totals must equal outflow. Drill down to the same transactions, never claim certified expenses.
+- **Primary upload**: remains visible on Home with one verb, but is secondary to the read-only report; use secondary text only to distinguish camera/gallery choices.
 - **Recent transactions**: one tappable row per saved entry, icon + counterparty/category + date + signed amount; truncate long titles but avoid clipping values.
 - **Bottom navigation**: exactly four persistent destinations — ภาพรวม, รายการ, รายงาน, ตั้งค่า; no duplicate Home shortcuts.
 - **Slip scanner and Pending**: truthful progress, duplicate and uncertain states; no false completed statuses; privacy/safety warnings remain readable.
