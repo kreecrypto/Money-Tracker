@@ -23,7 +23,7 @@ export const ACCOUNTANT_BUCKET_LABELS:Record<AccountantBucketKey,string>={
 export function accountantBucketFor(item:Transaction):AccountantBucketKey|null{
   if(item.type!=='expense')return null;
   if(item.category==='ผ่อนชำระ/หนี้')return 'debtPayments';
-  if(/^เติมเงิน K PLUS \(Gmail\)|หมวดย่อย:\s*เติมเงิน e-Wallet/i.test(item.note))return 'walletTopups';
+  if(/(?:เติมเงิน|top[ -]?up)/i.test(item.note+' '+item.category))return 'walletTopups';
   if(item.category==='อื่น ๆ'&&!/หมวดย่อย:\s*(?:ค่าปรับ|ประกันชีวิต|บริการส่วนบุคคล\/ตัดผม)/.test(item.note))
     return 'needsClassification';
   return 'otherCategorized';
