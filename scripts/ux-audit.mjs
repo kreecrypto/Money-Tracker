@@ -233,7 +233,8 @@ try {
         return {count:entries.length,satang:entries.reduce((t,x)=>t+x.amountSatang,0),haveEvidence:entries.every(x=>x.note.includes('Gmail: https://mail.google.com/'))};
       });
       await page.reload({waitUntil:'networkidle'});
-      await page.evaluate(()=>document.querySelector('#settings-email-ledger')?.scrollIntoView());
+      await page.locator('.mobile-bottom-nav button').filter({hasText:'ตั้งค่า'}).click();
+      await page.locator('#settings-email-ledger').waitFor();
       const reloaded=await page.evaluate(async()=>{
         const {loadTransactions}=await import('/src/lib/storage.ts');
         return (await loadTransactions()).filter(x=>x.id.startsWith('email-AUDIT')).length;
