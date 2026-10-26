@@ -220,7 +220,7 @@ try {
         ['2026-10-26','08:05','จ่าย QR','ร้านค้าทดสอบ','สินค้าทดสอบ','ช้อปปิ้ง','65.00','0.00','ยืนยันรายจ่าย','65.00','AUDIT20261026002','https://mail.google.com/mail/u/0/#all/synthetic-2'],
         ['2026-10-25','18:00','โอน','รายการรอตรวจ','ไม่ทราบวัตถุประสงค์','อื่น ๆ','99.00','0.00','รอตรวจประเภท','0.00','','https://mail.google.com/mail/u/0/#all/synthetic-3']
       ];
-      const file={name:'synthetic-email-ledger.csv',mimeType:'text/csv',buffer:Buffer.from([columns,...rows].map(csvCells).join('\\r\\n'))};
+      const file={name:'synthetic-email-ledger.csv',mimeType:'text/csv',buffer:Buffer.from([columns,...rows].map(csvCells).join('\r\n'))};
       await page.locator('#email-ledger-file').setInputFiles(file);
       await page.getByText('ตรวจสอบก่อนบันทึก').waitFor();
       const previewText=await page.locator('.email-ledger-preview').innerText();
