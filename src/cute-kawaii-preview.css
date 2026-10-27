@@ -37,3 +37,24 @@ body { background-color: var(--cute-canvas); }
   .mt-home-screen .mt-home-upload { transition: filter .15s ease; }
   .mt-home-screen .mt-home-upload:hover { filter: brightness(1.06); }
 }
+
+/* Shared surfaces: preserve the current grid and DOM hierarchy. */
+.app-body,.main-content { background-color:var(--cute-canvas); }
+.surface,.metric,.budget-card,.settings-card {
+  border-color:#e8eee7;
+  border-radius:20px;
+  box-shadow:0 3px 12px rgba(55,76,55,.035);
+}
+.transaction-page .transaction-row { border-radius:14px; }
+.transaction-page .filter-tabs button,
+.ref-report-tabs button { border-radius:14px; }
+.transaction-page .search-box input { border-radius:14px; }
+.mobile-bottom-nav { background:#fffdfa; border-top-color:#e9efe7; }
+.mobile-bottom-nav button.active,
+.sidebar .nav-item.active { background:#e0f6e9; color:#125b39; }
+.ref-ocr-modal .slip-upload-box { border-radius:20px; }
+.ref-ocr-modal .slip-actions .btn { border-radius:16px; }
+.mt-home-screen .mt-home-balance .mt-home-balance-header>span { color:#183f2b; }
+.mt-home-screen .mt-home-balance .mt-home-split-head { color:#48594f; }
+.mt-home-screen .mt-home-balance .mt-home-split-icon.is-income { color:#145f3c; }
+.mt-home-screen .mt-home-balance .mt-home-split-icon.is-expense { color:#9d2d4c; }
