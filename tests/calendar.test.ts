@@ -18,6 +18,8 @@ describe('calendar-first finance view',()=>{
     const day=days.find(x=>x.date==='2026-10-15');
     expect(day).toMatchObject({incomeSatang:125025,expenseSatang:46250,count:3});
     expect(days.filter(x=>x.inCurrentMonth).length).toBe(31);
+    expect(days.filter(x=>x.inCurrentMonth).reduce((total,x)=>total+x.incomeSatang,0)).toBe(125025);
+    expect(days.filter(x=>x.inCurrentMonth).reduce((total,x)=>total+x.expenseSatang,0)).toBe(46250);
     expect(days.every(x=>!x.inCurrentMonth||x.date.startsWith('2026-10-'))).toBe(true);
   });
   it('renders week-aligned 35/42 day calendar including leap year February',()=>{

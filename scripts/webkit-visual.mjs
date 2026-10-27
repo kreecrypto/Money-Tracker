@@ -48,6 +48,20 @@ try{
     });
     const brandLoaded=await page.locator('.mt-home-brand-icon img').evaluate(img=>img.complete&&img.naturalWidth>0);
     await page.screenshot({path:`${directory}/${label}-home.png`,fullPage:true});
+    // Verify same-day incoming/outgoing and an actual tap, not just calendar visibility.
+    const today=await page.evaluate(async()=>(await import('/src/lib/finance.ts')).todayLocal());
+    const todayCell=page.locator('.mt-calendar-day[data-date="'+today+'"]');
+    const calendarBoth=await todayCell.locator('.is-income,.is-expense').count()===2;
+    await todayCell.click();
+    const calendarSelected=await todayCell.getAttribute('aria-pressed')==='true';
+    const calendarDetailText=await page.locator('.mt-home-day-detail').innerText();
+    const calendarDetail=calendarDetailText.includes('32,400.00')&&calendarDetailText.includes('7,750.00');
+    const calendarMonthBefore=await page.locator('.mt-calendar-controls span').textContent();
+    await page.locator('.mt-calendar-controls button').first().click();
+    const calendarPreviousMonth=(await page.locator('.mt-calendar-controls span').textContent())!==calendarMonthBefore;
+    await page.locator('.mt-calendar-controls button').last().click();
+    const calendarMonthRestored=(await page.locator('.mt-calendar-controls span').textContent())===calendarMonthBefore;
+
     // The V2 prototype month menu must not be clipped by the green card.
     await page.locator('.mt-home-month-picker').click();
     const monthOptions=await page.locator('.mt-home-month-popover [role="option"]').count();
@@ -143,12 +157,12 @@ try{
       })
     );
     await page.locator('.modal-heading button').click();
-    findings.push({label,home,monthOptions,arrowNavigatesMonth,menuUnclipped,monthCloses,detailsOpen,detailsClose,transactions,list,brandLoaded,scanner,slipArtLoaded,compactUploadButtons,scannerColors,readableScanner,reportOverview,trendsOnly,noReportsFab,settings,settingsDirectory,settingsAnchors,noSettingsFab,largeSetting,largeHome,savedReadingMode,largeScanner,errors});
+    findings.push({label,home,calendarBoth,calendarSelected,calendarDetail,calendarPreviousMonth,calendarMonthRestored,monthOptions,arrowNavigatesMonth,menuUnclipped,monthCloses,detailsOpen,detailsClose,transactions,list,brandLoaded,scanner,slipArtLoaded,compactUploadButtons,scannerColors,readableScanner,reportOverview,trendsOnly,noReportsFab,settings,settingsDirectory,settingsAnchors,noSettingsFab,largeSetting,largeHome,savedReadingMode,largeScanner,errors});
     await context.close();
   }
   fs.writeFileSync(`${directory}/webkit-report.json`,JSON.stringify(findings,null,2));
   console.log('WEBKIT_SAFARI_VISUAL_RESULTS',JSON.stringify(findings));
-  const failed=findings.filter(f=>f.home.overflow>1||!f.home.order||f.home.calendarDays<28||f.home.actionCount!==0||f.home.navCount!==4||
+  const failed=findings.filter(f=>f.home.overflow>1||!f.home.order||f.home.calendarDays<28||f.home.actionCount!==0||!f.calendarBoth||!f.calendarSelected||!f.calendarDetail||!f.calendarPreviousMonth||!f.calendarMonthRestored||f.home.navCount!==4||
     f.home.pageGrid!==4||f.home.homeGrid!==4||f.home.splitGrid!==4||
     !f.home.navVisible||f.home.icons.some(icon=>icon.width<20||icon.height<20)||f.monthOptions!==13||!f.arrowNavigatesMonth||!f.menuUnclipped||!f.monthCloses||!f.detailsOpen||!f.detailsClose||f.transactions!==2||!f.list||!f.brandLoaded||!f.slipArtLoaded||!f.reportOverview||!f.settingsDirectory||!f.settingsAnchors||!f.scanner||!f.compactUploadButtons||!f.readableScanner||!f.trendsOnly||!f.noReportsFab||!f.settings||!f.noSettingsFab||!f.largeSetting.active||!f.largeSetting.selected||f.largeSetting.fontSize<16||f.largeHome.overflow>1||f.largeHome.textSize<16||!f.largeHome.navigation||!f.savedReadingMode||!f.largeScanner||f.errors.length);
   if(failed.length){console.error('WEBKIT_SAFARI_VISUAL_FAIL',JSON.stringify(failed));process.exitCode=1;}
