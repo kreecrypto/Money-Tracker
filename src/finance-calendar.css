@@ -22,7 +22,7 @@
 .mt-calendar-legend i{display:inline-block;width:8px;height:8px;border-radius:50%}
 .mt-calendar-legend .income-dot{background:#087640}.mt-calendar-legend .expense-dot{background:#c52943}
 .mt-calendar-legend small{font-size:11px;color:#50685a}
-.mt-home-screen > .summary-grid .mt-home-balance.mt-home-calendar-summary{background:#f2fbf5!important;color:#133a27!important;box-shadow:none!important;border:1px solid #dcefe2!important}
+.mt-home-screen .mt-home-calendar-summary{background:#f2fbf5!important;color:#133a27!important;box-shadow:none!important;border:1px solid #dcefe2!important}
 .mt-home-calendar-summary .mt-home-total,.mt-home-calendar-summary .mt-home-total-label,.mt-home-calendar-summary .mt-home-balance-header>span{color:#123c28!important}
 .mt-home-calendar-summary .mt-home-total{font-size:clamp(25px,7vw,33px)!important}
 .mt-home-calendar-summary .mt-home-split{border:1px solid #e1eee6;box-shadow:none}
