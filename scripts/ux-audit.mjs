@@ -66,16 +66,19 @@ try {
     const secretaryHome=await page.evaluate(()=>{
       const report=document.querySelector('.accounting-secretary')?.getBoundingClientRect();
       const upload=document.querySelector('.mt-home-upload')?.getBoundingClientRect();
+      const calendar=document.querySelector('.mt-finance-calendar')?.getBoundingClientRect();
       return {visible:!!(report&&report.width>0&&report.height>0),
-        beforeUpload:!!(report&&upload&&report.bottom<upload.top),
+        afterCalendar:!!(report&&calendar&&calendar.bottom<report.top),
+        uploadBeforeReport:!!(report&&upload&&upload.bottom<report.top),
         questions:document.querySelectorAll('.accounting-secretary-questions button').length};
     });
-    record('report-first-home',name,{...secretaryHome,pageErrors:errors});
+    record('calendar-first-home',name,{...secretaryHome,pageErrors:errors});
     if(width<=660){
       const mobileHome=await page.evaluate(()=>{
         const el=name=>document.querySelector(name)?.getBoundingClientRect();
-        const hero=el('.mt-home-balance'),cta=el('.mt-home-upload'),recent=el('.mt-home-recent'),nav=el('.mobile-bottom-nav');
-        return {correctHierarchy:!!(hero&&cta&&recent&&hero.top<cta.top&&cta.top<recent.top),noDuplicateActions:document.querySelectorAll('.mt-home-shortcut-grid button').length===0,bottomNavVisible:!!(nav&&nav.width===innerWidth)};
+        const hero=el('.mt-home-balance'),calendar=el('.mt-finance-calendar'),cta=el('.mt-home-upload'),recent=el('.mt-home-recent'),nav=el('.mobile-bottom-nav');
+        const calendarDays=document.querySelectorAll('.mt-calendar-day:not([disabled])').length;
+        return {correctHierarchy:!!(hero&&calendar&&cta&&recent&&hero.top<calendar.top&&calendar.bottom<cta.top&&cta.top<recent.top),calendarDays,noDuplicateActions:document.querySelectorAll('.mt-home-shortcut-grid button').length===0,bottomNavVisible:!!(nav&&nav.width===innerWidth)};
       });
       await page.locator('.mobile-action-scan').click();
       const openedOCR=await page.locator('.modal .slip-panel').isVisible();
@@ -306,7 +309,7 @@ try {
   console.log('AXE_DETAILS_START');
   console.log(JSON.stringify(focus.map(x=>({viewport:x.viewport,view:x.view,violations:x.axe?.violations,smallTouchTargets:x.smallTouchTargets})),null,2));
   console.log('AXE_DETAILS_END');
-  const critical=findings.filter(x=>(x.view==='report-first-home'&&(!x.visible||!x.beforeUpload||x.questions!==4||x.pageErrors?.length))
+  const critical=findings.filter(x=>(x.view==='calendar-first-home'&&(!x.visible||!x.afterCalendar||!x.uploadBeforeReport||x.questions!==4||x.pageErrors?.length))
     ||(x.view==='accountant-report-first'&&(!x.visible||!x.beforeCharts||!x.safetyText||x.pageErrors?.length))
     ||x.view==='navigation-obstruction'
     ||x.overflowPx>0
@@ -323,7 +326,7 @@ try {
     ||(x.view==='pending-queue-smoke'&&(!x.homeBadge||x.pendingBefore!==1||x.pendingAfter!==0||!x.savedVisible||!x.fabHidden||!x.bottomNavHidden||x.pageErrors?.length))
     ||(x.view==='restore-smoke'&&(!x.initiallyDisabled||!x.enabledAfterAcknowledgement||!x.closed||x.pageErrors?.length))
     ||(x.view==='local-reset-smoke'&&(!x.initiallyDisabled||!x.enabledAfterAcknowledgement||!x.dialogClosed||x.wiped?.transactions!==0||x.wiped?.pending!==0||x.wiped?.paired||x.pageErrors?.length))
-    ||(x.view==='mobile-home-actions'&&(!x.correctHierarchy||x.quickActionCount!==0||!x.noDuplicateActions||!x.bottomNavVisible||!x.openedOCR||x.pageErrors?.length))
+    ||(x.view==='mobile-home-actions'&&(!x.correctHierarchy||x.calendarDays<28||x.quickActionCount!==0||!x.noDuplicateActions||!x.bottomNavVisible||!x.openedOCR||x.pageErrors?.length))
     ||(x.view==='report-view-switch'&&(x.count!==4||!x.trendOnly||!x.budgetOnly||!x.categoryOnly||!x.overview||!x.noOverlay||x.pageErrors?.length))
     ||(x.view==='competitive-ledger-smoke'&&(!x.ledgerAvailable||!x.resetVisible||!x.searchReset||x.pageErrors?.length))
     ||(x.view==='email-ledger-import-smoke'&&(!x.previewValid||x.stored?.count!==2||x.stored?.satang!==10750||!x.stored?.haveEvidence||x.reloaded!==2||!x.repeatBlocked||x.pageErrors?.length))
