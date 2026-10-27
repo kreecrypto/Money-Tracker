@@ -1,4 +1,4 @@
-import {useEffect,useMemo,useRef,useState,type KeyboardEvent as ReactKeyboardEvent} from 'react';
+import {useEffect,useMemo,useRef,useState,type KeyboardEvent as ReactKeyboardEvent,type ReactNode} from 'react';
 import {createPortal} from 'react-dom';
 import {
   ArrowDownLeft, ArrowRight, ArrowUpRight, Bell, Camera,
@@ -19,6 +19,7 @@ type Props={
   onMonthChange:(month:string)=>void;
   onUpload:()=>void;
   onTransactions:()=>void;
+  reportSlot:ReactNode;
 };
 
 export function HomeTopbar({pendingCount,onNotifications,onSettings}:{
@@ -152,7 +153,7 @@ function TransactionDetail({value,onClose}:{
 
 export default function HomeScreen({
   month,monthLabel,net,income,expense,recent,
-  onMonthChange,onUpload,onTransactions
+  onMonthChange,onUpload,onTransactions,reportSlot
 }:Props){
   const [detail,setDetail]=useState<Transaction|null>(null);
   const detailTriggerRef=useRef<HTMLButtonElement|null>(null);
@@ -190,12 +191,13 @@ export default function HomeScreen({
         </div>
       </div>
     </section>
+    {reportSlot}
     <button className="ref-home-upload mobile-action-scan mt-home-upload" type="button" onClick={onUpload}>
       <span className="mt-home-camera"><Camera size={25} strokeWidth={2.7}/></span>
       <span><strong>อัปโหลดสลิป</strong><small>เลือกรูปหรือถ่ายสลิป</small></span>
     </button>
     <section className="surface transactions-surface mt-home-recent" aria-label="รายการล่าสุด">
-      <div className="mt-home-section-heading"><h2>รายการล่าสุด</h2><button type="button" onClick={onTransactions}>ดูทั้งหมด <ArrowRight size={15}/></button></div>
+      <div className="mt-home-section-heading"><h2>หลักฐานธุรกรรมล่าสุด</h2><button type="button" onClick={onTransactions}>ดูทั้งหมด <ArrowRight size={15}/></button></div>
       {recent.length?
         <div className="mt-home-transaction-list">
           {recent.slice(0,4).map(tx=><button type="button" className="mt-home-transaction" key={tx.id} onClick={event=>{detailTriggerRef.current=event.currentTarget;setDetail(tx);}} aria-label={`ดูรายละเอียด ${transactionDisplayName(tx)} ${tx.type==='income'?'รายรับ':'รายจ่าย'} ${baht(tx.amountSatang)} บาท ${shortDate(tx.date,tx.time)}`}>
