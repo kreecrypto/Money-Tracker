@@ -36,13 +36,13 @@ try{
     await page.locator('.mt-home-transaction').first().waitFor({timeout:10000});
     const home=await page.evaluate(()=>{
       const rect=(selector)=>document.querySelector(selector)?.getBoundingClientRect();
-      const hero=rect('.mt-home-balance'),calendar=rect('.mt-finance-calendar'),cta=rect('.mt-home-upload'),recent=rect('.mt-home-recent'),navigation=rect('.mobile-bottom-nav');
+      const hero=rect('.mt-home-balance'),calendar=rect('.mt-finance-calendar'),cta=rect('.mt-home-upload'),brief=rect('.accounting-secretary'),recent=rect('.mt-home-recent'),day=rect('.mt-home-day-detail'),navigation=rect('.mobile-bottom-nav');
       const icons=Array.from(document.querySelectorAll('.mobile-bottom-nav button svg')).map(el=>{const r=el.getBoundingClientRect();return {width:r.width,height:r.height};});
       const gridTracks=selector=>getComputedStyle(document.querySelector(selector)).gridTemplateColumns.split(/\s+/).filter(Boolean).length;
       const pageGrid=gridTracks('.main-content');
       const homeGrid=gridTracks('.mt-home-screen');
       const splitGrid=gridTracks('.mt-home-balance-splits');
-      return {overflow:Math.max(0,document.documentElement.scrollWidth-innerWidth),order:!!(hero&&calendar&&cta&&recent&&hero.top<calendar.top&&calendar.bottom<cta.top&&cta.top<recent.top),calendarDays:document.querySelectorAll('.mt-calendar-day:not([disabled])').length,
+      return {overflow:Math.max(0,document.documentElement.scrollWidth-innerWidth),order:!!(hero&&cta&&brief&&recent&&calendar&&day&&hero.bottom<cta.top&&cta.bottom<brief.top&&brief.bottom<recent.top&&recent.bottom<calendar.top&&calendar.bottom<day.top),calendarDays:document.querySelectorAll('.mt-calendar-day:not([disabled])').length,
         actionCount:document.querySelectorAll('.mt-home-shortcut-grid button').length,navCount:document.querySelectorAll('.mobile-bottom-nav button').length,
         navVisible:!!(navigation&&navigation.top>=0&&navigation.bottom<=innerHeight+2),pageGrid,homeGrid,splitGrid,icons};
     });
