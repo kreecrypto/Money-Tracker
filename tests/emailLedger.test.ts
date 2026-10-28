@@ -1,6 +1,7 @@
 import {describe,it,expect} from 'vitest';
 import {csvRows,parseEmailLedgerCsv,partitionEmailLedger,isLikelyEmailDuplicate,emailLedgerEvidence,emailLedgerCategory,emailLedgerExplanation} from '../src/lib/emailLedger';
 import type {Transaction} from '../src/lib/finance';
+import {accountantAudit} from '../src/lib/accountantAudit';
 
 const headers=['วันที่','เวลา','ประเภทธุรกรรม','ผู้รับเงิน/ร้านค้า','รายละเอียดชี้แจง','หมวดหมู่','จำนวนเงิน','ค่าธรรมเนียม','สถานะ','รวมรายจ่าย','เลขอ้างอิง','Gmail URL'];
 const record=(row:string[])=>row.map(value=>'"'+value.replaceAll('"','""')+'"').join(',');
@@ -63,6 +64,20 @@ describe('private email ledger import',()=>{
     expect(isLikelyEmailDuplicate(tx,prior)).toBe(true);
     expect(isLikelyEmailDuplicate(tx,{...prior,id:'other-payee',recipient:'ร้านอื่น'})).toBe(false);
     expect(isLikelyEmailDuplicate(tx,{...tx,id:'reference-prefix',amountSatang:999, note:'เลขอ้างอิง: TEST202610250001XYZ'})).toBe(false);
+  });
+  it('reconciles email cash-out to prepaid, debt and unknown-purpose preview buckets',()=>{
+    const topup=entry({5:'เติมเงิน/Wallet'});
+    const debt=entry({5:'ชำระหนี้/บัตรเครดิต',1:'13:35',6:'20.00',9:'20.00',10:'TEST202610250002'});
+    const unknown=entry({5:'โอนเงินไม่ทราบวัตถุประสงค์',1:'13:36',6:'10.00',9:'10.00',10:'TEST202610250003'});
+    const receipt=entry({1:'',8:'รอตรวจเวลา',9:'0.00',10:'RECEIPT20261025'});
+    const parsed=parseEmailLedgerCsv(makeCsv([topup,debt,unknown,receipt]));
+    const summary=accountantAudit(parsed.confirmed);
+    expect(parsed.excluded).toHaveLength(1);
+    expect(summary.outflow.amountSatang).toBe(15550);
+    expect(summary.walletTopups.amountSatang).toBe(12550);
+    expect(summary.debtPayments.amountSatang).toBe(2000);
+    expect(summary.needsClassification.amountSatang).toBe(1000);
+    expect(summary.otherCategorized.amountSatang).toBe(0);
   });
   it('never treats pending transfers as confirmed expenses',()=>{
     const result=parseEmailLedgerCsv(makeCsv([entry({8:'รอตรวจประเภท',9:'0'})]));
