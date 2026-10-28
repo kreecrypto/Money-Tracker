@@ -61,6 +61,7 @@ export function parseEmailLedgerCsv(csv:string,now=Date.now()):EmailLedgerParsed
       excluded.push({date,time,name,status:status||'ไม่ทราบสถานะ',reason:description});
       continue;
     }
+    if(!validDate(date))throw new Error('แถว '+(i+1)+' มีวันที่ทำรายการไม่ถูกต้อง');
     if(!isTrackingDate(date)){
       excluded.push({date,time,name,status:'ก่อนวันเริ่มต้น',reason:'ไม่นำเข้ารายการก่อน 25 ต.ค. 2569'});
       continue;
