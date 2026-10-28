@@ -1,4 +1,4 @@
-import type {EntryType,Method} from '../../src/lib/finance.js';
+import {isTrackingDate,type EntryType,type Method} from '../../src/lib/finance.js';
 export type LineRow={
   line_event_id:string;line_user_id:string;type:EntryType;amount_satang:number;
   category:string;note:string;method:Method;transaction_date:string;
@@ -42,10 +42,11 @@ export async function getLineRow(eventId:string,userId:string){
 }
 export async function reviewLineRow(
   eventId:string,userId:string,decision:'income'|'expense'|'cancelled'
-):Promise<'confirmed'|'cancelled'|'already'|'missing'>{
+):Promise<'confirmed'|'cancelled'|'already'|'missing'|'before_start'>{
   const row=await getLineRow(eventId,userId);
   if(!row)return 'missing';
   if(row.status!=='pending')return 'already';
+  if(decision!=='cancelled'&&!isTrackingDate(row.transaction_date))return 'before_start';
   // Atomically change pending status. Client cannot arbitrarily select a LINE user.
   const next=decision==='cancelled'
     ?{status:'cancelled',reviewed_at:new Date().toISOString()}

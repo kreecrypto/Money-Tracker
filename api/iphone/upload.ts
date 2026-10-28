@@ -1,5 +1,6 @@
 import {auth,MAX_IMAGE_BYTES,imageType,sha,ownerKey,saveDraft,json} from '../../server/iphone/bridge.js';
 import {ocrImage} from '../../server/iphone/ocr.js';
+import {isTrackingDate} from '../../src/lib/finance.js';
 
 export const maxDuration=120;
 export async function POST(request:Request):Promise<Response>{
@@ -30,6 +31,8 @@ export async function POST(request:Request):Promise<Response>{
       console.error('[iphone-upload] OCR failed:',code);
       return json({error:'OCR_OR_STORAGE_UNAVAILABLE',stage:'ocr',code},503);
     }
+    if(parsed.transaction_date&&!isTrackingDate(parsed.transaction_date))
+      return json({status:'skipped',reason:'BEFORE_TRACKING_START'},200);
     try{
       const saved=await saveDraft({
         ...parsed,owner_key:ownerKey(),image_digest:sha(bytes),

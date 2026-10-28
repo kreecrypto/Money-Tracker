@@ -1,5 +1,6 @@
 import {sessionLineId,confirmedRows} from '../../server/line/link.js';
 import {cors,json,options} from '../../server/line/cors.js';
+import {isTrackingDate} from '../../src/lib/finance.js';
 export const maxDuration=15;
 export {options as OPTIONS};
 export async function GET(request:Request){
@@ -11,7 +12,7 @@ export async function GET(request:Request){
     const lineId=await sessionLineId(m[1]);
     if(!lineId)return json({error:'UNAUTHORIZED'},401,headers);
     const rows=await confirmedRows(lineId);
-    return json({transactions:rows.map(x=>({
+    return json({transactions:rows.filter(x=>isTrackingDate(x.transaction_date)).map(x=>({
       id:'line-'+x.id,type:x.type,amountSatang:Number(x.amount_satang),
       category:x.category,note:x.note,method:x.method,
       date:x.transaction_date,createdAt:Date.parse(x.created_at)

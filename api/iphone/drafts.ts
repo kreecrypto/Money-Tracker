@@ -1,5 +1,5 @@
 import {auth,appCors,json,options,pendingDrafts,reviewDraft} from '../../server/iphone/bridge.js';
-import {EXPENSE_CATEGORIES,INCOME_CATEGORIES} from '../../src/lib/finance.js';
+import {EXPENSE_CATEGORIES,INCOME_CATEGORIES,isTrackingDate} from '../../src/lib/finance.js';
 const isRealDate=(v:string)=>{if(!/^\d{4}-\d{2}-\d{2}$/.test(v))return false;const [y,m,d]=v.split('-').map(Number);const t=new Date(Date.UTC(y,m-1,d));return t.getUTCFullYear()===y&&t.getUTCMonth()===m-1&&t.getUTCDate()===d;};
 export const maxDuration=15;
 export {options as OPTIONS};
@@ -15,7 +15,7 @@ export async function GET(request:Request){
   if(g.status!==200)return json({error:g.status===503?'NOT_CONFIGURED':'UNAUTHORIZED'},g.status,g.headers);
   try{
     const rows=await pendingDrafts();
-    return json({drafts:rows.map(x=>({
+    return json({drafts:rows.filter(x=>!x.transaction_date||isTrackingDate(x.transaction_date)).map(x=>({
       id:x.id,amountSatang:x.amount_satang,type:x.type,date:x.transaction_date,
       category:x.category,note:x.note,method:x.method,source:x.source_label,createdAt:x.created_at,
       time:x.transaction_time,recipient:x.recipient
@@ -46,6 +46,7 @@ export async function POST(request:Request){
       (input.time!==undefined && input.time!==null && (typeof input.time!=='string'||!/^([01]\\d|2[0-3]):[0-5]\\d$/.test(input.time))) ||
       (input.recipient!==undefined && input.recipient!==null && (typeof input.recipient!=='string'||input.recipient.length>160)))
       return json({error:'INVALID_TRANSACTION'},400,g.headers);
+    if(!isTrackingDate(input.date as string))return json({error:'BEFORE_TRACKING_START'},400,g.headers);
     const type=input.type as 'income'|'expense';
     if(!(type==='income'?INCOME_CATEGORIES:EXPENSE_CATEGORIES).some(x=>x===input.category))
       return json({error:'INVALID_CATEGORY'},400,g.headers);
