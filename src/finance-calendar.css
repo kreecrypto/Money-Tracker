@@ -4,7 +4,7 @@
 .mt-calendar-heading h2{font-size:15px;line-height:1.5;margin:0;color:#153f2b;font-weight:760}
 .mt-calendar-controls{display:flex;align-items:center;gap:3px;min-width:0}
 .mt-calendar-controls span{font-size:12px;font-weight:720;color:#12583a;text-align:center;min-width:98px}
-.mt-calendar-controls button{display:grid;place-items:center;min-width:40px;min-height:44px;background:#f1f9f4;border:0;border-radius:10px;color:#075c36}
+.mt-calendar-controls button{display:grid;place-items:center;min-width:44px;min-height:48px;background:#f1f9f4;border:0;border-radius:10px;color:#075c36}
 .mt-calendar-grid{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:3px;min-width:0}
 .mt-calendar-weekday{display:grid;place-items:center;min-height:29px;font-size:12px;font-weight:740;color:#566e61}
 .mt-calendar-day{display:flex;flex-direction:column;align-items:center;min-width:0;min-height:62px;padding:6px 1px 4px;border-radius:9px;border:1px solid #eaf1ec;background:#fff;color:#172d22;overflow:hidden}
