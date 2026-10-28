@@ -62,6 +62,7 @@ try {
     const errors=[];
     page.on('pageerror',e=>errors.push(e.message));
     await page.goto(base,{waitUntil:'networkidle'});
+    await page.locator('.mt-home-screen').waitFor({state:'visible'});
     await scan(page,'home',name);
     const secretaryHome=await page.evaluate(()=>{
       const report=document.querySelector('.accounting-secretary')?.getBoundingClientRect();
