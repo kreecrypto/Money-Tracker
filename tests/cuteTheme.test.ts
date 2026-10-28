@@ -12,11 +12,11 @@ describe('Cute visual theme release guards',()=>{
       entry.indexOf("import './responsive-grids.css';")
     );
   });
-  it('overrides legacy forced white mobile canvas and dark balance card',()=>{
+  it('preserves the warm mobile canvas with a high-contrast branded balance card',()=>{
     expect(theme).toMatch(/body:has\(\.mt-home-screen\)/);
     expect(theme).toMatch(/\.main-content:has\(\.mt-home-screen\)[\s\S]*?background:var\(--cute-canvas\)!important/);
     expect(theme).toMatch(/\.mt-home-balance\.mt-home-calendar-summary[\s\S]*?background:[^;]+!important/);
-    expect(theme).toMatch(/\.mt-home-balance\.mt-home-calendar-summary \.mt-home-total[\s\S]*?color:var\(--cute-ink\)!important/);
+    expect(theme).toMatch(/\.mt-home-balance\.mt-home-calendar-summary \.mt-home-total[\s\S]*?color:#fff!important/);
   });
   it('styles all key screens and active states without hiding data or changing grid',()=>{
     for (const selector of [
