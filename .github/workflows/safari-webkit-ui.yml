@@ -13,8 +13,10 @@ permissions:
 
 jobs:
   safari-layout:
-    runs-on: ubuntu-latest
-    timeout-minutes: 15
+    runs-on: ubuntu-24.04
+    container:
+      image: mcr.microsoft.com/playwright:v1.56.0-noble
+    timeout-minutes: 25
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -26,8 +28,8 @@ jobs:
         run: |
           npm install --no-package-lock
           npm install --no-save --no-package-lock playwright@1.56.0
-      - name: Install Safari WebKit browser
-        run: npx playwright install --with-deps webkit
+      - name: Verify bundled WebKit
+        run: npx playwright --version
       - name: Audit real WebKit rendering
         run: node scripts/webkit-visual.mjs
       - name: Store anonymized viewport screenshots and report
