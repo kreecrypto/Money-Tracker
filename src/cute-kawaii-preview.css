@@ -1,0 +1,260 @@
+/* Cute Minimal / Japanese Kawaii — presentation-only preview.
+   Preserve existing layout, component behavior, financial semantics and responsive grids. */
+:root {
+  --cute-canvas: #fffbf6;
+  --cute-mint: #e0f6e9;
+  --cute-mint-strong: #08783f;
+  --cute-pink: #ffe2e9;
+  --cute-ink: #101f1b;
+}
+body { background-color: var(--cute-canvas); }
+.mt-home-screen .mt-home-balance {
+  background: linear-gradient(145deg,#e0f6e9,#f4fff7);
+  color: var(--cute-ink);
+  border: 1px solid #b9e5cd;
+  border-radius: 24px;
+  box-shadow: 0 6px 20px rgba(32,95,63,.055);
+}
+.mt-home-screen .mt-home-balance .mt-home-total,
+.mt-home-screen .mt-home-balance .mt-home-total-label { color: var(--cute-ink); }
+.mt-home-screen .mt-home-upload {
+  border-radius: 20px;
+  background: #08783f;
+  box-shadow: 0 5px 14px rgba(8,120,63,.12);
+}
+.mt-home-screen .mt-home-transaction-icon,
+.money-category-icon { border-radius: 15px; }
+.mt-home-screen .mt-home-day-detail,
+.mt-home-screen .mt-home-recent,
+.transactions-surface,
+.metric { border-radius: 20px; }
+.mt-home-screen .mt-home-empty { background: #fff8ee; border-radius: 16px; }
+.mt-home-screen .mt-home-split-icon.is-expense,
+.money-category-icon.cat-shopping { background: var(--cute-pink); }
+.mt-home-screen .mt-home-split-icon.is-income,
+.money-category-icon.cat-income { background: var(--cute-mint); }
+@media (prefers-reduced-motion: no-preference) {
+  .mt-home-screen .mt-home-upload { transition: filter .15s ease; }
+  .mt-home-screen .mt-home-upload:hover { filter: brightness(1.06); }
+}
+
+/* Shared surfaces: preserve the current grid and DOM hierarchy. */
+.app-body,.main-content { background-color:var(--cute-canvas); }
+.surface,.metric,.budget-card,.settings-card {
+  border-color:#e8eee7;
+  border-radius:20px;
+  box-shadow:0 3px 12px rgba(55,76,55,.035);
+}
+.transaction-page .transaction-row { border-radius:14px; }
+.transaction-page .filter-tabs button,
+.ref-report-tabs button { border-radius:14px; }
+.transaction-page .search-box input { border-radius:14px; }
+.mobile-bottom-nav { background:#fffdfa; border-top-color:#e9efe7; }
+.mobile-bottom-nav button.active,
+.sidebar .nav-item.active { background:#e0f6e9; color:#125b39; }
+.ref-ocr-modal .slip-upload-box { border-radius:20px; }
+.ref-ocr-modal .slip-actions .btn { border-radius:16px; }
+.mt-home-screen .mt-home-balance .mt-home-balance-header>span { color:#183f2b; }
+.mt-home-screen .mt-home-balance .mt-home-split-head { color:#48594f; }
+.mt-home-screen .mt-home-balance .mt-home-split-icon.is-income { color:#145f3c; }
+.mt-home-screen .mt-home-balance .mt-home-split-icon.is-expense { color:#9d2d4c; }
+
+
+/* Cute release hardening — override older mobile !important rules.
+ * Scoped to visual presentation only: no hidden transaction data, no layout
+ * grid changes, no OCR or storage overrides. Always loaded last in main.tsx. */
+:root {
+  --cute-canvas:#fffaf6;
+  --cute-surface:#ffffff;
+  --cute-mint:#e5f7ea;
+  --cute-mint-soft:#f1fbf4;
+  --cute-peach:#fff1e5;
+  --cute-pink:#ffeaf0;
+  --cute-ink:#1c352b;
+  --cute-muted:#4b6455;
+  --cute-line:#daeade;
+  --cute-accent:#08783f;
+  --cute-rose:#a52c50;
+  --cute-radius:20px;
+}
+body,.app-shell,.app-body,.main-content {
+  background-color:var(--cute-canvas);
+}
+.topbar,.sidebar {
+  background-color:var(--cute-surface);
+  border-color:var(--cute-line);
+}
+/* The original Home mobile rules use !important to force white + dark green.
+   Match that specificity so the light Cute preview actually shows on iPhones. */
+body:has(.mt-home-screen),
+.app-body:has(.mt-home-screen) {
+  background:var(--cute-canvas)!important;
+}
+.main-content:has(.mt-home-screen) {
+  background:var(--cute-canvas)!important;
+}
+.topbar.topbar-home.home-v2-topbar {
+  background:var(--cute-canvas)!important;
+}
+.mt-home-screen .mt-home-balance.mt-home-calendar-summary {
+  background:linear-gradient(145deg,#e0f6e9 0%,#f8fff8 65%,#fff7ee 100%)!important;
+  color:var(--cute-ink)!important;
+  border:1px solid #b6dfc1!important;
+  border-radius:24px!important;
+  box-shadow:0 9px 24px rgba(34,87,55,.07)!important;
+}
+.mt-home-screen .mt-home-balance.mt-home-calendar-summary .mt-home-total,
+.mt-home-screen .mt-home-balance.mt-home-calendar-summary .mt-home-total-label,
+.mt-home-screen .mt-home-balance.mt-home-calendar-summary .mt-home-balance-header>span {
+  color:var(--cute-ink)!important;
+}
+.mt-home-screen .mt-home-balance.mt-home-calendar-summary .mt-home-split {
+  border-radius:16px;
+  background:#fffefa;
+  border:1px solid #e1efe3;
+  box-shadow:0 2px 8px rgba(33,87,53,.04);
+}
+.mt-home-screen .mt-home-balance.mt-home-calendar-summary .mt-home-split-head {
+  color:var(--cute-muted);
+}
+.mt-home-screen .mt-home-split-icon.is-income {
+  background:#d4f5e1;color:#125c3d;
+}
+.mt-home-screen .mt-home-split-icon.is-expense {
+  background:#ffe3e9;color:#942949;
+}
+.mt-home-screen .mt-home-upload {
+  background:linear-gradient(120deg,#08783f 0%,#169554 100%)!important;
+  border:1px solid #08783f!important;
+  border-radius:19px!important;
+  box-shadow:0 8px 20px rgba(8,120,63,.17)!important;
+}
+.mt-home-screen .mt-home-upload .mt-home-camera {
+  border-radius:12px;background:#fff;
+}
+.mt-home-screen .mt-home-upload strong,
+.mt-home-screen .mt-home-upload small {
+  color:#fff!important;
+}
+/* Calendar cells are interactive financial data, not decorative chips. */
+.mt-finance-calendar {
+  background:#fffefa;border:1px solid var(--cute-line);
+  border-radius:22px;box-shadow:0 6px 22px rgba(57,81,62,.055);
+}
+.mt-calendar-heading h2 {color:var(--cute-ink);}
+.mt-calendar-controls button {
+  border-radius:12px;background:var(--cute-mint-soft);color:#0d5f38;
+}
+.mt-calendar-controls span {color:#165b3b;}
+.mt-calendar-day {
+  background:#fff;border-color:#e6eee5;border-radius:12px;
+  color:var(--cute-ink);
+}
+.mt-calendar-day.is-outside {background:#f9f9f5;color:#667a6d;}
+.mt-calendar-day.is-selected {
+  background:#e6f8ea;border-color:#0b7943;
+  box-shadow:inset 0 0 0 1px #0b7943;
+}
+.mt-calendar-day-amounts .is-income,
+.mt-home-day-summary .is-income {color:#0b7843;}
+.mt-calendar-day-amounts .is-expense,
+.mt-home-day-summary .is-expense {color:var(--cute-rose);}
+.mt-home-day-detail {
+  border-color:var(--cute-line);border-radius:22px;
+  background:#fffefa;box-shadow:0 5px 18px rgba(48,76,56,.04);
+}
+.mt-home-day-detail .mt-home-day-summary>div {
+  background:var(--cute-mint-soft);border-radius:13px;
+}
+.mt-home-day-detail .mt-home-day-summary>div:last-child {
+  background:#fff3f4;
+}
+.mt-home-screen .mt-home-empty {
+  background:#fff8eb;border:1px solid #f5e8d6;
+  border-radius:15px;color:#43604c;
+}
+.mt-home-screen .mt-home-transaction-list {
+  background:#fffefa;border:1px solid var(--cute-line);
+  border-radius:19px;padding:4px 12px;overflow:hidden;
+}
+.mt-home-screen .mt-home-transaction {
+  background:transparent;min-height:56px;border-bottom-color:#e9eee7;
+}
+.mt-home-screen .mt-home-transaction-icon {border-radius:13px;}
+.mt-home-screen .mt-home-transaction-text strong {color:var(--cute-ink);}
+.mt-home-screen .mt-home-transaction-text small {color:var(--cute-muted);}
+.mt-home-section-heading h2 {color:var(--cute-ink);}
+.mt-home-section-heading button,.mt-home-day-detail-heading button {color:#11683f;}
+.mt-home-month-picker {border-radius:12px!important;background:#fff!important;color:#15563a!important;}
+/* Keep report, ledger, upload, and settings in one coordinated theme. */
+.surface,.metric,.budget-card,.settings-card,.settings-connections,
+.pending-slip-card,.slip-attention-card {
+  background:var(--cute-surface);border-color:var(--cute-line);
+  border-radius:var(--cute-radius);
+  box-shadow:0 4px 16px rgba(34,75,45,.045);
+}
+.transaction-page .transaction-row {
+  background:#fff;border:1px solid #e7eee8;
+  border-radius:16px;padding-inline:10px;
+}
+.transaction-page .search-box {
+  background:#fff;border-color:var(--cute-line);border-radius:15px;
+}
+.transaction-page .filter-tabs {
+  background:var(--cute-mint-soft);border-radius:15px;
+}
+.transaction-page .filter-tabs button.selected,
+.ref-report-tabs button.active {
+  background:var(--cute-accent);color:#fff;
+}
+.metric.income .metric-icon,.money-category-icon.cat-income {
+  background:var(--cute-mint);color:#156443;
+}
+.metric.expense .metric-icon,.money-category-icon.cat-shopping {
+  background:var(--cute-pink);color:#8a3050;
+}
+.metric.net .metric-icon {background:#f0ecff;color:#5a4988;}
+.ref-report-tabs {background:#f2f9f3;border-radius:16px;}
+.ref-ocr-modal .slip-upload-box {
+  background:#f5fcf6;border-color:#a9d3b4;border-radius:22px;
+}
+.ref-ocr-modal .slip-upload-icon {background:#dff5e7;color:#135c3d;border-radius:18px;}
+.ref-ocr-modal .slip-actions .btn {border-radius:14px;}
+.mobile-bottom-nav {
+  background:#fffdfa!important;
+  border-top:1px solid var(--cute-line)!important;
+  box-shadow:0 -3px 16px rgba(36,72,46,.06)!important;
+}
+.mobile-bottom-nav button.active,
+.sidebar .nav-item.active {
+  background:var(--cute-mint)!important;color:#0c633b!important;
+}
+.mobile-bottom-nav button[aria-current="page"],
+.mobile-bottom-nav button[aria-current="page"] span {
+  color:#0c633b!important;
+}
+button:focus-visible,.mt-calendar-day:focus-visible,
+.mt-home-screen .mt-home-upload:focus-visible {
+  outline:3px solid #0e794b;outline-offset:2px;
+}
+@media(max-width:660px) {
+  .topbar.topbar-home.home-v2-topbar {
+    background:var(--cute-canvas)!important;
+  }
+  .main-content:has(.mt-home-screen) {
+    background:var(--cute-canvas)!important;
+  }
+  .mt-home-screen .mt-home-balance.mt-home-calendar-summary {
+    background:linear-gradient(145deg,#e0f6e9,#f8fff8 65%,#fff7ee 100%)!important;
+    border-radius:24px!important;
+  }
+  .mt-finance-calendar {padding:12px 8px;}
+}
+@media(max-width:359px) {
+  .mt-calendar-day {border-radius:9px;}
+  .mt-home-screen .mt-home-transaction-list {padding-inline:8px;}
+}
+@media(prefers-reduced-motion:reduce) {
+  .mt-home-screen .mt-home-upload,
+  .mt-calendar-day,.mt-calendar-controls button {transition:none!important;}
+}
