@@ -1,4 +1,4 @@
-import {isValidTransaction,toSatang,type Transaction} from './finance';
+import {isValidTransaction,isTrackingDate,toSatang,type Transaction} from './finance';
 
 export type EmailLedgerExcluded = {date:string;time:string;name:string;status:string;reason:string};
 export type EmailLedgerParsed = {confirmed:Transaction[];excluded:EmailLedgerExcluded[]};
@@ -59,6 +59,10 @@ export function parseEmailLedgerCsv(csv:string,now=Date.now()):EmailLedgerParsed
     const status=get(r,'สถานะ'),description=get(r,'รายละเอียดชี้แจง');
     if(status!=='ยืนยันรายจ่าย'){
       excluded.push({date,time,name,status:status||'ไม่ทราบสถานะ',reason:description});
+      continue;
+    }
+    if(!isTrackingDate(date)){
+      excluded.push({date,time,name,status:'ก่อนวันเริ่มต้น',reason:'ไม่นำเข้ารายการก่อน 25 ต.ค. 2569'});
       continue;
     }
     const amountSatang=toSatang(get(r,'จำนวนเงิน'));

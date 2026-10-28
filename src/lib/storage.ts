@@ -1,4 +1,4 @@
-import {DEFAULT_SETTINGS,type Settings,type Transaction,isValidTransaction} from './finance';
+import {DEFAULT_SETTINGS,type Settings,type Transaction,isValidTransaction,isTrackingDate} from './finance';
 import {isValidPendingSlip,pendingFingerprintMatch,type PendingSlip} from './pendingSlips';
 import {sanitizeOwnerNames} from './slipIdentity';
 import {isLikelyEmailDuplicate} from './emailLedger';
@@ -26,10 +26,10 @@ function getDB():Promise<IDBDatabase>{
 }
 function request<T>(req:IDBRequest<T>):Promise<T>{return new Promise((resolve,reject)=>{req.onsuccess=()=>resolve(req.result);req.onerror=()=>reject(req.error);});}
 export async function loadTransactions(){ const db=await getDB(); const data=await request<Transaction[]>(db.transaction(STORE,'readonly').objectStore(STORE).getAll()); return data.filter(isValidTransaction).sort((a,b)=>b.date.localeCompare(a.date)||(b.time||'').localeCompare(a.time||'')||b.createdAt-a.createdAt); }
-export async function saveTransaction(item:Transaction){const db=await getDB(); const tx=db.transaction(STORE,'readwrite'); await request(tx.objectStore(STORE).put(item)); await completed(tx);}
+export async function saveTransaction(item:Transaction){if(!isTrackingDate(item.date))throw new Error('บันทึกได้เฉพาะรายการตั้งแต่วันที่ 25 ต.ค. 2569 เป็นต้นไป');const db=await getDB(); const tx=db.transaction(STORE,'readwrite'); await request(tx.objectStore(STORE).put(item)); await completed(tx);}
 /** Append private email records atomically; never erase or overwrite existing transactions. */
 export async function appendEmailTransactions(candidates:Transaction[]):Promise<{imported:number;duplicates:number}>{
-  if(candidates.length>2000||candidates.some(item=>!isValidTransaction(item)||!item.id.startsWith('email-')))
+  if(candidates.length>2000||candidates.some(item=>!isValidTransaction(item)||!isTrackingDate(item.date)||!item.id.startsWith('email-')))
     throw new Error('รายการนำเข้าไม่ถูกต้อง');
   const db=await getDB();
   const tx=db.transaction(STORE,'readwrite'),store=tx.objectStore(STORE);
@@ -81,7 +81,7 @@ export async function replaceAll(transactions:Transaction[],settings:Settings){
 export async function loadPendingSlips():Promise<PendingSlip[]>{
   const db=await getDB();
   const rows=await request<unknown[]>(db.transaction(PENDING,'readonly').objectStore(PENDING).getAll());
-  return rows.filter(isValidPendingSlip).sort((a,b)=>b.updatedAt-a.updatedAt);
+  return rows.filter(isValidPendingSlip).filter(x=>x.date===null||isTrackingDate(x.date)).sort((a,b)=>b.updatedAt-a.updatedAt);
 }
 
 /** Use one read/write transaction so simultaneous batches cannot duplicate a pending slip. */

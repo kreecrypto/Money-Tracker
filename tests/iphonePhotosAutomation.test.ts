@@ -102,6 +102,9 @@ vi.mock('../server/iphone/bridge',async importOriginal=>{
 });
 import {POST} from '../api/iphone/photos';
 const UPLOAD='B'.repeat(64),REVIEW='A'.repeat(64);
+const CURRENT_KPLUS=KPLUS.replace('9 ต.ค. 69','25 ต.ค. 69');
+const CURRENT_KPLUS_COMPLETE=KPLUS_COMPLETE.replace('13 ต.ค. 69','25 ต.ค. 69');
+const CURRENT_KBANK_ALERT=KBANK_ALERT.replace('9 ต.ค. 69','25 ต.ค. 69');
 function post(text:string,token=UPLOAD,contentType='application/json'){
   return new Request('https://example.com/api/iphone/photos',{
     method:'POST',headers:{authorization:'Bearer '+token,'content-type':contentType},
@@ -119,31 +122,31 @@ afterEach(()=>{
 });
 describe('Photos Automation OCR text API',()=>{
   it('rejects unknown bearer token',async()=>{
-    expect((await POST(post(KPLUS,'C'.repeat(64)))).status).toBe(401);
+    expect((await POST(post(CURRENT_KPLUS,'C'.repeat(64)))).status).toBe(401);
     expect(mock.save).not.toHaveBeenCalled();
   });
   it('fails closed when environment secret is missing',async()=>{
     delete process.env.IPHONE_UPLOAD_TOKEN;
-    expect((await POST(post(KPLUS))).status).toBe(503);
+    expect((await POST(post(CURRENT_KPLUS))).status).toBe(503);
   });
   it('reports missing review token without exposing a secret',async()=>{
     delete process.env.IPHONE_REVIEW_TOKEN;
-    const r=await POST(post(KPLUS));
+    const r=await POST(post(CURRENT_KPLUS));
     expect(r.status).toBe(503);
     expect(await r.json()).toMatchObject({error:'STORAGE_UNAVAILABLE',code:'REVIEW_TOKEN_INVALID'});
     expect(mock.save).not.toHaveBeenCalled();
   });
   it('reports missing Supabase service key separately from invalid URL',async()=>{
     mock.save.mockRejectedValueOnce(new Error('SUPABASE_SERVICE_ROLE_KEY_NOT_CONFIGURED'));
-    const r=await POST(post(KPLUS));
+    const r=await POST(post(CURRENT_KPLUS));
     expect(r.status).toBe(503);
     expect(await r.json()).toMatchObject({error:'STORAGE_UNAVAILABLE',code:'SUPABASE_SERVICE_KEY_MISSING'});
     mock.save.mockRejectedValueOnce(new Error('INVALID_SUPABASE_URL'));
-    const second=await POST(post(KPLUS));
+    const second=await POST(post(CURRENT_KPLUS));
     expect(await second.json()).toMatchObject({error:'STORAGE_UNAVAILABLE',code:'SUPABASE_URL_INVALID'});
   });
   it('rejects other content types',async()=>{
-    expect((await POST(post(KPLUS,UPLOAD,'text/plain'))).status).toBe(415);
+    expect((await POST(post(CURRENT_KPLUS,UPLOAD,'text/plain'))).status).toBe(415);
   });
   it('skips non-slip OCR without writing to database',async()=>{
     const r=await POST(post('วันนี้ซื้อของกิน 119 บาท ร้านกาแฟ'));
@@ -156,7 +159,7 @@ describe('Photos Automation OCR text API',()=>{
     expect(mock.save).not.toHaveBeenCalled();
   });
   it('stages only parsed private values; no raw OCR or balances in db payload',async()=>{
-    const r=await POST(post(KBANK_ALERT));
+    const r=await POST(post(CURRENT_KBANK_ALERT));
     expect(r.status).toBe(202);
     expect((await r.json())).toMatchObject({status:'pending',reviewRequired:true});
     const row=mock.save.mock.calls[0][0];
@@ -168,17 +171,17 @@ describe('Photos Automation OCR text API',()=>{
     expect(serialized).not.toContain('KBank Live');
   });
   it('persists complete explicit K PLUS text as confirmed and returns 201 saved',async()=>{
-    const r=await POST(post(KPLUS_COMPLETE));
+    const r=await POST(post(CURRENT_KPLUS_COMPLETE));
     expect(r.status).toBe(201);
     expect(await r.json()).toMatchObject({status:'saved',reviewRequired:false});
     const row=mock.save.mock.calls[0][0];
     expect(row).toMatchObject({
-      status:'confirmed',amount_satang:11900,transaction_date:'2026-10-13',
+      status:'confirmed',amount_satang:11900,transaction_date:'2026-10-25',
       transaction_time:'12:05',recipient:'ร้านค้าตัวอย่าง',type:'expense'
     });
   });
   it('does not auto-save transfer text with ambiguous direction or missing recipient',async()=>{
-    const r=await POST(post(KPLUS));
+    const r=await POST(post(CURRENT_KPLUS));
     expect(r.status).toBe(202);
     const row=mock.save.mock.calls[0][0];
     expect(row.status).toBe('pending');
@@ -186,8 +189,14 @@ describe('Photos Automation OCR text API',()=>{
   });
   it('returns duplicate instead of creating new pending item',async()=>{
     mock.save.mockResolvedValue(null);
-    const r=await POST(post(KPLUS));
+    const r=await POST(post(CURRENT_KPLUS));
     expect((await r.json())).toMatchObject({status:'duplicate'});
+  });
+  it('skips an old K PLUS slip without a database write',async()=>{
+    const r=await POST(post(KPLUS_COMPLETE));
+    expect(r.status).toBe(200);
+    expect(await r.json()).toMatchObject({status:'skipped',reason:'BEFORE_TRACKING_START'});
+    expect(mock.save).not.toHaveBeenCalled();
   });
   it('rejects untrusted malformed JSON',async()=>{
     const r=await POST(new Request('https://example.com/api/iphone/photos',{

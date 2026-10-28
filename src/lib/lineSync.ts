@@ -1,4 +1,4 @@
-import {isValidTransaction,type Transaction} from './finance';
+import {isValidTransaction,isTrackingDate,type Transaction} from './finance';
 import {loadTransactions,saveTransaction} from './storage';
 
 const SESSION='ngoentoday-line-session-v1';
@@ -47,7 +47,7 @@ export async function syncLineInbox():Promise<{imported:number;received:number}>
   if(!res.ok)throw new Error('ซิงก์รายการจาก LINE ไม่สำเร็จ');
   const data=await res.json() as {transactions?:unknown};
   if(!Array.isArray(data.transactions))throw new Error('ข้อมูลรายการจาก LINE ไม่ถูกต้อง');
-  const incoming=data.transactions.filter(isValidTransaction) as Transaction[];
+  const incoming=(data.transactions.filter(isValidTransaction) as Transaction[]).filter(t=>isTrackingDate(t.date));
   const have=new Set((await loadTransactions()).map(x=>x.id));
   const seen=seenIDs();
   let imported=0;

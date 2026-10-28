@@ -30,7 +30,7 @@ async function send(events:object[],secret='test-channel-secret'){
   }));
 }
 const notice=[
-  'KBank Live','รายการโอน/ถอน','9 ต.ค. 69 18:44 น.',
+  'KBank Live','รายการโอน/ถอน','25 ต.ค. 69 18:44 น.',
   'จากบัญชี xxx-x-x5839-x','จำนวนเงิน -119.00 บาท',
   'ยอดเงินคงเหลือ 400,070.79 บาท'
 ].join('\n');
@@ -83,10 +83,16 @@ describe('Secure LINE bank forward flow',()=>{
     const row=mock.insert.mock.calls[0][0];
     expect(row).toMatchObject({
       amount_satang:11900,status:'pending',source_kind:'bank_text',type:'expense',
-      transaction_date:'2026-10-09',fingerprint:'test-fingerprint'
+      transaction_date:'2026-10-25',fingerprint:'test-fingerprint'
     });
     expect(JSON.stringify(row)).not.toContain('400,070.79');
     expect(JSON.stringify(sent)).toContain('quickReply');
+  });
+  it('skips a bank notice before the start date',async()=>{
+    const r=await send([event({type:'text',id:'old-bank',text:notice.replace('25 ต.ค. 69','24 ต.ค. 69')},'old-bank')]);
+    expect(r.status).toBe(200);
+    expect(mock.insert).not.toHaveBeenCalled();
+    expect(JSON.stringify(sent)).toContain('25 ต.ค. 2569');
   });
   it('extracts bank images privately and requires LINE confirmation',async()=>{
     const r=await send([event({type:'image',id:'media-1'},'bank-image-1')]);
