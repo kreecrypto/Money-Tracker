@@ -97,16 +97,16 @@ body:has(.mt-home-screen),
   background:var(--cute-canvas)!important;
 }
 .mt-home-screen .mt-home-balance.mt-home-calendar-summary {
-  background:linear-gradient(145deg,#e0f6e9 0%,#f8fff8 65%,#fff7ee 100%)!important;
-  color:var(--cute-ink)!important;
-  border:1px solid #b6dfc1!important;
-  border-radius:24px!important;
+  background:linear-gradient(120deg,#0c6040 0%,#126e49 63%,#187752 100%)!important;
+  color:#fff!important;
+  border:0!important;
+  border-radius:20px!important;
   box-shadow:0 9px 24px rgba(34,87,55,.07)!important;
 }
 .mt-home-screen .mt-home-balance.mt-home-calendar-summary .mt-home-total,
 .mt-home-screen .mt-home-balance.mt-home-calendar-summary .mt-home-total-label,
 .mt-home-screen .mt-home-balance.mt-home-calendar-summary .mt-home-balance-header>span {
-  color:var(--cute-ink)!important;
+  color:#fff!important;
 }
 .mt-home-screen .mt-home-balance.mt-home-calendar-summary .mt-home-split {
   border-radius:16px;
@@ -245,8 +245,8 @@ button:focus-visible,.mt-calendar-day:focus-visible,
     background:var(--cute-canvas)!important;
   }
   .mt-home-screen .mt-home-balance.mt-home-calendar-summary {
-    background:linear-gradient(145deg,#e0f6e9,#f8fff8 65%,#fff7ee 100%)!important;
-    border-radius:24px!important;
+    background:linear-gradient(120deg,#0c6040,#126e49 63%,#187752 100%)!important;
+    border-radius:20px!important;
   }
   .mt-finance-calendar {padding:12px 8px;}
 }
