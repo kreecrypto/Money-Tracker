@@ -1,8 +1,21 @@
 import {describe,it,expect} from 'vitest';
-import {toSatang,summarize,monthly,expenseByCategory,lastMonths,isValidTransaction,transactionDisplayName,type Transaction} from '../src/lib/finance';
+import {toSatang,summarize,monthly,expenseByCategory,lastMonths,isValidTransaction,transactionDisplayName,TRACKING_START_DATE,isTrackingDate,type Transaction} from '../src/lib/finance';
 import {toCsv,createBackup,parseBackup} from '../src/lib/backup';
 const e:Transaction={id:'a',type:'expense',amountSatang:12550,category:'อาหารและเครื่องดื่ม',note:'ข้าว',date:'2026-10-10',method:'cash',createdAt:1};
 const i:Transaction={...e,id:'b',type:'income',category:'เงินเดือน',amountSatang:2500000};
+describe('tracking starts on 25 Oct 2026',()=>{
+ it('keeps 24 October out but includes 25 October and subsequent dates',()=>{
+   expect(TRACKING_START_DATE).toBe('2026-10-25');
+   expect(isTrackingDate('2026-10-24')).toBe(false);
+   expect(isTrackingDate('2026-10-25')).toBe(true);
+   expect(isTrackingDate('2026-10-26')).toBe(true);
+   expect(isTrackingDate('2026-2-5')).toBe(false);
+ });
+ it('leaves valid historical records available for lossless JSON backups',()=>{
+   const historic={...e,date:'2026-10-24'};
+   expect(parseBackup(createBackup([historic],{monthlyBudgetSatang:0})).transactions).toEqual([historic]);
+ });
+});
 describe('finance math',()=>{
  it('parses satang exactly',()=>{expect(toSatang('1,234.50')).toBe(123450);expect(toSatang('0.01')).toBe(1);expect(toSatang('1.999')).toBe(null);expect(toSatang('0')).toBe(null);expect(toSatang('-3')).toBe(null);});
  it('sums income and expenses',()=>expect(summarize([e,i])).toEqual({income:2500000,expense:12550,net:2487450}));

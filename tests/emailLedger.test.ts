@@ -79,6 +79,15 @@ describe('private email ledger import',()=>{
     expect(summary.needsClassification.amountSatang).toBe(1000);
     expect(summary.otherCategorized.amountSatang).toBe(0);
   });
+  it('never imports email transactions before the ledger start date',()=>{
+    const parsed=parseEmailLedgerCsv(makeCsv([
+      entry({0:'2026-10-24',10:'OLD202610240001'}),
+      entry({0:'2026-10-25',10:'NEW202610250001'})
+    ]));
+    expect(parsed.confirmed).toHaveLength(1);
+    expect(parsed.confirmed[0].date).toBe('2026-10-25');
+    expect(parsed.excluded[0].status).toBe('ก่อนวันเริ่มต้น');
+  });
   it('never treats pending transfers as confirmed expenses',()=>{
     const result=parseEmailLedgerCsv(makeCsv([entry({8:'รอตรวจประเภท',9:'0'})]));
     expect(result.confirmed).toHaveLength(0);

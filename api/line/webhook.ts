@@ -3,6 +3,7 @@ import {parseBankNotice,type BankNotice} from '../../server/line/bank.js';
 import {readLineBankImage} from '../../server/line/ocr.js';
 import {insertLineRow,reviewLineRow,fingerprint,type LineRow} from '../../server/line/storage.js';
 import {issuePairCode,revokeLineSession} from '../../server/line/link.js';
+import {isTrackingDate} from '../../src/lib/finance.js';
 
 export const maxDuration=120;
 type LineEvent={
@@ -70,7 +71,8 @@ async function handle(event:LineEvent,token:string){
     if(!m)return;
     try{
       const status=await reviewLineRow(m[1],userId,m[2] as 'income'|'expense'|'cancelled');
-      const msg=status==='confirmed'?'ยืนยันบันทึกรายการแล้ว ✅ เปิด Money Tracker และกดซิงก์เพื่อดูรายการ'
+      const msg=status==='before_start'?'ไม่บันทึกธุรกรรมก่อนวันที่ 25 ต.ค. 2569'
+        :status==='confirmed'?'ยืนยันบันทึกรายการแล้ว ✅ เปิด Money Tracker และกดซิงก์เพื่อดูรายการ'
         :status==='cancelled'?'ยกเลิกรายการแล้ว ไม่บันทึกยอดเงินนี้'
         :status==='already'?'รายการนี้จัดการไปแล้ว ไม่บันทึกซ้ำ'
         :'ไม่พบรายการที่รอตรวจสอบ';
@@ -94,6 +96,9 @@ async function handle(event:LineEvent,token:string){
       if(!bank||!bank.date){
         await reply(replyToken,'อ่านวันที่หรือจำนวนเงินจากภาพไม่ชัดเจน จึงยังไม่บันทึก\nกรุณาส่งภาพใหม่ที่เห็นหัวข้อรายการ วันที่ และจำนวนเงินครบถ้วน',token);
         return;
+      }
+      if(!isTrackingDate(bank.date)){
+        await reply(replyToken,'ไม่บันทึกธุรกรรมก่อนวันที่ 25 ต.ค. 2569',token);return;
       }
       const inserted=await draftBank(bank,id,userId,'bank_image');
       if(!inserted){
@@ -140,6 +145,9 @@ async function handle(event:LineEvent,token:string){
       return;
     }
     try{
+      if(!isTrackingDate(bank.date)){
+        await reply(replyToken,'ไม่บันทึกธุรกรรมก่อนวันที่ 25 ต.ค. 2569',token);return;
+      }
       const inserted=await draftBank(bank,id,userId,'bank_text');
       await reply(replyToken,inserted?
         'ตรวจรายการที่ส่งต่อ\nยอด ฿'+fmt(bank.amountSatang)+' วันที่ '+bank.date+

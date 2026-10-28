@@ -1,5 +1,6 @@
 import {auth,ownerKey,saveDraft,sha,json} from '../../server/iphone/bridge.js';
 import {inspectPhotosOCR} from '../../server/iphone/photos.js';
+import {isTrackingDate} from '../../src/lib/finance.js';
 
 export const maxDuration=15;
 const MAX_TEXT_BYTES=18*1024;
@@ -29,6 +30,8 @@ export async function POST(request:Request):Promise<Response>{
     const candidate=inspectPhotosOCR(text);
     if(!candidate.accept)
       return json({status:'skipped',reason:candidate.reason},200);
+    if(candidate.date&&!isTrackingDate(candidate.date))
+      return json({status:'skipped',reason:'BEFORE_TRACKING_START'},200);
     // Content hash allows re-triggers of "App Is Closed"/scheduled sweep
     // without double booking the same slip across runs.
     const imageDigest=sha('photos-ocr-v1|'+candidate.normalizedText);

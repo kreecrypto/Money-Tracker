@@ -1,4 +1,5 @@
 import {auth,appCors,json,options,confirmedDrafts,correctConfirmedRecipient} from '../../server/iphone/bridge.js';
+import {isTrackingDate} from '../../src/lib/finance.js';
 export const maxDuration=15;
 export {options as OPTIONS};
 /** Review-token authenticated, recipient-only correction for saved Shortcut entries.
@@ -39,7 +40,7 @@ export async function GET(request:Request){
   if(grant!=='ok')return json({error:grant==='unconfigured'?'NOT_CONFIGURED':'UNAUTHORIZED'},grant==='unconfigured'?503:401,headers);
   try{
     const rows=await confirmedDrafts();
-    return json({transactions:rows.map(x=>({
+    return json({transactions:rows.filter(x=>!!x.transaction_date&&isTrackingDate(x.transaction_date)).map(x=>({
       id:'iphone-'+x.id,amountSatang:Number(x.amount_satang),type:x.type,
       date:x.transaction_date,category:x.category,note:x.note,method:x.method,
       ...(x.transaction_time?{time:x.transaction_time}:{}),

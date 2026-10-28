@@ -62,7 +62,7 @@ describe('OCR conservative bank parsing',()=>{
   });
 });
 vi.mock('../server/iphone/ocr',async importOriginal=>({...await importOriginal<typeof import('../server/iphone/ocr')>(),ocrImage:vi.fn(async()=>({
-  amount_satang:11900,type:'expense',transaction_date:'2026-10-09',
+  amount_satang:11900,type:'expense',transaction_date:'2026-10-25',
   category:'อื่น ๆ',note:'KBank review',method:'bank',
   source_label:'KBank',bank_fingerprint:'test-event'
 }))}));
@@ -122,12 +122,20 @@ describe('HTTP Shortcuts upload and app review flow',()=>{
     }));
     expect(r.status).toBe(400);
   });
+  it('does not confirm a prior-date draft even when other fields are valid',async()=>{
+    const r=await review(new Request('https://bridge.example/api/iphone/drafts',{
+      method:'POST',headers:{authorization:'Bearer '+owner,origin:'https://money-tracker-beta-teal.vercel.app','content-type':'application/json'},
+      body:JSON.stringify({id:'38dbeb1a-df38-43bc-b4b3-ea3f74f198c9',decision:'confirm',type:'expense',amountSatang:11900,date:'2026-10-24',category:'อื่น ๆ',note:'KBank',method:'bank'})
+    }));
+    expect(r.status).toBe(400);
+    expect(await r.json()).toMatchObject({error:'BEFORE_TRACKING_START'});
+  });
   it('confirms only a valid transaction with a manual review',async()=>{
     const r=await review(new Request('https://bridge.example/api/iphone/drafts',{
       method:'POST',headers:{authorization:'Bearer '+owner,origin:'https://money-tracker-beta-teal.vercel.app',
         'content-type':'application/json'},
       body:JSON.stringify({id:'38dbeb1a-df38-43bc-b4b3-ea3f74f198c9',
-        decision:'confirm',type:'expense',amountSatang:11900,date:'2026-10-09',
+        decision:'confirm',type:'expense',amountSatang:11900,date:'2026-10-25',
         category:'อื่น ๆ',note:'KBank',method:'bank'})
     }));
     expect(r.status).toBe(200);
