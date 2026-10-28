@@ -1,6 +1,7 @@
 import {useMemo,useRef,useState} from 'react';
 import {FileSpreadsheet,Upload} from 'lucide-react';
 import {baht,type Transaction} from './lib/finance';
+import {accountantAudit} from './lib/accountantAudit';
 import {parseEmailLedgerCsv,partitionEmailLedger,emailLedgerCategory,type EmailLedgerParsed} from './lib/emailLedger';
 import {appendEmailTransactions,loadTransactions} from './lib/storage';
 import './email-ledger.css';
@@ -15,6 +16,7 @@ export default function EmailLedgerImport({existing,onImported}:Props){
   const fileRef=useRef<HTMLInputElement>(null);
   const partition=useMemo(()=>partitionEmailLedger(parsed?.confirmed||[],existing),[parsed,existing]);
   const total=partition.ready.reduce((sum,t)=>sum+t.amountSatang,0);
+  const breakdown=accountantAudit(partition.ready);
   const pick=async(file?:File)=>{
     setParsed(null);setError('');setOutcome('');setFilename('');
     if(!file)return;
@@ -33,7 +35,7 @@ export default function EmailLedgerImport({existing,onImported}:Props){
       const eligible=partitionEmailLedger(parsed.confirmed,fresh);
       const saved=await appendEmailTransactions(eligible.ready);
       await onImported();
-      setOutcome('เพิ่มรายการใหม่ '+saved.imported+' รายการ · ข้ามรายการซ้ำ/อาจซ้ำ '+(eligible.duplicates.length+saved.duplicates)+' รายการ');
+      setOutcome('เพิ่มรายการใหม่ '+saved.imported+' รายการ · ข้ามรายการซ้ำ/อาจซ้ำ '+(eligible.duplicates.length+saved.duplicates)+' รายการ · ต้องตรวจเอง '+parsed.excluded.length+' รายการ (ยังไม่บันทึก)');
       setParsed(null);
     }catch(e){setError(e instanceof Error?e.message:'บันทึกไม่สำเร็จ กรุณาลองนำเข้าอีกครั้ง');}
     finally{setBusy(false);}
@@ -52,8 +54,11 @@ export default function EmailLedgerImport({existing,onImported}:Props){
         <div><dt>ยอดรวมรายการใหม่</dt><dd>฿{baht(total)}</dd></div>
         <div><dt>ข้ามรายการซ้ำ/อาจซ้ำ</dt><dd>{partition.duplicates.length} รายการ</dd></div>
         <div><dt>ยังไม่ยืนยันหรือเป็นหลักฐานประกอบ</dt><dd>{parsed.excluded.length} รายการ</dd></div>
+        <div><dt>เติมเงินล่วงหน้า (Wallet / Easy Pass)</dt><dd>฿{baht(breakdown.walletTopups.amountSatang)}</dd></div>
+        <div><dt>ชำระหนี้ / บัตรเครดิต</dt><dd>฿{baht(breakdown.debtPayments.amountSatang)}</dd></div>
+        <div><dt>เงินออกยังไม่ทราบวัตถุประสงค์</dt><dd>฿{baht(breakdown.needsClassification.amountSatang)}</dd></div>
       </dl>
-      <p className="email-ledger-warning">รายการไม่ยืนยันและเอกสารประกอบจะไม่ถูกรวมเป็นรายจ่าย หากพบยอด/เวลาอาจซ้ำกับรายการเดิม ระบบจะข้ามเพื่อป้องกันการนับเงินออกสองครั้ง</p>
+      <p className="email-ledger-warning">ยอดรวมคือเงินออกจากบัญชีตามหลักฐาน ไม่ใช่ค่าใช้จ่ายสุทธิทั้งหมด: เงินเติมล่วงหน้าและชำระหนี้แสดงแยกเพื่อป้องกันการตีความผิด รายการไม่ยืนยันหรือหลักฐานประกอบยังไม่บันทึก หากพบยอด/เวลาอาจซ้ำกับรายการเดิม ระบบจะข้ามเพื่อป้องกันการนับซ้ำ</p>
       {partition.ready.length>0&&<div className="email-ledger-scroll">
         <ul className="email-ledger-items">{partition.ready.map(t=><li key={t.id}><div><strong>{t.recipient}</strong><span>{t.date} · {t.time} · {emailLedgerCategory(t)}</span></div><b>฿{baht(t.amountSatang)}</b></li>)}</ul>
       </div>}
