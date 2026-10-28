@@ -38,6 +38,8 @@
 .mt-home-hello {font-size:13px;font-weight:750;line-height:1.2;margin:9px 0 1px;}
 .mt-home-subtitle {font-size:11px;line-height:1.4;margin:0;color:#7f8983;}
 .mt-home-screen {max-width:740px;margin-inline:auto;}
+/* Override the old global ledger order so the desktop grid follows the new Home flow. */
+.mt-home-screen > .mt-home-recent {order:0!important;}
 .mt-home-screen .mt-home-summary {
   display:block; width:100%; margin:0; padding:0; border:0; box-shadow:none;
 }
