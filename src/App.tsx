@@ -298,7 +298,7 @@ export default function App(){
     window.addEventListener('focus',onVisible);
     return()=>{window.clearInterval(interval);document.removeEventListener('visibilitychange',onVisible);window.removeEventListener('focus',onVisible);};
   },[reload]);
-  useEffect(()=>{if(!toast)return;const id=window.setTimeout(()=>notify(null),3500);return()=>window.clearTimeout(id);},[toast]);
+  useEffect(()=>{if(!toast)return;const id=window.setTimeout(()=>setToast(null),3500);return()=>window.clearTimeout(id);},[toast]);
   const selected=useMemo(()=>monthly(items,month),[items,month]);
   const sums=useMemo(()=>summarize(selected),[selected]);
   const allSums=useMemo(()=>summarize(items),[items]);
@@ -393,7 +393,7 @@ export default function App(){
       await reload();
       notify(`นำเข้าสำเร็จ ${pendingRestore.transactions.length} รายการ`);
       setPendingRestore(null);
-    }catch(e){notify(e instanceof Error?e.message:'นำเข้าไม่สำเร็จ');}
+    }catch(e){notify(e instanceof Error?e.message:'นำเข้าไม่สำเร็จ','error');}
     finally{setRestoreBusy(false);}
   };
   const repairIphoneSync=async()=>{
