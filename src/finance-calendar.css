@@ -22,9 +22,7 @@
 .mt-calendar-legend i{display:inline-block;width:8px;height:8px;border-radius:50%}
 .mt-calendar-legend .income-dot{background:#087640}.mt-calendar-legend .expense-dot{background:#c52943}
 .mt-calendar-legend small{font-size:11px;color:#50685a}
-.mt-home-screen .mt-home-calendar-summary{background:linear-gradient(120deg,#0c6040,#126e49 63%,#187752)!important;color:#fff!important;border:0!important}
-.mt-home-calendar-summary .mt-home-total,.mt-home-calendar-summary .mt-home-total-label,.mt-home-calendar-summary .mt-home-balance-header>span{color:#fff!important}
-.mt-home-calendar-summary .mt-home-total{font-size:clamp(25px,7vw,33px)!important}
+/* Hero colors and typography are owned by the final theme stylesheet, not the calendar component. */
 .mt-home-calendar-summary .mt-home-split{border:1px solid #e1eee6;box-shadow:none}
 .mt-home-calendar-summary .mt-home-balance-decoration{display:none}
 .mt-home-day-detail{background:#fff;border:1px solid #e5eee8;border-radius:15px;padding:14px;color:#173a2a}

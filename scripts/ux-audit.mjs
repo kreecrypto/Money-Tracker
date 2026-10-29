@@ -71,7 +71,7 @@ try {
       return {visible:!!(report&&report.width>0&&report.height>0),
         beforeRecent:!!(report&&recent&&report.bottom<recent.top),
         calendarAfterRecent:!!(recent&&calendar&&recent.bottom<calendar.top),
-        uploadBeforeReport:!!(report&&upload&&upload.bottom<report.top),
+        briefBeforeUpload:!!(report&&upload&&report.bottom<upload.top),
         questions:document.querySelectorAll('.accounting-secretary-questions button').length};
     });
     record('finance-reference-home',name,{...secretaryHome,pageErrors:errors});
@@ -80,7 +80,7 @@ try {
         const el=name=>document.querySelector(name)?.getBoundingClientRect();
         const hero=el('.mt-home-balance'),calendar=el('.mt-finance-calendar'),cta=el('.mt-home-upload'),brief=el('.accounting-secretary'),recent=el('.mt-home-recent'),day=el('.mt-home-day-detail'),nav=el('.mobile-bottom-nav');
         const calendarDays=document.querySelectorAll('.mt-calendar-day:not([disabled])').length;
-        return {correctHierarchy:!!(hero&&cta&&brief&&recent&&calendar&&day&&hero.bottom<cta.top&&cta.bottom<brief.top&&brief.bottom<recent.top&&recent.bottom<calendar.top&&calendar.bottom<day.top),calendarDays,noDuplicateActions:document.querySelectorAll('.mt-home-shortcut-grid button').length===0,bottomNavVisible:!!(nav&&nav.width===innerWidth)};
+        return {correctHierarchy:!!(hero&&cta&&brief&&recent&&calendar&&day&&hero.bottom<brief.top&&brief.bottom<cta.top&&cta.bottom<recent.top&&recent.bottom<calendar.top&&calendar.bottom<day.top),calendarDays,noDuplicateActions:document.querySelectorAll('.mt-home-shortcut-grid button').length===0,bottomNavVisible:!!(nav&&nav.width===innerWidth)};
       });
       await page.locator('.mobile-action-scan').click();
       const openedOCR=await page.locator('.modal .slip-panel').isVisible();
@@ -311,7 +311,7 @@ try {
   console.log('AXE_DETAILS_START');
   console.log(JSON.stringify(focus.map(x=>({viewport:x.viewport,view:x.view,violations:x.axe?.violations,smallTouchTargets:x.smallTouchTargets})),null,2));
   console.log('AXE_DETAILS_END');
-  const critical=findings.filter(x=>(x.view==='finance-reference-home'&&(!x.visible||!x.beforeRecent||!x.calendarAfterRecent||!x.uploadBeforeReport||x.questions!==4||x.pageErrors?.length))
+  const critical=findings.filter(x=>(x.view==='finance-reference-home'&&(!x.visible||!x.beforeRecent||!x.calendarAfterRecent||!x.briefBeforeUpload||x.questions!==4||x.pageErrors?.length))
     ||(x.view==='accountant-report-first'&&(!x.visible||!x.beforeCharts||!x.safetyText||x.pageErrors?.length))
     ||x.view==='navigation-obstruction'
     ||x.overflowPx>0

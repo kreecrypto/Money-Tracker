@@ -7,6 +7,8 @@ import PendingSlipsInbox from './PendingSlipsInbox';
 import {createBackup,downloadText,parseBackup,toCsv} from './lib/backup';
 import SlipScanner from './SlipScanner';
 import HomeScreen,{HomeTopbar} from './HomeScreen';
+import StatusToast,{type ToastNotice,type ToastTone} from './StatusToast';
+import {matchesTransactionSearch} from './lib/transactionSearch';
 import AccountingSecretary from './AccountingSecretary';
 import AccountantReview from './AccountantReview';
 import {accountantBucketFor,ACCOUNTANT_BUCKET_LABELS,type AccountantBucketKey} from './lib/accountantAudit';
@@ -228,7 +230,7 @@ export default function App(){
   const [pendingSlips,setPendingSlips]=useState<PendingSlip[]>([]);
   const [iphonePending,setIphonePending]=useState<number|null>(null);
   const [iphoneSyncError,setIphoneSyncError]=useState('');
-  const [ready,setReady]=useState(false);const [loadingError,setLoadingError]=useState('');const [toast,setToast]=useState('');const [search,setSearch]=useState('');const [filter,setFilter]=useState<Filter>('all');
+  const [ready,setReady]=useState(false);const [loadingError,setLoadingError]=useState('');const [toast,setToast]=useState<ToastNotice|null>(null);const [search,setSearch]=useState('');const [filter,setFilter]=useState<Filter>('all');
   const [reviewBucket,setReviewBucket]=useState<AccountantBucketKey|null>(null);
   const [budgetEdit,setBudgetEdit]=useState('');const [budgetSaving,setBudgetSaving]=useState(false);
   const [ownerNamesEdit,setOwnerNamesEdit]=useState('');const [ownerNamesSaving,setOwnerNamesSaving]=useState(false);
@@ -238,6 +240,7 @@ export default function App(){
   const [resetBusy,setResetBusy]=useState(false);
   const [resetError,setResetError]=useState('');
   const [repairBusy,setRepairBusy]=useState(false);
+  const notify=(message:string,tone:ToastTone='success')=>setToast({message,tone});
   const [restoreBusy,setRestoreBusy]=useState(false);
   const importRef=useRef<HTMLInputElement>(null);
   useEffect(()=>{
@@ -295,13 +298,13 @@ export default function App(){
     window.addEventListener('focus',onVisible);
     return()=>{window.clearInterval(interval);document.removeEventListener('visibilitychange',onVisible);window.removeEventListener('focus',onVisible);};
   },[reload]);
-  useEffect(()=>{if(!toast)return;const id=window.setTimeout(()=>setToast(''),3500);return()=>window.clearTimeout(id);},[toast]);
+  useEffect(()=>{if(!toast)return;const id=window.setTimeout(()=>notify(null),3500);return()=>window.clearTimeout(id);},[toast]);
   const selected=useMemo(()=>monthly(items,month),[items,month]);
   const sums=useMemo(()=>summarize(selected),[selected]);
   const allSums=useMemo(()=>summarize(items),[items]);
   const byCategory=useMemo(()=>expenseByCategory(selected),[selected]);
   const usedBudget=percent(sums.expense,settings.monthlyBudgetSatang);
-  const filtered=useMemo(()=>selected.filter(x=>(filter==='all'||x.type===filter) && (!reviewBucket||accountantBucketFor(x)===reviewBucket) && (!search.trim()||`${x.category} ${x.note} ${x.recipient||''} ${x.time||''} ${x.receipt?.receiptId||''} ${(x.receipt?.items||[]).map(i=>i.name).join(' ')} ${METHODS[x.method]}`.toLocaleLowerCase('th-TH').includes(search.trim().toLocaleLowerCase('th-TH')))),[selected,filter,search,reviewBucket]);
+  const filtered=useMemo(()=>selected.filter(x=>(filter==='all'||x.type===filter) && (!reviewBucket||accountantBucketFor(x)===reviewBucket) && matchesTransactionSearch(x,search)),[selected,filter,search,reviewBucket]);
   const history=useMemo(()=>{const [y,m]=month.split('-').map(Number);return lastMonths(6,new Date(y,m-1,1)).map(period=>({...period,...summarize(monthly(items,period.key))}));},[items,month]);
   const maxBar=Math.max(1,...history.map(x=>Math.max(x.income,x.expense)));
   const openReview=()=>{setInboxTab(true);setSlipInboxTab(false);setView('transactions');};
@@ -316,9 +319,9 @@ export default function App(){
       await iphoneCorrectRecipient(t.id,t.recipient?.trim()||null);
     await saveTransaction(t);
     await reload();
-    setToast(recipientChanged&&!iphoneConnected()
+    notify(recipientChanged&&!iphoneConnected()
       ?'บันทึกในเครื่องแล้ว · ยังไม่ได้เชื่อม iPhone Cloud เพื่อแก้ชื่อใน API'
-      :editing?'แก้ไขรายการเรียบร้อย':`บันทึก${t.type==='income'?'รายรับ':'รายจ่าย'} ฿${baht(t.amountSatang)} สำเร็จ`);
+      :editing?'แก้ไขรายการเรียบร้อย':`บันทึก${t.type==='income'?'รายรับ':'รายจ่าย'} ฿${baht(t.amountSatang)} สำเร็จ`,recipientChanged&&!iphoneConnected()?'warning':'success');
   };
   const onSaveImported=async(t:Transaction)=>{
     await saveTransaction(t);
@@ -334,7 +337,7 @@ export default function App(){
     }
     await reload();
   };
-  const undoImported=async(ids:string[])=>{for(const id of ids)await deleteTransaction(id);await reload();setToast('ยกเลิกการบันทึกจากสลิปแล้ว');};
+  const undoImported=async(ids:string[])=>{for(const id of ids)await deleteTransaction(id);await reload();notify('ยกเลิกการบันทึกจากสลิปแล้ว','info');};
   const queuePending=async(slip:SlipFields,name:string,reason:string)=>{
     const result=await savePendingSlip(makePendingSlip(slip,name,reason,uuid()));
     await reloadPending();
@@ -347,62 +350,62 @@ export default function App(){
     if(decision.status==='incomplete')return {status:'incomplete',reason:decision.reason};
     if(decision.status==='duplicate'){
       await deletePendingSlip(draft.id);await reload();
-      setToast('รายการนี้ถูกบันทึกไว้แล้ว จึงนำออกจากรอตรวจ');
+      notify('รายการนี้ถูกบันทึกไว้แล้ว จึงนำออกจากรอตรวจ','info');
       return {status:'duplicate'};
     }
     if(decision.status!=='ready')return {status:'incomplete',reason:decision.reason};
     await saveTransaction(decision.transaction);
     try{await deletePendingSlip(draft.id);}
     catch(error){await reload();throw new Error('บันทึกรายการสำเร็จ แต่ลบออกจากคิวรอตรวจไม่ได้ กรุณาลองอีกครั้ง');}
-    await reload();setToast('บันทึกจากรายการรอตรวจสำเร็จ ฿'+baht(decision.transaction.amountSatang));
+    await reload();notify('บันทึกจากรายการรอตรวจสำเร็จ ฿'+baht(decision.transaction.amountSatang));
     return {status:'saved'};
   };
   const keepPendingDraft=async(draft:PendingSlip)=>{await savePendingSlip(draft);await reloadPending();};
-  const discardPendingDraft=async(id:string)=>{await deletePendingSlip(id);await reloadPending();setToast('นำออกจากรอตรวจแล้ว โดยไม่กระทบรายการที่บันทึก');};
-  const onDelete=async(t:Transaction)=>{if(!window.confirm(`ต้องการลบรายการ “${t.note||t.category}” ฿${baht(t.amountSatang)} ใช่หรือไม่?`))return;try{await deleteTransaction(t.id);await reload();setToast('ลบรายการแล้ว');}catch(e){setToast(e instanceof Error?e.message:'ลบรายการไม่สำเร็จ');}};
+  const discardPendingDraft=async(id:string)=>{await deletePendingSlip(id);await reloadPending();notify('นำออกจากรอตรวจแล้ว โดยไม่กระทบรายการที่บันทึก','info');};
+  const onDelete=async(t:Transaction)=>{if(!window.confirm(`ต้องการลบรายการ “${t.note||t.category}” ฿${baht(t.amountSatang)} ใช่หรือไม่?`))return;try{await deleteTransaction(t.id);await reload();notify('ลบรายการแล้ว');}catch(e){notify(e instanceof Error?e.message:'ลบรายการไม่สำเร็จ','error');}};
   const onEdit=(t:Transaction)=>{setScanOnOpen(false);setEditing(t);setModalOpen(true);};
   const changeMonth=(n:number)=>{const [y,m]=month.split('-').map(Number);setMonth(monthLocal(new Date(y,m-1+n,1)));};
-  const saveBudget=async(e:FormEvent)=>{e.preventDefault();const n=budgetEdit.trim()===''?0:toSatang(budgetEdit);if(n===null){setToast('ระบุงบประมาณเป็นจำนวนเงินที่ถูกต้อง');return;}try{setBudgetSaving(true);const next={...settings,monthlyBudgetSatang:n};await saveSettings(next);setSettings(next);setToast('บันทึกงบประมาณแล้ว');}catch(err){setToast(err instanceof Error?err.message:'บันทึกไม่สำเร็จ');}finally{setBudgetSaving(false);}};
+  const saveBudget=async(e:FormEvent)=>{e.preventDefault();const n=budgetEdit.trim()===''?0:toSatang(budgetEdit);if(n===null){notify('ระบุงบประมาณเป็นจำนวนเงินที่ถูกต้อง','error');return;}try{setBudgetSaving(true);const next={...settings,monthlyBudgetSatang:n};await saveSettings(next);setSettings(next);notify('บันทึกงบประมาณแล้ว');}catch(err){notify(err instanceof Error?err.message:'บันทึกไม่สำเร็จ','error');}finally{setBudgetSaving(false);}};
   const saveOwnerNames=async(e:FormEvent)=>{e.preventDefault();
     const requested=ownerNamesEdit.split(/\r?\n/u).map(x=>x.trim()).filter(Boolean);
     const ownerNames=sanitizeOwnerNames(requested);
     if(requested.length>8||ownerNames.length!==requested.length){
-      setToast('กรุณากรอกชื่อที่ปรากฏบนสลิป ไม่ซ้ำกัน 1 ชื่อต่อบรรทัด สูงสุด 8 ชื่อ');return;
+      notify('กรุณากรอกชื่อที่ปรากฏบนสลิป ไม่ซ้ำกัน 1 ชื่อต่อบรรทัด สูงสุด 8 ชื่อ','error');return;
     }
     try{setOwnerNamesSaving(true);const next={...settings,ownerNames};
       await saveSettings(next);setSettings(next);setOwnerNamesEdit(ownerNames.join('\n'));
-      setToast(ownerNames.length?'บันทึกชื่อของคุณเพื่อช่วยอ่านสลิปแล้ว':'ลบชื่อเจ้าของบัญชีแล้ว');
-    }catch(err){setToast(err instanceof Error?err.message:'บันทึกชื่อบัญชีไม่สำเร็จ');}
+      notify(ownerNames.length?'บันทึกชื่อของคุณเพื่อช่วยอ่านสลิปแล้ว':'ลบชื่อเจ้าของบัญชีแล้ว');
+    }catch(err){notify(err instanceof Error?err.message:'บันทึกชื่อบัญชีไม่สำเร็จ','error');}
     finally{setOwnerNamesSaving(false);}
   };
-  const exportJson=()=>{downloadText(`ngoentoday-backup-${todayLocal()}.json`,createBackup(items,settings),'application/json;charset=utf-8');const timestamp=Date.now();try{localStorage.setItem('ngoentoday-last-backup',String(timestamp));}catch{}setLastBackupAt(timestamp);setToast('ดาวน์โหลดข้อมูลสำรองแล้ว โปรดเก็บไฟล์อย่างปลอดภัย');};
+  const exportJson=()=>{downloadText(`ngoentoday-backup-${todayLocal()}.json`,createBackup(items,settings),'application/json;charset=utf-8');const timestamp=Date.now();try{localStorage.setItem('ngoentoday-last-backup',String(timestamp));}catch{}setLastBackupAt(timestamp);notify('ดาวน์โหลดข้อมูลสำรองแล้ว โปรดเก็บไฟล์อย่างปลอดภัย');};
   const exportCsv=()=>downloadText(`ngoentoday-${todayLocal()}.csv`,toCsv(items),'text/csv;charset=utf-8');
   const importBackup=async(file:File)=>{try{
     if(file.size>25*1024*1024)throw new Error('ไฟล์ใหญ่เกิน 25 MB');
     const parsed=parseBackup(await file.text());
     setPendingRestore(parsed);
-  }catch(e){setToast(e instanceof Error?e.message:'นำเข้าไม่สำเร็จ');}finally{if(importRef.current)importRef.current.value='';}};
+  }catch(e){notify(e instanceof Error?e.message:'นำเข้าไม่สำเร็จ','error');}finally{if(importRef.current)importRef.current.value='';}};
   const confirmRestore=async()=>{
     if(!pendingRestore)return;
     try{
       setRestoreBusy(true);
       await replaceAll(pendingRestore.transactions,pendingRestore.settings);
       await reload();
-      setToast(`นำเข้าสำเร็จ ${pendingRestore.transactions.length} รายการ`);
+      notify(`นำเข้าสำเร็จ ${pendingRestore.transactions.length} รายการ`);
       setPendingRestore(null);
-    }catch(e){setToast(e instanceof Error?e.message:'นำเข้าไม่สำเร็จ');}
+    }catch(e){notify(e instanceof Error?e.message:'นำเข้าไม่สำเร็จ');}
     finally{setRestoreBusy(false);}
   };
   const repairIphoneSync=async()=>{
-    if(!iphoneConnected()){setToast('เชื่อมต่อ iPhone ด้วย Review Token ก่อนซ่อมการซิงก์');return;}
+    if(!iphoneConnected()){notify('เชื่อมต่อ iPhone ด้วย Review Token ก่อนซ่อมการซิงก์','warning');return;}
     setRepairBusy(true);
     try{
       resetIphoneImportHistory();
       const result=await iphoneSync();
       await reload();
-      setToast('ตรวจรายการจาก iPhone อีกครั้งแล้ว · นำเข้า '+result.imported+' รายการ');
+      notify('ตรวจรายการจาก iPhone อีกครั้งแล้ว · นำเข้า '+result.imported+' รายการ');
     }catch(e){
-      setToast(e instanceof Error?e.message:'ซ่อมการซิงก์ไม่สำเร็จ');
+      notify(e instanceof Error?e.message:'ซ่อมการซิงก์ไม่สำเร็จ','error');
     }finally{setRepairBusy(false);}
   };
   const eraseDeviceData=async()=>{
@@ -421,7 +424,7 @@ export default function App(){
   if(loadingError) return <div className="loading-screen"><span>⚠️</span><h2>ไม่สามารถเปิดข้อมูลได้</h2><p>{loadingError}</p><button className="btn btn-primary" onClick={()=>window.location.reload()}>ลองอีกครั้ง</button></div>;
   return <div className="app-shell"><a href="#main-content" className="skip-link">ข้ามไปยังเนื้อหาหลัก</a><aside className="sidebar"><Logo/><nav aria-label="เมนูหลัก">{navItems.map(({key,label,icon:Icon})=><button key={key} className={`nav-item ${view===key?'active':''}`} aria-label={label} aria-current={view===key?'page':undefined} onClick={()=>{if(key==='transactions'){setReviewBucket(null);setInboxTab(false);setSlipInboxTab(false);}setView(key);}}><Icon size={19} strokeWidth={1.9}/><span>{label}</span>{view===key&&<span className="nav-active-indicator"/>}</button>)}</nav><div className="sidebar-spacer"/></aside>
     <div className="app-body"><header className={`topbar ${view==='home'?'topbar-home home-v2-topbar':''}`}>{view==='home'
-      ?<HomeTopbar pendingCount={pendingSlips.length+(iphonePending||0)} onNotifications={()=>{if(pendingSlips.length)openPendingSlips();else if(iphonePending&&iphonePending>0)openReview();else setToast('ยังไม่มีรายการที่ต้องตรวจในตอนนี้');}} onSettings={()=>setView('settings')}/>
+      ?<HomeTopbar pendingCount={pendingSlips.length+(iphonePending||0)} onNotifications={()=>{if(pendingSlips.length)openPendingSlips();else if(iphonePending&&iphonePending>0)openReview();else notify('ยังไม่มีรายการที่ต้องตรวจในตอนนี้','info');}} onSettings={()=>setView('settings')}/>
       :<><div className="topbar-left"><div className="ref-topbar-copy"><h1>{pageLabels[view]}</h1></div></div><div className="topbar-actions"><div className="today-chip"><CalendarDays size={16}/><span>{dateText(todayLocal())}</span></div><button className="btn btn-primary top-add" onClick={openAdd}><ScanLine size={18}/> <span>อัปโหลดสลิป</span></button></div></>}</header>
     <main id="main-content" className="main-content" tabIndex={-1}>
       {updateAvailable&&<div className="app-update-notice" role="status"><div><strong>มีแอปเวอร์ชันใหม่พร้อมใช้งาน</strong><span>อัปเดตหน้าเว็บโดยไม่ลบรายการที่บันทึกในเครื่อง</span></div><button type="button" className="btn btn-primary" onClick={()=>window.location.reload()}>โหลดเวอร์ชันใหม่</button></div>}
@@ -529,18 +532,18 @@ export default function App(){
   </section><section id="settings-privacy" className="surface settings-card privacy-settings"><div className="settings-icon blue"><ShieldCheck size={24}/></div><h3>ข้อมูลและความเป็นส่วนตัว</h3><p>รายการที่เพิ่มในแอปจะเก็บไว้บนอุปกรณ์นี้ ส่วนรายการที่เชื่อมต่อจาก iPhone จะซิงก์ตามการตั้งค่าของคุณ</p><div className="info-banner"><CloudOff size={18}/><span>รายการในเครื่องใช้ได้แม้ไม่มีอินเทอร์เน็ต</span></div></section><details id="settings-connections" className="settings-connections"><summary>การเชื่อมต่อเพิ่มเติม</summary><div className="settings-connections-content"><IPhoneShortcutSettings onImported={reload}/><LineSyncSettings onImported={reload}/></div></details><section id="settings-about" className="surface settings-card privacy-settings"><div className="settings-icon lavender"><Menu size={24}/></div><h3>เกี่ยวกับแอป</h3><div className="app-meta"><span>เวอร์ชัน</span><strong>{APP_DISPLAY_VERSION}</strong></div><details className="app-technical-details"><summary>ข้อมูลเวอร์ชันเพิ่มเติม</summary><div className="app-meta"><span>Build</span><strong>{APP_BUILD_SHA}</strong></div><div className="app-meta"><span>อัปเดตเมื่อ</span><strong>{new Intl.DateTimeFormat('th-TH',{dateStyle:'medium',timeStyle:'short',timeZone:'Asia/Bangkok'}).format(new Date(APP_BUILT_AT))}</strong></div></details></section></div></>}
     </main></div>
     {view==='transactions'&&!inboxTab&&!slipInboxTab&&!modalOpen&&<button aria-label="อัปโหลดสลิป" title="อัปโหลดสลิป" className="mobile-fab" onClick={openAdd}><ScanLine size={25}/></button>}<nav className="mobile-bottom-nav" aria-label="เมนูมือถือ">{navItems.map(({key,label,icon:Icon})=><button key={key} className={view===key?'active':''} aria-current={view===key?'page':undefined} onClick={()=>{if(key==='transactions'){setReviewBucket(null);setInboxTab(false);setSlipInboxTab(false);}setView(key);}}><Icon size={21}/><span>{label}</span></button>)}</nav>
-    {toast&&<div className="toast" role="status"><Check size={17}/>{toast}</div>}
+    {toast&&<StatusToast notice={toast}/>}
     {modalOpen&&<EntryModal initial={editing} existing={items} startWithScanner={scanOnOpen} close={()=>setModalOpen(false)} submit={onSave} submitImported={onSaveImported} undoImported={undoImported} queuePending={queuePending} resolvePending={resolvePending} ownerNames={settings.ownerNames||[]} viewSaved={date=>{
       setModalOpen(false);setInboxTab(false);setSlipInboxTab(false);
       setFilter('all');setSearch('');
       if(/^\d{4}-\d{2}-\d{2}$/.test(date))setMonth(date.slice(0,7));
       setView('transactions');
     }} notifyBatch={summary=>{
-      if(summary.saved>0)setToast('บันทึกสลิปสำเร็จ '+summary.saved+' รูป'+(summary.incomplete>0?' · รอตรวจ '+summary.incomplete+' รูป':'')+(summary.errors>0?' · อ่านไม่สำเร็จ '+summary.errors+' รูป':''));
-      else if(summary.duplicate>0&&summary.incomplete+summary.errors===0)setToast('ตรวจพบสลิปซ้ำ '+summary.duplicate+' รูป ไม่มีรายการใหม่');
-      else if(summary.queued>0)setToast('เก็บสลิปรอตรวจในเครื่องแล้ว '+summary.queued+' รูป');
-      else if(summary.incomplete+summary.errors>0)setToast((summary.incomplete>0?'รอตรวจข้อมูล '+summary.incomplete+' รูป':'')+(summary.errors>0?(summary.incomplete>0?' · ':'')+'อ่านไม่สำเร็จ '+summary.errors+' รูป กรุณาลองเลือกรูปใหม่':''));
-      else if((summary.excluded||0)>0)setToast('ไม่นับการโอนเงินระหว่างบัญชี '+summary.excluded+' รายการ');
+      if(summary.saved>0)notify('บันทึกสลิปสำเร็จ '+summary.saved+' รูป'+(summary.incomplete>0?' · รอตรวจ '+summary.incomplete+' รูป':'')+(summary.errors>0?' · อ่านไม่สำเร็จ '+summary.errors+' รูป':''),summary.errors>0?'error':summary.incomplete>0?'warning':'success');
+      else if(summary.duplicate>0&&summary.incomplete+summary.errors===0)notify('ตรวจพบสลิปซ้ำ '+summary.duplicate+' รูป ไม่มีรายการใหม่','info');
+      else if(summary.queued>0)notify('เก็บสลิปรอตรวจในเครื่องแล้ว '+summary.queued+' รูป','warning');
+      else if(summary.incomplete+summary.errors>0)notify((summary.incomplete>0?'รอตรวจข้อมูล '+summary.incomplete+' รูป':'')+(summary.errors>0?(summary.incomplete>0?' · ':'')+'อ่านไม่สำเร็จ '+summary.errors+' รูป กรุณาลองเลือกรูปใหม่':''),summary.errors>0?'error':'warning');
+      else if((summary.excluded||0)>0)notify('ไม่นับการโอนเงินระหว่างบัญชี '+summary.excluded+' รายการ','info');
     }}/>}
     {pendingRestore&&<RestoreDialog existingCount={items.length} importedCount={pendingRestore.transactions.length} busy={restoreBusy} onBackup={exportJson} onConfirm={()=>{void confirmRestore();}} onClose={()=>setPendingRestore(null)}/>}
     {resetDialogOpen&&<ResetDataDialog transactionCount={items.length} pendingCount={pendingSlips.length}

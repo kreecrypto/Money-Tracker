@@ -167,13 +167,13 @@
 .mt-home-screen button:focus-visible,.mt-home-topbar button:focus-visible,
 .mt-home-month-picker:focus-within{outline:3px solid #13784b;outline-offset:2px;}
 @media(max-width:660px){
-  body:has(.mt-home-screen),.app-body:has(.mt-home-screen) {background:#fff!important;}
+  body:has(.mt-home-screen),.app-body:has(.mt-home-screen) {background:var(--cute-canvas,#fffaf6)!important;}
   .topbar.topbar-home.home-v2-topbar {
     min-height:0!important;padding: max(12px,env(safe-area-inset-top,0px)) 20px 7px!important;
-    display:block;background:#fff!important;
+    display:block;background:var(--cute-canvas,#fffaf6)!important;
   }
   .main-content:has(.mt-home-screen) {
-    background:#fff!important;
+    background:var(--cute-canvas,#fffaf6)!important;
     padding:4px max(20px,env(safe-area-inset-right,0px)) 20px max(20px,env(safe-area-inset-left,0px))!important;
   }
   .mt-home-screen {
@@ -185,7 +185,7 @@
   .mt-home-screen>.mobile-quick-actions,
   .mt-home-screen>.transactions-surface{order:initial!important;margin:0!important;}
   .mt-home-screen>.summary-grid .mt-home-balance {
-    background:linear-gradient(113deg,#0c6040 5%,#126e49 62%,#187752 100%)!important;
+    /* Hero background owned by the final theme. */
     min-height:0!important;padding:16px 14px 13px!important;
     border-radius:16px!important;
   }

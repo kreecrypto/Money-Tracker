@@ -200,11 +200,11 @@ export default function HomeScreen({
         </div>
       </div>
     </section>
+    {reportSlot}
     <button className="ref-home-upload mobile-action-scan mt-home-upload" type="button" onClick={onUpload}>
       <span className="mt-home-camera"><Camera size={25} strokeWidth={2.7}/></span>
       <span><strong>อัปโหลดสลิป</strong><small>สลิป K PLUS หรือใบเสร็จ · เลือกได้หลายรูป</small></span>
     </button>
-    {reportSlot}
     <section className="surface transactions-surface mt-home-recent" aria-label="รายการล่าสุด">
       <div className="mt-home-section-heading"><h2>หลักฐานธุรกรรมล่าสุด</h2><button type="button" onClick={onTransactions}>ดูทั้งหมด <ArrowRight size={15}/></button></div>
       {recent.length?
