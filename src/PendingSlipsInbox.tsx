@@ -109,7 +109,7 @@ function PendingCard({item,onSave,onKeep,onDiscard}:{
       </button>
       <div className="pending-slip-secondary">
         <button type="button" className="btn btn-secondary" onClick={()=>void keep()} disabled={busy}>
-          <Save size={16}/ > เก็บไว้ตรวจภายหลัง
+          <Save size={16}/> เก็บไว้ตรวจภายหลัง
         </button>
         <button type="button" className="btn btn-ghost bordered" onClick={()=>void discard()} disabled={busy}>
           <ArchiveX size={16}/> {draft.kind==='wallet_topup'?'ไม่นับรายการ':'ลบจากรอตรวจ'}
