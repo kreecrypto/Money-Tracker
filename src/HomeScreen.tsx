@@ -178,7 +178,7 @@ export default function HomeScreen({
         <div><span>รายจ่าย</span><strong className="is-expense">−฿{baht(daySums.expense)}</strong></div>
       </div>
       {daily.length?<div className="mt-home-transaction-list">
-        {daily.slice(0,4).map(tx=><button key={tx.id} type="button" className="mt-home-transaction" onClick={event=>{detailTriggerRef.current=event.currentTarget;setDetail(tx);}}>
+        {daily.slice(0,4).map(tx=><button key={tx.id} type="button" className="mt-home-transaction" aria-label={`ดูรายละเอียด ${transactionDisplayName(tx)} ${tx.type==='income'?'รายรับ':'รายจ่าย'} ${baht(tx.amountSatang)} บาท ${shortDate(tx.date,tx.time)}`} onClick={event=>{detailTriggerRef.current=event.currentTarget;setDetail(tx);}}>
           <RecentIcon transaction={tx}/>
           <span className="mt-home-transaction-text"><strong>{transactionDisplayName(tx)}</strong><small>{shortDate(tx.date,tx.time)}</small></span>
           <b className={tx.type==='income'?'is-income':'is-expense'}>{tx.type==='income'?'+':'−'} ฿ {baht(tx.amountSatang)}</b>
@@ -204,7 +204,8 @@ export default function HomeScreen({
           <MonthChooser month={month} label={monthLabel} onChange={onMonthChange}/>
         </div>
         <div className="mt-home-total-label">สุทธิจากรายรับ − รายจ่าย</div>
-        <strong className="mt-home-total">฿ {baht(net)}</strong>
+        <strong className="mt-home-total">{net<0?'−฿ ':'+฿ '}{baht(Math.abs(net))}</strong>
+        <p className="mt-home-balance-caption">ยอดจากรายการที่บันทึกแล้ว · ไม่ใช่ยอดเงินคงเหลือในธนาคาร</p>
         <div className="mt-home-balance-splits">
           <div className="mt-home-split">
             <div className="mt-home-split-head"><span className="mt-home-split-icon is-income"><ArrowDownLeft size={15}/></span> รายรับ</div>

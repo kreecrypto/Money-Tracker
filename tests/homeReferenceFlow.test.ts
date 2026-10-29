@@ -39,7 +39,21 @@ describe('Home reference UX hierarchy',()=>{
     expect(markup).toContain('ยังไม่มีรายการที่บันทึกในวันที่เลือก');
     expect(markup).not.toContain('ดูรายการเดือนที่เลือก');
     expect(markup).toContain('รายการล่าสุด');
+    expect(markup).toContain('ยอดจากรายการที่บันทึกแล้ว');
+    expect(markup).toContain('ไม่ใช่ยอดเงินคงเหลือในธนาคาร');
+    expect(markup).toContain('+฿ 0.00');
     expect(markup).not.toContain('ยังไม่มีรายการในเดือนนี้');
+  });
+  it('presents negative monthly net as a clear signed amount, without changing satang totals',()=>{
+    const markup=renderToStaticMarkup(createElement(HomeScreen,{
+      month:'2026-10',monthLabel:'ตุลาคม 2569',
+      net:-325050,income:10000,expense:335050,recent:[],
+      onMonthChange:()=>{},onUpload:()=>{},onTransactions:()=>{},onDayTransactions:()=>{},
+      reportSlot:createElement('section',{})
+    }));
+    expect(markup).toContain('−฿ 3,250.50');
+    expect(markup).not.toContain('฿ -3,250.50');
+    expect(markup).toContain('ไม่ใช่ยอดเงินคงเหลือในธนาคาร');
   });
   it('shows the exact date drill-down only when saved entries exist',()=>{
     const day=todayLocal();

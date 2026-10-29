@@ -104,3 +104,13 @@ Flat by default. Use thin green-tinted borders and white backgrounds instead of 
 - **Surface — legibility and sensory design:** Distinguish Today (underlined number) from Selected (filled, outlined state), preserve +/- signed income and expense, show complete amounts in details and accessibility names, keep minimum tap targets and iOS safe areas. Do not use color as the only indicator.
 
 Acceptance: in Safari/WebKit and Chromium on 320/375/390/430px, the date controls do not overflow; today and selected day are individually distinguishable, the reset action returns both month and selected day, the review counter is accurate, and Pending never appears as a Saved calendar transaction. Automated results are not physical-device proof.
+
+
+## UI fundamentals — calendar-first polish (2026-10-29)
+
+- **Visual hierarchy:** Date/day amounts first, month totals second, accountant briefing next, and the single slip-upload CTA after. The net amount gets an explicit +/− prefix, and supporting text clarifies these are recorded entries, not a bank balance.
+- **Consistency and color:** Shared green for Saved income and rose for Saved expense across calendar, date summary, and Home list. Do not rely on colors alone; signed values remain visible.
+- **Spacing and grouping:** The day-detail card owns its outer border; do not nest an extra bordered transaction card inside it. The standalone recent transaction list may retain its own surface border.
+- **Typography and contrast:** Daily income/expense sums receive a 15–19px size ramp; descriptive copy and empty states remain at least 12–13px, with large-text overrides. On small phones numeric values may wrap without clipping.
+- **Interaction affordance:** Calendar and transaction buttons retain focus indicators and ≥44px height where possible; hover color is only a mouse affordance and must not replace keyboard/VoiceOver labels.
+- **QA:** Check positive, zero and negative net formatting and financial disclaimers, 320/375/390/430px and large text, Chrome/WebKit, no card-border duplication or horizontal clipping. Monetary calculations and storage are unchanged.

@@ -28,6 +28,14 @@ describe('Cute visual theme release guards',()=>{
     expect(theme).not.toMatch(/display:\s*none\s*!important/);
     expect(theme).not.toMatch(/grid-template-columns\s*:/);
   });
+  it('keeps financial colors, readable daily values, and avoids nested cards',()=>{
+    expect(theme).toContain('--cute-income:#087640;');
+    expect(theme).toContain('--cute-expense:#a52c50;');
+    expect(theme).toContain('.mt-home-day-detail .mt-home-transaction-list');
+    expect(theme).toMatch(/\.mt-home-day-detail \.mt-home-transaction-list\s*\{\s*border:0/);
+    expect(theme).toContain('.mt-home-day-detail .mt-home-day-summary strong');
+    expect(theme).toContain('.mt-home-screen .mt-home-balance-caption');
+  });
   it('preserves visible focus and reduced-motion affordances',()=>{
     expect(theme).toContain(':focus-visible');
     expect(theme).toContain('prefers-reduced-motion:reduce');
