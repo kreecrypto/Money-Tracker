@@ -85,3 +85,11 @@ Flat by default. Use thin green-tinted borders and white backgrounds instead of 
 - **Transaction evidence:** Prefer `รายการล่าสุด` over bureaucratic labels; incoming slips may display the payer/sender, and search hints mention sender and recipient. All sums are records in the app, not actual bank balances.
 - **OCR status:** `บันทึกแล้ว` is included in recorded totals; `รายการซ้ำ` adds nothing new; `รอตรวจ` is not included; failed images may need retry. Do not turn uncertainty into success language. Preserve wallet top-up as bank outflow and warn against double counting.
 - **Voice:** Concise, neutral, actionable Thai. Show the next step in an error or empty state, but never promise a filter, data persistence, bank verification, or automatic accounting action that has not happened. Keep financial interpretation distinct from display wording.
+
+
+## Calendar-first actionable UX (P1)
+
+- Day detail shows at most four saved records, then a clear 'ดูทั้งหมด N รายการ' action leading to a date-filtered Transactions view (same selected month), never an unrelated whole-month list.
+- Transactions displays the active date explicitly with 'เฉพาะวันที่ ...' and an accessible 'ดูทั้งเดือน' reset; switching to another top-level Transactions tab, accountant group, or a different month clears the date constraint. Pending is never included in recorded totals.
+- At widths below 360px, colored indicator bars replace clipped 9px calendar numbers; full amounts remain in each calendar button's screen-reader name and in the selected-day summary. At larger widths compact values are at least 11px and use ellipsis.
+- Verify date scoping, other-day exclusion, reset, 320–430px + large font, and unaffected Upload/Pending/duplicate behavior before release.

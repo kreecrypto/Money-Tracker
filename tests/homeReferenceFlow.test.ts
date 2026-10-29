@@ -14,7 +14,7 @@ describe('Home reference UX hierarchy',()=>{
       recent:[],
       onMonthChange:()=>{},
       onUpload:()=>{},
-      onTransactions:()=>{},
+      onTransactions:()=>{},onDayTransactions:()=>{},
       reportSlot:createElement('section',{'data-reference-briefing':true})
     }));
     const index=(marker:string)=>{

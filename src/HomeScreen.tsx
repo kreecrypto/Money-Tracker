@@ -22,6 +22,7 @@ type Props={
   onMonthChange:(month:string)=>void;
   onUpload:()=>void;
   onTransactions:()=>void;
+  onDayTransactions:(date:string)=>void;
   reportSlot:ReactNode;
 };
 
@@ -156,7 +157,7 @@ function TransactionDetail({value,onClose}:{
 
 export default function HomeScreen({
   month,monthLabel,net,income,expense,recent,
-  onMonthChange,onUpload,onTransactions,reportSlot
+  onMonthChange,onUpload,onTransactions,onDayTransactions,reportSlot
 }:Props){
   const [detail,setDetail]=useState<Transaction|null>(null);
   const detailTriggerRef=useRef<HTMLButtonElement|null>(null);
@@ -170,8 +171,8 @@ export default function HomeScreen({
   const closeDetail=()=>setDetail(null);
   return <div className="home-dashboard mt-home-screen" aria-label="หน้าแรก เงินวันนี้">
     <FinanceCalendar month={month} transactions={recent} selectedDate={activeDate} onSelect={setSelectedDate} onMonthChange={onMonthChange}/>
-    <section className="mt-home-day-detail" aria-label="รายการวันที่เลือก">
-      <div className="mt-home-day-detail-heading"><h2>รายการวันที่ {dayLabel}</h2><button type="button" onClick={onTransactions}>ดูรายการเดือนที่เลือก <ArrowRight size={15}/></button></div>
+    <section id="mt-home-day-detail" className="mt-home-day-detail" aria-label="รายการวันที่เลือก">
+      <div className="mt-home-day-detail-heading"><h2 aria-live="polite">รายการวันที่ {dayLabel}</h2>{daily.length>0&&<button type="button" aria-label={"ดูรายการทั้งหมดในวันที่ "+dayLabel} onClick={()=>onDayTransactions(activeDate)}>ดูทั้งหมด {daily.length} รายการ <ArrowRight size={15}/></button>}</div>
       <div className="mt-home-day-summary">
         <div><span>รายรับ</span><strong className="is-income">+฿{baht(daySums.income)}</strong></div>
         <div><span>รายจ่าย</span><strong className="is-expense">−฿{baht(daySums.expense)}</strong></div>
@@ -182,7 +183,7 @@ export default function HomeScreen({
           <span className="mt-home-transaction-text"><strong>{transactionDisplayName(tx)}</strong><small>{shortDate(tx.date,tx.time)}</small></span>
           <b className={tx.type==='income'?'is-income':'is-expense'}>{tx.type==='income'?'+':'−'} ฿ {baht(tx.amountSatang)}</b>
         </button>)}
-        {daily.length>4&&<p className="mt-home-calendar-more">ยังมีอีก {daily.length-4} รายการในวันที่เลือก</p>}
+        {daily.length>4&&<p className="mt-home-calendar-more">อีก {daily.length-4} รายการ · ดูทั้งหมดได้ด้านบน</p>}
       </div>:<div className="mt-home-empty"><p>ยังไม่มีรายการที่บันทึกในวันที่เลือก</p></div>}
     </section>
     <section className="summary-grid mt-home-summary" aria-label="ภาพรวมรายเดือน">

@@ -232,6 +232,7 @@ export default function App(){
   const [iphoneSyncError,setIphoneSyncError]=useState('');
   const [ready,setReady]=useState(false);const [loadingError,setLoadingError]=useState('');const [toast,setToast]=useState<ToastNotice|null>(null);const [search,setSearch]=useState('');const [filter,setFilter]=useState<Filter>('all');
   const [reviewBucket,setReviewBucket]=useState<AccountantBucketKey|null>(null);
+  const [selectedDayFilter,setSelectedDayFilter]=useState<string|null>(null);
   const [budgetEdit,setBudgetEdit]=useState('');const [budgetSaving,setBudgetSaving]=useState(false);
   const [ownerNamesEdit,setOwnerNamesEdit]=useState('');const [ownerNamesSaving,setOwnerNamesSaving]=useState(false);
   const [lastBackupAt,setLastBackupAt]=useState(()=>{try{return Number(localStorage.getItem('ngoentoday-last-backup')||0);}catch{return 0;}});
@@ -304,11 +305,11 @@ export default function App(){
   const allSums=useMemo(()=>summarize(items),[items]);
   const byCategory=useMemo(()=>expenseByCategory(selected),[selected]);
   const usedBudget=percent(sums.expense,settings.monthlyBudgetSatang);
-  const filtered=useMemo(()=>selected.filter(x=>(filter==='all'||x.type===filter) && (!reviewBucket||accountantBucketFor(x)===reviewBucket) && matchesTransactionSearch(x,search)),[selected,filter,search,reviewBucket]);
+  const filtered=useMemo(()=>selected.filter(x=>(!selectedDayFilter||x.date===selectedDayFilter) && (filter==='all'||x.type===filter) && (!reviewBucket||accountantBucketFor(x)===reviewBucket) && matchesTransactionSearch(x,search)),[selected,selectedDayFilter,filter,search,reviewBucket]);
   const history=useMemo(()=>{const [y,m]=month.split('-').map(Number);return lastMonths(6,new Date(y,m-1,1)).map(period=>({...period,...summarize(monthly(items,period.key))}));},[items,month]);
   const maxBar=Math.max(1,...history.map(x=>Math.max(x.income,x.expense)));
-  const openReview=()=>{setInboxTab(true);setSlipInboxTab(false);setView('transactions');};
-  const openPendingSlips=()=>{setInboxTab(false);setSlipInboxTab(true);setView('transactions');};
+  const openReview=()=>{setSelectedDayFilter(null);setInboxTab(true);setSlipInboxTab(false);setView('transactions');};
+  const openPendingSlips=()=>{setSelectedDayFilter(null);setInboxTab(false);setSlipInboxTab(true);setView('transactions');};
   const openAdd=()=>{setScanOnOpen(true);setEditing(null);setModalOpen(true)};
   const onSave=async(t:Transaction)=>{
     // Never silently keep a repaired iPhone payee only in IndexedDB:
@@ -364,7 +365,7 @@ export default function App(){
   const discardPendingDraft=async(id:string)=>{await deletePendingSlip(id);await reloadPending();notify('นำออกจากรอตรวจแล้ว โดยไม่กระทบรายการที่บันทึก','info');};
   const onDelete=async(t:Transaction)=>{if(!window.confirm(`ต้องการลบรายการ “${t.note||t.category}” ฿${baht(t.amountSatang)} ใช่หรือไม่?`))return;try{await deleteTransaction(t.id);await reload();notify('ลบรายการแล้ว');}catch(e){notify(e instanceof Error?e.message:'ลบรายการไม่สำเร็จ','error');}};
   const onEdit=(t:Transaction)=>{setScanOnOpen(false);setEditing(t);setModalOpen(true);};
-  const changeMonth=(n:number)=>{const [y,m]=month.split('-').map(Number);setMonth(monthLocal(new Date(y,m-1+n,1)));};
+  const changeMonth=(n:number)=>{const [y,m]=month.split('-').map(Number);setMonth(monthLocal(new Date(y,m-1+n,1)));setSelectedDayFilter(null);};
   const saveBudget=async(e:FormEvent)=>{e.preventDefault();const n=budgetEdit.trim()===''?0:toSatang(budgetEdit);if(n===null){notify('ระบุงบประมาณเป็นจำนวนเงินที่ถูกต้อง','error');return;}try{setBudgetSaving(true);const next={...settings,monthlyBudgetSatang:n};await saveSettings(next);setSettings(next);notify('บันทึกงบประมาณแล้ว');}catch(err){notify(err instanceof Error?err.message:'บันทึกไม่สำเร็จ','error');}finally{setBudgetSaving(false);}};
   const saveOwnerNames=async(e:FormEvent)=>{e.preventDefault();
     const requested=ownerNamesEdit.split(/\r?\n/u).map(x=>x.trim()).filter(Boolean);
@@ -422,7 +423,7 @@ export default function App(){
   };
   if(!ready) return <div className="loading-screen"><div className="loading-icon">฿</div>กำลังเปิดสมุดบันทึกของคุณ...</div>;
   if(loadingError) return <div className="loading-screen"><span>⚠️</span><h2>ไม่สามารถเปิดข้อมูลได้</h2><p>{loadingError}</p><button className="btn btn-primary" onClick={()=>window.location.reload()}>ลองอีกครั้ง</button></div>;
-  return <div className="app-shell"><a href="#main-content" className="skip-link">ข้ามไปยังเนื้อหาหลัก</a><aside className="sidebar"><Logo/><nav aria-label="เมนูหลัก">{navItems.map(({key,label,icon:Icon})=><button key={key} className={`nav-item ${view===key?'active':''}`} aria-label={label} aria-current={view===key?'page':undefined} onClick={()=>{if(key==='transactions'){setReviewBucket(null);setInboxTab(false);setSlipInboxTab(false);}setView(key);}}><Icon size={19} strokeWidth={1.9}/><span>{label}</span>{view===key&&<span className="nav-active-indicator"/>}</button>)}</nav><div className="sidebar-spacer"/></aside>
+  return <div className="app-shell"><a href="#main-content" className="skip-link">ข้ามไปยังเนื้อหาหลัก</a><aside className="sidebar"><Logo/><nav aria-label="เมนูหลัก">{navItems.map(({key,label,icon:Icon})=><button key={key} className={`nav-item ${view===key?'active':''}`} aria-label={label} aria-current={view===key?'page':undefined} onClick={()=>{if(key==='transactions'){setSelectedDayFilter(null);setReviewBucket(null);setInboxTab(false);setSlipInboxTab(false);}setView(key);}}><Icon size={19} strokeWidth={1.9}/><span>{label}</span>{view===key&&<span className="nav-active-indicator"/>}</button>)}</nav><div className="sidebar-spacer"/></aside>
     <div className="app-body"><header className={`topbar ${view==='home'?'topbar-home home-v2-topbar':''}`}>{view==='home'
       ?<HomeTopbar pendingCount={pendingSlips.length+(iphonePending||0)} onNotifications={()=>{if(pendingSlips.length)openPendingSlips();else if(iphonePending&&iphonePending>0)openReview();else notify('ยังไม่มีรายการที่ต้องตรวจในตอนนี้','info');}} onSettings={()=>setView('settings')}/>
       :<><div className="topbar-left"><div className="ref-topbar-copy"><h1>{pageLabels[view]}</h1></div></div><div className="topbar-actions"><div className="today-chip"><CalendarDays size={16}/><span>{dateText(todayLocal())}</span></div><button className="btn btn-primary top-add" onClick={openAdd}><ScanLine size={18}/> <span>อัปโหลดสลิป</span></button></div></>}</header>
@@ -435,16 +436,17 @@ export default function App(){
           recent={selected}
           reportSlot={<AccountingSecretary items={items} month={month} localPending={pendingSlips.length} iphonePending={iphonePending}
             onTransactions={question=>{
-              setReviewBucket(null);
+              setReviewBucket(null);setSelectedDayFilter(null);
               if(question==='today')setMonth(monthLocal());
               setSearch(question==='category'&&byCategory.length?byCategory[0].name:'');
               setFilter(question==='category'?'expense':'all');
               setInboxTab(false);setSlipInboxTab(false);setView('transactions');
             }}
             onReviewLocal={openPendingSlips} onReviewIphone={openReview}/>}
-          onMonthChange={setMonth}
+          onMonthChange={value=>{setMonth(value);setSelectedDayFilter(null);}}
           onUpload={openAdd}
-          onTransactions={()=>{setReviewBucket(null);setSearch('');setFilter('all');setInboxTab(false);setSlipInboxTab(false);setView('transactions');}}
+          onDayTransactions={date=>{setMonth(date.slice(0,7));setSelectedDayFilter(date);setReviewBucket(null);setSearch('');setFilter('all');setInboxTab(false);setSlipInboxTab(false);setView('transactions');}}
+          onTransactions={()=>{setSelectedDayFilter(null);setReviewBucket(null);setSearch('');setFilter('all');setInboxTab(false);setSlipInboxTab(false);setView('transactions');}}
         />
         <div className="mt-home-below">
           {(settings.ownerNames||[]).length===0&&<div className="mt-home-advisory"><div><strong>เพิ่มชื่อของคุณเพื่อช่วยอ่านสลิป</strong><p>ช่วยแยกรายรับและรายจ่ายตามชื่อที่ปรากฏบนสลิป</p></div><button type="button" onClick={()=>setView('settings')}>ตั้งชื่อของฉัน <ArrowRight size={16}/></button></div>}
@@ -465,13 +467,13 @@ export default function App(){
         </div>}
         {slipInboxTab?<PendingSlipsInbox items={pendingSlips} onSave={savePendingTransaction} onKeep={keepPendingDraft} onDiscard={discardPendingDraft} onAdd={openAdd}/>:
          inboxTab?<IPhoneShortcutSettings variant="review" onImported={reload} onPendingChanged={setIphonePending}/>:
-      <><details className="transaction-month-summary"><summary>สรุปรายรับ–รายจ่ายของเดือนที่เลือก</summary><div className="transaction-financial-summary" aria-label="สรุปรายรับรายจ่ายของเดือนที่เลือก"><div className="transaction-summary-income"><span>รายรับ <ArrowDownLeft size={18}/></span><strong>฿{baht(sums.income)}</strong></div><div className="transaction-summary-expense"><span>รายจ่าย <ArrowUpRight size={18}/></span><strong>฿{baht(sums.expense)}</strong></div></div></details><section className="surface transaction-page"><div className="list-tools"><div className="search-box"><Search size={19}/><input type="search" aria-label="ค้นหารายการ" placeholder="ค้นหาชื่อผู้โอน ผู้รับ หรือหมวดหมู่" value={search} onChange={e=>setSearch(e.target.value)}/>{search&&<button className="search-clear" type="button" aria-label="ล้างคำค้นหา" onClick={()=>setSearch('')}><X size={16}/></button>}</div><div className="filter-tabs" aria-label="กรองประเภทรายการ">{([['all','ทั้งหมด'],['income','รายรับ'],['expense','รายจ่าย']] as const).map(([key,label])=><button key={key} className={filter===key?'selected':''} aria-pressed={filter===key} onClick={()=>setFilter(key)}>{label}</button>)}</div></div><div className="list-count">{reviewBucket?'กลุ่ม '+ACCOUNTANT_BUCKET_LABELS[reviewBucket]+' · ':''}{filtered.length} รายการ{filtered.length!==selected.length?` จาก ${selected.length}`:""}{(search||filter!=='all'||reviewBucket)&&<button className="filter-reset" type="button" onClick={()=>{setSearch('');setFilter('all');setReviewBucket(null);}}>ล้างตัวกรอง</button>}</div>{filtered.length?<TxList items={filtered} onEdit={onEdit} onDelete={onDelete} groupByDay/>:<Empty icon="🔎" title={selected.length?'ไม่พบรายการตามตัวกรอง':'ยังไม่มีรายการที่บันทึกในเดือนที่เลือก'} description={selected.length?'ลองล้างคำค้นหาหรือตัวกรอง':'อัปโหลดสลิปหรือเพิ่มรายการด้วยตัวเอง'} add={selected.length===0?openAdd:()=>{setSearch('');setFilter('all');}} actionLabel={selected.length?'ล้างตัวกรอง':'เพิ่มสลิป'}/>}</section></>
+      <>{selectedDayFilter&&<div className="transaction-day-filter" role="status"><span>เฉพาะวันที่ {dateText(selectedDayFilter)}</span><button type="button" onClick={()=>setSelectedDayFilter(null)}>ดูทั้งเดือน</button></div>}<details className="transaction-month-summary"><summary>สรุปรายรับ–รายจ่ายของเดือนที่เลือก</summary><div className="transaction-financial-summary" aria-label="สรุปรายรับรายจ่ายของเดือนที่เลือก"><div className="transaction-summary-income"><span>รายรับ <ArrowDownLeft size={18}/></span><strong>฿{baht(sums.income)}</strong></div><div className="transaction-summary-expense"><span>รายจ่าย <ArrowUpRight size={18}/></span><strong>฿{baht(sums.expense)}</strong></div></div></details><section className="surface transaction-page"><div className="list-tools"><div className="search-box"><Search size={19}/><input type="search" aria-label="ค้นหารายการ" placeholder="ค้นหาชื่อผู้โอน ผู้รับ หรือหมวดหมู่" value={search} onChange={e=>setSearch(e.target.value)}/>{search&&<button className="search-clear" type="button" aria-label="ล้างคำค้นหา" onClick={()=>setSearch('')}><X size={16}/></button>}</div><div className="filter-tabs" aria-label="กรองประเภทรายการ">{([['all','ทั้งหมด'],['income','รายรับ'],['expense','รายจ่าย']] as const).map(([key,label])=><button key={key} className={filter===key?'selected':''} aria-pressed={filter===key} onClick={()=>setFilter(key)}>{label}</button>)}</div></div><div className="list-count">{reviewBucket?'กลุ่ม '+ACCOUNTANT_BUCKET_LABELS[reviewBucket]+' · ':''}{filtered.length} รายการ{filtered.length!==selected.length?` จาก ${selected.length}`:""}{(search||filter!=='all'||reviewBucket||selectedDayFilter)&&<button className="filter-reset" type="button" onClick={()=>{setSearch('');setFilter('all');setReviewBucket(null);setSelectedDayFilter(null);}}>ล้างตัวกรอง</button>}</div>{filtered.length?<TxList items={filtered} onEdit={onEdit} onDelete={onDelete} groupByDay/>:<Empty icon="🔎" title={selectedDayFilter?'ไม่มีรายการในวันที่เลือก':selected.length?'ไม่พบรายการตามตัวกรอง':'ยังไม่มีรายการที่บันทึกในเดือนที่เลือก'} description={selectedDayFilter?'ดูรายการทั้งเดือน หรือเลือกวันใหม่จากปฏิทิน':selected.length?'ลองล้างคำค้นหาหรือตัวกรอง':'อัปโหลดสลิปหรือเพิ่มรายการด้วยตัวเอง'} add={selectedDayFilter?()=>setSelectedDayFilter(null):selected.length===0?openAdd:()=>{setSearch('');setFilter('all');}} actionLabel={selectedDayFilter?'ดูรายการทั้งเดือน':selected.length?'ล้างตัวกรอง':'เพิ่มสลิป'}/>}</section></>
         }
       </>}
       {view==='reports'&&<>
         <AccountantReview items={selected} localPending={pendingSlips.length} iphonePending={iphonePending}
-          onTransactions={()=>{setReviewBucket(null);setSearch('');setFilter('all');setInboxTab(false);setSlipInboxTab(false);setView('transactions');}}
-          onBucket={bucket=>{setReviewBucket(bucket);setSearch('');setFilter('expense');setInboxTab(false);setSlipInboxTab(false);setView('transactions');}}
+          onTransactions={()=>{setSelectedDayFilter(null);setReviewBucket(null);setSearch('');setFilter('all');setInboxTab(false);setSlipInboxTab(false);setView('transactions');}}
+          onBucket={bucket=>{setSelectedDayFilter(null);setReviewBucket(bucket);setSearch('');setFilter('expense');setInboxTab(false);setSlipInboxTab(false);setView('transactions');}}
           onLocalReview={openPendingSlips} onIphoneReview={openReview} onExport={exportCsv}/>
         <div className="ref-report-tabs" role="group" aria-label="เลือกมุมมองรายงาน">{([['overview','ภาพรวม'],['categories','หมวดหมู่'],['trends','แนวโน้ม'],['budget','งบประมาณ']] as const).map(([key,label])=><button type="button" key={key} aria-pressed={reportTab===key} className={reportTab===key?'active':''} onClick={()=>setReportTab(key)}>{label}</button>)}</div>
         {reportTab==='overview'&&<><div className="stat-triplet reference-report-summary"><MoneyCard title="รายรับรวม" value={sums.income} icon="income"/><MoneyCard title="รายจ่ายรวม" value={sums.expense} icon="expense"/><MoneyCard title="เงินสุทธิ (รายรับ − รายจ่าย)" value={sums.net} icon="net"/></div></>}
@@ -531,11 +533,11 @@ export default function App(){
     <EmailLedgerImport existing={items} onImported={reload}/>
   </section><section id="settings-privacy" className="surface settings-card privacy-settings"><div className="settings-icon blue"><ShieldCheck size={24}/></div><h3>ข้อมูลและความเป็นส่วนตัว</h3><p>รายการที่เพิ่มในแอปจะเก็บไว้บนอุปกรณ์นี้ ส่วนรายการที่เชื่อมต่อจาก iPhone จะซิงก์ตามการตั้งค่าของคุณ</p><div className="info-banner"><CloudOff size={18}/><span>รายการในเครื่องใช้ได้แม้ไม่มีอินเทอร์เน็ต</span></div></section><details id="settings-connections" className="settings-connections"><summary>การเชื่อมต่อเพิ่มเติม</summary><div className="settings-connections-content"><IPhoneShortcutSettings onImported={reload}/><LineSyncSettings onImported={reload}/></div></details><section id="settings-about" className="surface settings-card privacy-settings"><div className="settings-icon lavender"><Menu size={24}/></div><h3>เกี่ยวกับแอป</h3><div className="app-meta"><span>เวอร์ชัน</span><strong>{APP_DISPLAY_VERSION}</strong></div><details className="app-technical-details"><summary>ข้อมูลเวอร์ชันเพิ่มเติม</summary><div className="app-meta"><span>Build</span><strong>{APP_BUILD_SHA}</strong></div><div className="app-meta"><span>อัปเดตเมื่อ</span><strong>{new Intl.DateTimeFormat('th-TH',{dateStyle:'medium',timeStyle:'short',timeZone:'Asia/Bangkok'}).format(new Date(APP_BUILT_AT))}</strong></div></details></section></div></>}
     </main></div>
-    {view==='transactions'&&!inboxTab&&!slipInboxTab&&!modalOpen&&<button aria-label="อัปโหลดสลิป" title="อัปโหลดสลิป" className="mobile-fab" onClick={openAdd}><ScanLine size={25}/></button>}<nav className="mobile-bottom-nav" aria-label="เมนูมือถือ">{navItems.map(({key,label,icon:Icon})=><button key={key} className={view===key?'active':''} aria-current={view===key?'page':undefined} onClick={()=>{if(key==='transactions'){setReviewBucket(null);setInboxTab(false);setSlipInboxTab(false);}setView(key);}}><Icon size={21}/><span>{label}</span></button>)}</nav>
+    {view==='transactions'&&!inboxTab&&!slipInboxTab&&!modalOpen&&<button aria-label="อัปโหลดสลิป" title="อัปโหลดสลิป" className="mobile-fab" onClick={openAdd}><ScanLine size={25}/></button>}<nav className="mobile-bottom-nav" aria-label="เมนูมือถือ">{navItems.map(({key,label,icon:Icon})=><button key={key} className={view===key?'active':''} aria-current={view===key?'page':undefined} onClick={()=>{if(key==='transactions'){setSelectedDayFilter(null);setReviewBucket(null);setInboxTab(false);setSlipInboxTab(false);}setView(key);}}><Icon size={21}/><span>{label}</span></button>)}</nav>
     {toast&&<StatusToast notice={toast}/>}
     {modalOpen&&<EntryModal initial={editing} existing={items} startWithScanner={scanOnOpen} close={()=>setModalOpen(false)} submit={onSave} submitImported={onSaveImported} undoImported={undoImported} queuePending={queuePending} resolvePending={resolvePending} ownerNames={settings.ownerNames||[]} viewSaved={date=>{
       setModalOpen(false);setInboxTab(false);setSlipInboxTab(false);
-      setFilter('all');setSearch('');
+      setFilter('all');setSearch('');setSelectedDayFilter(null);
       if(/^\d{4}-\d{2}-\d{2}$/.test(date))setMonth(date.slice(0,7));
       setView('transactions');
     }} notifyBatch={summary=>{

@@ -21,13 +21,13 @@ describe('Thai UX writing and truthful financial periods',()=>{
     const markup=renderToStaticMarkup(createElement(HomeScreen,{
       month:'2026-09',monthLabel:'กันยายน 2569',
       net:0,income:0,expense:0,recent:[],
-      onMonthChange:()=>{},onUpload:()=>{},onTransactions:()=>{},
+      onMonthChange:()=>{},onUpload:()=>{},onTransactions:()=>{},onDayTransactions:()=>{},
       reportSlot:createElement('section',{'data-accounting':true})
     }));
     expect(markup).toContain('ปฏิทินรายรับ–รายจ่าย');
     expect(markup).toContain('ยังไม่มีรายการที่บันทึกในวันที่เลือก');
     expect(markup).toContain('ยังไม่มีรายการที่บันทึกในเดือนที่เลือก');
-    expect(markup).toContain('ดูรายการเดือนที่เลือก');
+    expect(markup).not.toContain('ดูรายการเดือนที่เลือก');
     expect(markup).not.toContain('ดูรายการทั้งเดือน');
     expect(markup.indexOf('aria-label="ปฏิทินรายรับรายจ่าย"')).toBeLessThan(
       markup.indexOf('aria-label="ภาพรวมรายเดือน"')

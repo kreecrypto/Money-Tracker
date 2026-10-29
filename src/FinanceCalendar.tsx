@@ -41,7 +41,7 @@ export default function FinanceCalendar({month,transactions,selectedDate,onSelec
           :' ยังไม่มีรายการที่บันทึก');
         return <button key={cell.date} type="button" data-date={cell.date}
           className={'mt-calendar-day'+(cell.date===selectedDate?' is-selected':'')+(!cell.inCurrentMonth?' is-outside':'')}
-          disabled={!cell.inCurrentMonth} aria-pressed={cell.inCurrentMonth?cell.date===selectedDate:undefined}
+          disabled={!cell.inCurrentMonth} aria-controls={cell.inCurrentMonth?'mt-home-day-detail':undefined} aria-pressed={cell.inCurrentMonth?cell.date===selectedDate:undefined}
           aria-label={description} title={description} onClick={()=>onSelect(cell.date)}>
           <span className="mt-calendar-day-number">{cell.day}</span>
           <span className="mt-calendar-day-amounts" aria-hidden="true">

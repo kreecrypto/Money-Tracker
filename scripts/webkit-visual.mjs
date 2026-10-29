@@ -31,6 +31,8 @@ try{
       const day=todayLocal();
       await saveTransaction({id:'safari-fixture-income',type:'income',amountSatang:3240000,date:day,category:'เงินเดือน',note:'เงินเข้าทดสอบ',method:'bank',createdAt:Date.now()-5000});
       await saveTransaction({id:'safari-fixture-expense',type:'expense',amountSatang:775000,date:day,category:'อาหารและเครื่องดื่ม',note:'อาหารทดสอบ',method:'bank',createdAt:Date.now()});
+      const otherDay=day.slice(0,7)+(day.endsWith('-01')?'-02':'-01');
+      await saveTransaction({id:'safari-fixture-other-day',type:'expense',amountSatang:30000,date:otherDay,category:'เดินทาง',note:'รายการคนละวัน',method:'bank',createdAt:Date.now()-15000});
     });
     await page.reload({waitUntil:'networkidle'});
     await page.locator('.mt-home-transaction').first().waitFor({timeout:10000});
@@ -80,6 +82,10 @@ try{
     const detailsOpen=await page.locator('.mt-home-detail[open]').isVisible();
     await page.locator('.mt-home-detail-done').click();
     const detailsClose=await page.locator('.mt-home-detail[open]').count()===0;
+    await page.locator('.mt-home-day-detail-heading button').click();
+    const dateDrilldown=await page.locator('.transaction-day-filter').isVisible() && await page.locator('.transaction-row').count()===2;
+    await page.locator('.transaction-day-filter button').click();
+    const dateFilterCleared=await page.locator('.transaction-day-filter').count()===0 && await page.locator('.transaction-row').count()===3;
     await page.locator('.mobile-bottom-nav button').nth(1).click();
     const transactions=await page.locator('.transaction-financial-summary>div').count();
     const list=await page.locator('.transaction-page').isVisible();
@@ -157,12 +163,12 @@ try{
       })
     );
     await page.locator('.modal-heading button').click();
-    findings.push({label,home,calendarBoth,calendarSelected,calendarDetail,calendarPreviousMonth,calendarMonthRestored,monthOptions,arrowNavigatesMonth,menuUnclipped,monthCloses,detailsOpen,detailsClose,transactions,list,brandLoaded,scanner,slipArtLoaded,compactUploadButtons,scannerColors,readableScanner,reportOverview,trendsOnly,noReportsFab,settings,settingsDirectory,settingsAnchors,noSettingsFab,largeSetting,largeHome,savedReadingMode,largeScanner,errors});
+    findings.push({label,home,dateDrilldown,dateFilterCleared,calendarBoth,calendarSelected,calendarDetail,calendarPreviousMonth,calendarMonthRestored,monthOptions,arrowNavigatesMonth,menuUnclipped,monthCloses,detailsOpen,detailsClose,transactions,list,brandLoaded,scanner,slipArtLoaded,compactUploadButtons,scannerColors,readableScanner,reportOverview,trendsOnly,noReportsFab,settings,settingsDirectory,settingsAnchors,noSettingsFab,largeSetting,largeHome,savedReadingMode,largeScanner,errors});
     await context.close();
   }
   fs.writeFileSync(`${directory}/webkit-report.json`,JSON.stringify(findings,null,2));
   console.log('WEBKIT_SAFARI_VISUAL_RESULTS',JSON.stringify(findings));
-  const failed=findings.filter(f=>f.home.overflow>1||!f.home.order||f.home.calendarDays<28||f.home.actionCount!==0||!f.calendarBoth||!f.calendarSelected||!f.calendarDetail||!f.calendarPreviousMonth||!f.calendarMonthRestored||f.home.navCount!==4||
+  const failed=findings.filter(f=>f.home.overflow>1||!f.home.order||f.home.calendarDays<28||f.home.actionCount!==0||!f.dateDrilldown||!f.dateFilterCleared||!f.calendarBoth||!f.calendarSelected||!f.calendarDetail||!f.calendarPreviousMonth||!f.calendarMonthRestored||f.home.navCount!==4||
     f.home.pageGrid!==4||f.home.homeGrid!==4||f.home.splitGrid!==4||
     !f.home.navVisible||f.home.icons.some(icon=>icon.width<20||icon.height<20)||f.monthOptions!==13||!f.arrowNavigatesMonth||!f.menuUnclipped||!f.monthCloses||!f.detailsOpen||!f.detailsClose||f.transactions!==2||!f.list||!f.brandLoaded||!f.slipArtLoaded||!f.reportOverview||!f.settingsDirectory||!f.settingsAnchors||!f.scanner||!f.compactUploadButtons||!f.readableScanner||!f.trendsOnly||!f.noReportsFab||!f.settings||!f.noSettingsFab||!f.largeSetting.active||!f.largeSetting.selected||f.largeSetting.fontSize<16||f.largeHome.overflow>1||f.largeHome.textSize<16||!f.largeHome.navigation||!f.savedReadingMode||!f.largeScanner||f.errors.length);
   if(failed.length){console.error('WEBKIT_SAFARI_VISUAL_FAIL',JSON.stringify(failed));process.exitCode=1;}
