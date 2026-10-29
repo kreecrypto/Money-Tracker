@@ -2,6 +2,7 @@ import {createElement} from 'react';
 import {renderToStaticMarkup} from 'react-dom/server';
 import {describe,expect,it} from 'vitest';
 import HomeScreen from '../src/HomeScreen';
+import {todayLocal,type Transaction} from '../src/lib/finance';
 
 describe('Home reference UX hierarchy',()=>{
   it('puts calendar and selected-day details ahead of the monthly overview and actions',()=>{
@@ -36,8 +37,25 @@ describe('Home reference UX hierarchy',()=>{
     expect(upload).toBeLessThan(recent);
     expect(markup).toContain('สลิป K PLUS หรือใบเสร็จ · เลือกได้หลายรูป');
     expect(markup).toContain('ยังไม่มีรายการที่บันทึกในวันที่เลือก');
-    expect(markup).toContain('ดูรายการเดือนที่เลือก');
+    expect(markup).not.toContain('ดูรายการเดือนที่เลือก');
     expect(markup).toContain('รายการล่าสุด');
     expect(markup).not.toContain('ยังไม่มีรายการในเดือนนี้');
+  });
+  it('shows the exact date drill-down only when saved entries exist',()=>{
+    const day=todayLocal();
+    const month=day.slice(0,7);
+    const entries:Transaction[]=Array.from({length:6},(_,i)=>({
+      id:'day-'+i,type:'expense',amountSatang:10000+i,
+      category:'อาหารและเครื่องดื่ม',note:'',date:day,method:'bank',createdAt:i
+    }));
+    const markup=renderToStaticMarkup(createElement(HomeScreen,{
+      month,monthLabel:'เดือนทดสอบ',net:0,income:0,expense:0,
+      recent:entries,onMonthChange:()=>{},onUpload:()=>{},onTransactions:()=>{},
+      onDayTransactions:()=>{},reportSlot:createElement('section',{})
+    }));
+    expect(markup).toContain('ดูทั้งหมด 6 รายการ');
+    expect(markup).toContain('อีก 2 รายการ');
+    expect(markup).toContain('mt-home-day-detail');
+    expect(markup).not.toContain('ดูรายการเดือนที่เลือก');
   });
 });
