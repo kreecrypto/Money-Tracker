@@ -34,8 +34,8 @@ export function HomeTopbar({pendingCount,onNotifications,onSettings}:{
       <span className="mt-home-brand-icon" aria-hidden="true"><img className="reference-brand-img" src={sproutBrand} alt=""/></span>
       <strong className="mt-home-brand-name">เงินวันนี้</strong>
       <div className="mt-home-header-actions">
-        <button type="button" className="mt-home-header-button" aria-label={pendingCount>0?`การแจ้งเตือน: มีสลิปรอตรวจ ${pendingCount} รายการ`:'การแจ้งเตือน'} onClick={onNotifications}>
-          <Bell size={21} strokeWidth={2.1}/>{pendingCount>0&&<span className="mt-home-alert-dot"/>}
+        <button type="button" className="mt-home-header-button" aria-label={pendingCount>0?`เปิดรายการรอตรวจ ${pendingCount} รายการ`:'ไม่มีรายการรอตรวจ'} onClick={onNotifications}>
+          <Bell size={21} strokeWidth={2.1} aria-hidden="true"/>{pendingCount>0&&<span className="mt-home-alert-count" aria-hidden="true">{pendingCount>99?'99+':pendingCount}</span>}
         </button>
         <button type="button" className="mt-home-avatar" aria-label="ตั้งค่าของฉัน" onClick={onSettings}><CircleUserRound size={23}/></button>
       </div>

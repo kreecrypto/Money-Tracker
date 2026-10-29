@@ -3,12 +3,12 @@ import {renderToStaticMarkup} from 'react-dom/server';
 import {readFileSync} from 'node:fs';
 import {join} from 'node:path';
 import {describe,expect,it} from 'vitest';
-import HomeScreen from '../src/HomeScreen';
+import HomeScreen,{HomeTopbar} from '../src/HomeScreen';
 import FinanceCalendar from '../src/FinanceCalendar';
 import AccountingSecretary from '../src/AccountingSecretary';
 import AccountantReview from '../src/AccountantReview';
 import {secretaryAnswer} from '../src/lib/accountingSecretary';
-import type {Transaction} from '../src/lib/finance';
+import {todayLocal,type Transaction} from '../src/lib/finance';
 
 const item:Transaction={
   id:'ux-writing-income',type:'income',amountSatang:250000,
@@ -17,6 +17,36 @@ const item:Transaction={
 };
 
 describe('Thai UX writing and truthful financial periods',()=>{
+  it('shows an actionable review count without falsely marking zero notifications',()=>{
+    const awaiting=renderToStaticMarkup(createElement(HomeTopbar,{
+      pendingCount:3,onNotifications:()=>{},onSettings:()=>{}
+    }));
+    expect(awaiting).toContain('เปิดรายการรอตรวจ 3 รายการ');
+    expect(awaiting).toContain('mt-home-alert-count');
+    const empty=renderToStaticMarkup(createElement(HomeTopbar,{
+      pendingCount:0,onNotifications:()=>{},onSettings:()=>{}
+    }));
+    expect(empty).toContain('ไม่มีรายการรอตรวจ');
+    expect(empty).not.toContain('mt-home-alert-count');
+  });
+
+  it('separates the actual current day, selected day and an explicit return action',()=>{
+    const today=todayLocal();
+    const current=renderToStaticMarkup(createElement(FinanceCalendar,{
+      month:today.slice(0,7),selectedDate:today,transactions:[],
+      onSelect:()=>{},onMonthChange:()=>{}
+    }));
+    expect(current).toContain('aria-current="date"');
+    expect(current).toContain('วันที่เลือก');
+    expect(current).not.toContain('กลับไปวันนี้');
+    const historical=renderToStaticMarkup(createElement(FinanceCalendar,{
+      month:'2020-01',selectedDate:'2020-01-15',transactions:[],
+      onSelect:()=>{},onMonthChange:()=>{}
+    }));
+    expect(historical).toContain('กลับไปวันนี้');
+    expect(historical).toContain('mt-calendar-today');
+  });
+
   it('labels Calendar-first and selected-day states without inventing entries',()=>{
     const markup=renderToStaticMarkup(createElement(HomeScreen,{
       month:'2026-09',monthLabel:'กันยายน 2569',

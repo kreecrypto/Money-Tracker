@@ -1,6 +1,6 @@
 import {useMemo} from 'react';
 import {ChevronLeft,ChevronRight} from 'lucide-react';
-import {baht,type Transaction} from './lib/finance';
+import {baht,todayLocal,type Transaction} from './lib/finance';
 import {calendarMonthGrid,compactCalendarBaht} from './lib/calendar';
 
 type Props={
@@ -17,6 +17,7 @@ const monthName=(date:string)=>new Intl.DateTimeFormat('th-TH',{month:'long',yea
 
 export default function FinanceCalendar({month,transactions,selectedDate,onSelect,onMonthChange}:Props){
   const grid=useMemo(()=>calendarMonthGrid(month,transactions),[month,transactions]);
+  const today=todayLocal();
   const changeMonth=(delta:number)=>{
     const [year,number]=month.split('-').map(Number);
     const date=new Date(year,number-1+delta,1);
@@ -40,9 +41,9 @@ export default function FinanceCalendar({month,transactions,selectedDate,onSelec
           ' รายรับ '+baht(cell.incomeSatang)+' บาท รายจ่าย '+baht(cell.expenseSatang)+' บาท '+cell.count+' รายการ'
           :' ยังไม่มีรายการที่บันทึก');
         return <button key={cell.date} type="button" data-date={cell.date}
-          className={'mt-calendar-day'+(cell.date===selectedDate?' is-selected':'')+(!cell.inCurrentMonth?' is-outside':'')}
-          disabled={!cell.inCurrentMonth} aria-controls={cell.inCurrentMonth?'mt-home-day-detail':undefined} aria-pressed={cell.inCurrentMonth?cell.date===selectedDate:undefined}
-          aria-label={description} title={description} onClick={()=>onSelect(cell.date)}>
+          className={'mt-calendar-day'+(cell.date===selectedDate?' is-selected':'')+(cell.date===today?' is-today':'')+(!cell.inCurrentMonth?' is-outside':'')}
+          disabled={!cell.inCurrentMonth} aria-current={cell.date===today?'date':undefined} aria-controls={cell.inCurrentMonth?'mt-home-day-detail':undefined} aria-pressed={cell.inCurrentMonth?cell.date===selectedDate:undefined}
+          aria-label={description+(cell.date===today?' วันนี้':'')+(cell.date===selectedDate?' วันที่เลือก':'')} title={description} onClick={()=>onSelect(cell.date)}>
           <span className="mt-calendar-day-number">{cell.day}</span>
           <span className="mt-calendar-day-amounts" aria-hidden="true">
             {hasIncome&&<span className="is-income">+{compactCalendarBaht(cell.incomeSatang)}</span>}
@@ -52,6 +53,9 @@ export default function FinanceCalendar({month,transactions,selectedDate,onSelec
         </button>;
       })}
     </div>
-    <p className="mt-calendar-legend"><span><i className="income-dot"/>รายรับ</span><span><i className="expense-dot"/>รายจ่าย</span><small>แตะวันที่เพื่อดูยอดเต็มและรายการ · เฉพาะรายการที่บันทึกแล้ว</small></p>
+    <div className="mt-calendar-footer">
+      <p className="mt-calendar-legend"><span><i className="income-dot"/>รายรับ</span><span><i className="expense-dot"/>รายจ่าย</span><small>แตะวันที่เพื่อดูยอดเต็มและรายการ · เฉพาะรายการที่บันทึกแล้ว</small></p>
+      {selectedDate!==today&&<button type="button" className="mt-calendar-today" onClick={()=>{if(month!==today.slice(0,7))onMonthChange(today.slice(0,7));onSelect(today);}}>กลับไปวันนี้</button>}
+    </div>
   </section>;
 }

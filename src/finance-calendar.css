@@ -42,3 +42,11 @@
 .transaction-day-filter{display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap;margin:12px 0 5px;padding:10px 12px;border:1px solid #cde6d5;border-radius:12px;background:#f1faf4;color:#155334;font-size:13px;font-weight:650}
 .transaction-day-filter button{border:0;border-radius:9px;background:#fff;color:#086a3f;padding:8px 12px;min-height:44px;font-size:13px;font-weight:700}
 .transaction-day-filter button:focus-visible{outline:3px solid #0b7545;outline-offset:2px}
+
+/* Distinguish today's date from the date being inspected, without using color alone. */
+.mt-calendar-day.is-today:not(.is-selected){background:#f4fbf6;box-shadow:inset 0 0 0 2px #94c9a8}
+.mt-calendar-day.is-today .mt-calendar-day-number{text-decoration:underline;text-underline-offset:3px}
+.mt-calendar-footer{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px 10px}
+.mt-calendar-footer .mt-calendar-legend{flex:1 1 190px}
+.mt-calendar-today{flex:none;min-height:44px;padding:8px 12px;border-radius:10px;border:1px solid #b6d9c4;background:#f1faf4;color:#0a6740;font-size:13px;font-weight:760}
+.mt-calendar-today:focus-visible{outline:3px solid #0b7545;outline-offset:2px}

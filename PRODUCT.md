@@ -4,7 +4,7 @@
 web (mobile-first responsive PWA, optimized for iPhone Safari; not a native iOS application).
 
 ## Product
-A private Thai-language **personal accounting secretary and financial reporting app**. The primary experience is **open the app → read a factual financial briefing → see what needs review → drill into classified cash movements and their evidence**. Upload/capture K PLUS slips, email-ledger CSV import, Pending review, manual entry, backup, settings and transaction history remain the evidence-capture and correction tools; the app does not fabricate or certify financial statements.
+A private Thai-language **personal accounting secretary and financial reporting app**. The primary experience is **open the app → inspect the calendar of Saved income/outflow → select a day and inspect its records → review the monthly financial briefing and next actions → upload or correct supporting evidence as needed**. The calendar is the first content under the Home header. Pending slips never appear in calendar or recorded totals until successfully saved. Upload/capture K PLUS slips, email-ledger CSV import, Pending review, manual entry, backup, settings and transaction history remain the evidence-capture and correction tools; the app does not fabricate or certify financial statements.
 
 ## Audience
 People in Thailand who routinely handle bank transfer slips on their phones and want a dependable record of money received and spent without bookkeeping jargon.
@@ -34,7 +34,7 @@ People in Thailand who routinely handle bank transfer slips on their phones and 
 - Ensure 320–430px layouts, safe areas, VoiceOver labels, 44px touch targets, focus and reduced motion.
 
 ## Success criteria
-The Home screen answers: what happened this month, what is important today, and what needs my attention? The Reports screen groups saved cash out into debt repayments, wallet top-ups, unknown-purpose items and classified spending with an exact transaction drill-down. Monthly net is **not** a bank balance or certified accounting profit. Upload is visible but secondary to reading the brief; existing personal data remains local unless the user enables separate integrations.
+The Home screen starts with the Saved-only monthly calendar, highlights today and the selected day distinctly, provides a one-tap return to today, and answers: what happened on that day, what happened this month, and what needs my attention? The Reports screen groups saved cash out into debt repayments, wallet top-ups, unknown-purpose items and classified spending with an exact transaction drill-down. Monthly net is **not** a bank balance or certified accounting profit. Upload is visible but secondary to reading the brief; existing personal data remains local unless the user enables separate integrations.
 
 ## Source of truth
 - App: `src/App.tsx`, `src/HomeScreen.tsx`, `src/SlipScanner.tsx`.

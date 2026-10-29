@@ -122,7 +122,7 @@ function PendingCard({item,onSave,onKeep,onDiscard}:{
 export default function PendingSlipsInbox({items,onSave,onKeep,onDiscard,onAdd}:Props){
   return <section className="surface pending-inbox" aria-label="รายการสลิปที่รอตรวจ">
     <div className="pending-inbox-head">
-      <div><h3>รอตรวจ {items.length>0?'('+items.length+')':''}</h3>{items.length>0&&<p>รายการเหล่านี้ยังไม่รวมในยอดรายรับ–รายจ่าย</p>}
+      <div><h3>รอตรวจ {items.length>0?'('+items.length+')':''}</h3>{items.length>0&&<p>รายการเหล่านี้ยังไม่รวมในยอดรายรับ–รายจ่ายหรือปฏิทิน</p>}
       </div>
     </div>
     {items.length===0?<div className="pending-inbox-empty">

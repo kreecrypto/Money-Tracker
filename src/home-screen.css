@@ -30,9 +30,11 @@
   position:relative;display:grid;place-items:center; width:38px;height:38px;flex:none;
   border:0;background:transparent;color:#182f26;border-radius:999px;
 }
-.mt-home-alert-dot {
-  position:absolute;right:8px;top:6px;width:8px;height:8px;
-  background:#fa5360;border:2px solid #fff;border-radius:99px;
+.mt-home-alert-count {
+  position:absolute;right:-4px;top:-5px;min-width:18px;height:18px;
+  padding:0 4px;display:grid;place-items:center;
+  background:#9d4b15;color:#fff;border:2px solid #fff;border-radius:999px;
+  font-size:10px;font-weight:800;line-height:1;font-variant-numeric:tabular-nums;
 }
 .mt-home-avatar { width:34px;height:34px;background:#e8f5e9;color:#1c9654; }
 .mt-home-hello {font-size:13px;font-weight:750;line-height:1.2;margin:9px 0 1px;}

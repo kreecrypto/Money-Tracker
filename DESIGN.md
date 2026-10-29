@@ -93,3 +93,14 @@ Flat by default. Use thin green-tinted borders and white backgrounds instead of 
 - Transactions displays the active date explicitly with 'เฉพาะวันที่ ...' and an accessible 'ดูทั้งเดือน' reset; switching to another top-level Transactions tab, accountant group, or a different month clears the date constraint. Pending is never included in recorded totals.
 - At widths below 360px, colored indicator bars replace clipped 9px calendar numbers; full amounts remain in each calendar button's screen-reader name and in the selected-day summary. At larger widths compact values are at least 11px and use ellipsis.
 - Verify date scoping, other-day exclusion, reset, 320–430px + large font, and unaffected Upload/Pending/duplicate behavior before release.
+
+
+## The Five Elements of UX — calendar-first product contract (2026-10-29)
+
+- **Strategy — user needs and product goals:** On opening the app, the first job is understanding when recorded money moved, what remains incomplete, and what action is available. Never imply recorded totals equal the bank balance or real spending not yet captured.
+- **Scope — only necessary capabilities and content:** Keep one primary slip upload pathway, selected-day details, month summary and a single consolidated review destination. Do not add duplicate Home shortcuts or invent data. Pending slips are excluded from both the calendar and recorded totals.
+- **Structure — interaction architecture:** Home calendar → select day → exact-day Transactions → clear date filter → whole-month Transactions. The same month context must follow navigation. An explicit 'กลับไปวันนี้' returns from other days or months without retracing arrow taps; the notification bell leads to existing review tabs.
+- **Skeleton — information/navigation design:** Calendar first; selected-day numbers and list next; month financial totals, accounting summary, upload and recent activity below. A visible numeric review counter tells the user there are unfinished tasks; the calendar footer explains Saved-only data.
+- **Surface — legibility and sensory design:** Distinguish Today (underlined number) from Selected (filled, outlined state), preserve +/- signed income and expense, show complete amounts in details and accessibility names, keep minimum tap targets and iOS safe areas. Do not use color as the only indicator.
+
+Acceptance: in Safari/WebKit and Chromium on 320/375/390/430px, the date controls do not overflow; today and selected day are individually distinguishable, the reset action returns both month and selected day, the review counter is accurate, and Pending never appears as a Saved calendar transaction. Automated results are not physical-device proof.
