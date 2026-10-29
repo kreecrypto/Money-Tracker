@@ -35,6 +35,9 @@ describe('Home reference UX hierarchy',()=>{
     expect(briefing).toBeLessThan(upload);
     expect(upload).toBeLessThan(recent);
     expect(markup).toContain('สลิป K PLUS หรือใบเสร็จ · เลือกได้หลายรูป');
-    expect(markup).toContain('ยังไม่มีรายการในวันที่เลือก');
+    expect(markup).toContain('ยังไม่มีรายการที่บันทึกในวันที่เลือก');
+    expect(markup).toContain('ดูรายการเดือนที่เลือก');
+    expect(markup).toContain('รายการล่าสุด');
+    expect(markup).not.toContain('ยังไม่มีรายการในเดือนนี้');
   });
 });

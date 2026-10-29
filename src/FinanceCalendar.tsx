@@ -24,7 +24,7 @@ export default function FinanceCalendar({month,transactions,selectedDate,onSelec
   };
   return <section className="mt-finance-calendar" aria-label="ปฏิทินรายรับรายจ่าย">
     <div className="mt-calendar-heading">
-      <h2>ปฏิทินรายรับรายจ่าย</h2>
+      <h2>ปฏิทินรายรับ–รายจ่าย</h2>
       <div className="mt-calendar-controls">
         <button type="button" onClick={()=>changeMonth(-1)} aria-label="เดือนก่อนหน้า"><ChevronLeft size={18}/></button>
         <span>{monthName(month)}</span>
@@ -38,7 +38,7 @@ export default function FinanceCalendar({month,transactions,selectedDate,onSelec
         const hasExpense=cell.expenseSatang>0;
         const description=longDate(cell.date)+(cell.count?
           ' รายรับ '+baht(cell.incomeSatang)+' บาท รายจ่าย '+baht(cell.expenseSatang)+' บาท '+cell.count+' รายการ'
-          :' ไม่มีรายการ');
+          :' ยังไม่มีรายการที่บันทึก');
         return <button key={cell.date} type="button" data-date={cell.date}
           className={'mt-calendar-day'+(cell.date===selectedDate?' is-selected':'')+(!cell.inCurrentMonth?' is-outside':'')}
           disabled={!cell.inCurrentMonth} aria-pressed={cell.inCurrentMonth?cell.date===selectedDate:undefined}
@@ -52,6 +52,6 @@ export default function FinanceCalendar({month,transactions,selectedDate,onSelec
         </button>;
       })}
     </div>
-    <p className="mt-calendar-legend"><span><i className="income-dot"/>รายรับ</span><span><i className="expense-dot"/>รายจ่าย</span><small>แตะวันที่เพื่อดูจำนวนเต็ม · เฉพาะรายการที่บันทึกแล้ว</small></p>
+    <p className="mt-calendar-legend"><span><i className="income-dot"/>รายรับ</span><span><i className="expense-dot"/>รายจ่าย</span><small>แตะวันที่เพื่อดูยอดเต็มและรายการ · เฉพาะรายการที่บันทึกแล้ว</small></p>
   </section>;
 }

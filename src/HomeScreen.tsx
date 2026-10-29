@@ -139,7 +139,7 @@ function TransactionDetail({value,onClose}:{
      <div className="mt-home-detail-heading"><h2 id="mt-home-detail-title">รายละเอียดรายการ</h2><button type="button" onClick={onClose} aria-label="ปิดรายละเอียด">×</button></div>
      <strong className={value.type==='income'?'is-income':'is-expense'}>{value.type==='income'?'+':'−'} ฿ {baht(value.amountSatang)}</strong>
      <dl>
-       <div><dt>คู่รายการ</dt><dd>{transactionDisplayName(value)}</dd></div>
+       <div><dt>ชื่อที่แสดง</dt><dd>{transactionDisplayName(value)}</dd></div>
        {value.sender&&<div><dt>ผู้โอนเงิน</dt><dd>{value.sender}</dd></div>}
        {value.recipient&&<div><dt>ผู้รับเงินบนสลิป</dt><dd>{value.recipient}</dd></div>}
        <div><dt>วันที่และเวลา</dt><dd>{shortDate(value.date,value.time)}</dd></div>
@@ -171,7 +171,7 @@ export default function HomeScreen({
   return <div className="home-dashboard mt-home-screen" aria-label="หน้าแรก เงินวันนี้">
     <FinanceCalendar month={month} transactions={recent} selectedDate={activeDate} onSelect={setSelectedDate} onMonthChange={onMonthChange}/>
     <section className="mt-home-day-detail" aria-label="รายการวันที่เลือก">
-      <div className="mt-home-day-detail-heading"><h2>{dayLabel}</h2><button type="button" onClick={onTransactions}>ดูรายการทั้งเดือน <ArrowRight size={15}/></button></div>
+      <div className="mt-home-day-detail-heading"><h2>รายการวันที่ {dayLabel}</h2><button type="button" onClick={onTransactions}>ดูรายการเดือนที่เลือก <ArrowRight size={15}/></button></div>
       <div className="mt-home-day-summary">
         <div><span>รายรับ</span><strong className="is-income">+฿{baht(daySums.income)}</strong></div>
         <div><span>รายจ่าย</span><strong className="is-expense">−฿{baht(daySums.expense)}</strong></div>
@@ -182,8 +182,8 @@ export default function HomeScreen({
           <span className="mt-home-transaction-text"><strong>{transactionDisplayName(tx)}</strong><small>{shortDate(tx.date,tx.time)}</small></span>
           <b className={tx.type==='income'?'is-income':'is-expense'}>{tx.type==='income'?'+':'−'} ฿ {baht(tx.amountSatang)}</b>
         </button>)}
-        {daily.length>4&&<p className="mt-home-calendar-more">อีก {daily.length-4} รายการ · ดูทั้งหมดในหน้ารายการ</p>}
-      </div>:<div className="mt-home-empty"><p>ยังไม่มีรายการในวันที่เลือก</p></div>}
+        {daily.length>4&&<p className="mt-home-calendar-more">ยังมีอีก {daily.length-4} รายการในวันที่เลือก</p>}
+      </div>:<div className="mt-home-empty"><p>ยังไม่มีรายการที่บันทึกในวันที่เลือก</p></div>}
     </section>
     <section className="summary-grid mt-home-summary" aria-label="ภาพรวมรายเดือน">
       <div className="hero-card mt-home-balance mt-home-calendar-summary">
@@ -199,7 +199,7 @@ export default function HomeScreen({
           </svg>
         </div>
         <div className="mt-home-balance-header">
-          <span>ภาพรวม</span>
+          <span>ภาพรวมรายเดือน</span>
           <MonthChooser month={month} label={monthLabel} onChange={onMonthChange}/>
         </div>
         <div className="mt-home-total-label">สุทธิจากรายรับ − รายจ่าย</div>
@@ -222,7 +222,7 @@ export default function HomeScreen({
       <span><strong>อัปโหลดสลิป</strong><small>สลิป K PLUS หรือใบเสร็จ · เลือกได้หลายรูป</small></span>
     </button>
     <section className="surface transactions-surface mt-home-recent" aria-label="รายการล่าสุด">
-      <div className="mt-home-section-heading"><h2>หลักฐานธุรกรรมล่าสุด</h2><button type="button" onClick={onTransactions}>ดูทั้งหมด <ArrowRight size={15}/></button></div>
+      <div className="mt-home-section-heading"><h2>รายการล่าสุด</h2><button type="button" onClick={onTransactions}>ดูทั้งหมด <ArrowRight size={15}/></button></div>
       {recent.length?
         <div className="mt-home-transaction-list">
           {recent.slice(0,4).map(tx=><button type="button" className="mt-home-transaction" key={tx.id} onClick={event=>{detailTriggerRef.current=event.currentTarget;setDetail(tx);}} aria-label={`ดูรายละเอียด ${transactionDisplayName(tx)} ${tx.type==='income'?'รายรับ':'รายจ่าย'} ${baht(tx.amountSatang)} บาท ${shortDate(tx.date,tx.time)}`}>
@@ -231,7 +231,7 @@ export default function HomeScreen({
             <b className={tx.type==='income'?'is-income':'is-expense'}>{tx.type==='income'?'+':'−'} ฿ {baht(tx.amountSatang)}</b>
           </button>)}
         </div>
-       :<div className="mt-home-empty"><Wallet size={22}/><p>ยังไม่มีรายการในเดือนนี้</p></div>}
+       :<div className="mt-home-empty"><Wallet size={22}/><p>ยังไม่มีรายการที่บันทึกในเดือนที่เลือก</p></div>}
     </section>
     {detail&&<TransactionDetail value={detail} onClose={closeDetail}/>}
   </div>;

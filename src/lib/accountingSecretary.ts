@@ -29,11 +29,11 @@ export function secretaryBriefing(
   }
   const totals=dailyTotals(items,today);
   if(totals.count>0){
-    return {title:'วันนี้บันทึกแล้ว '+totals.count+' รายการ',detail:'รายจ่ายที่บันทึกวันนี้ '+money(totals.expense)+' · แตะคำถามด้านล่างเพื่อดูรายละเอียด',needsReview:false};
+    return {title:'วันนี้บันทึกแล้ว '+totals.count+' รายการ',detail:'รายจ่ายที่บันทึกวันนี้ '+money(totals.expense)+' · เลือกหัวข้อด้านล่างเพื่อดูรายละเอียด',needsReview:false};
   }
   return {
     title:items.length===0?'ยังไม่มีข้อมูลสำหรับจัดทำรายงาน':'ยังไม่มีรายการที่บันทึกวันนี้',
-    detail:'เมื่อมีรายการบันทึกแล้ว เลขาจะจัดทำสรุปจากข้อมูลจริงในเครื่องนี้',
+    detail:items.length===0?'เพิ่มรายการหรืออัปโหลดสลิป เพื่อเริ่มดูสรุปการเงิน':'เลือกหัวข้อด้านล่างเพื่อดูรายการย้อนหลัง',
     needsReview:false,
   };
 }
@@ -69,7 +69,7 @@ export function secretaryAnswer(
       const total=summarize(selected).expense;
       return {
         title:'หมวดรายจ่ายสูงสุด · '+period,
-        detail:top?'หมวด '+top.name+' ใช้เงินมากที่สุดจากรายการที่บันทึกในเดือนนี้':'ยังไม่มีรายจ่ายที่บันทึกในเดือนที่เลือก',
+        detail:top?'หมวด '+top.name+' มียอดรายจ่ายสูงสุดในเดือนที่เลือก':'ยังไม่มีรายจ่ายที่บันทึกในเดือนที่เลือก',
         metrics:top?[{label:'รายจ่ายของหมวด',value:money(top.total),kind:'expense'},
           {label:'สัดส่วนของรายจ่าย',value:Math.round(top.total/total*100)+'%'}]:[],
         source,

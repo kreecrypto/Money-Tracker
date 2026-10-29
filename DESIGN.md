@@ -76,3 +76,12 @@ Flat by default. Use thin green-tinted borders and white backgrounds instead of 
 - **Don't** merge an untested UI change or claim production is updated until its Vercel deployment is READY and the target domain is verified.
 
 **Impeccable usage:** From project root, run `npx impeccable install` in your coding environment, then `/impeccable polish the Home screen`, `/impeccable audit the app`, and `npx impeccable detect src/`. This is a hand-curated compatible context, not an assertion that the official init/document commands were run.
+
+
+## Thai UX Writing (Calendar-first, October 2026)
+
+- **Home-first language:** Calendar = `ปฏิทินรายรับ–รายจ่าย`; the selected day shows `รายการวันที่ ...` and the saved daily totals. A date without saved entries says `ยังไม่มีรายการที่บันทึกในวันที่เลือก`. Calendar empty days must not imply the user spent zero in the real world.
+- **Period accuracy:** For user-selected historic months say `เดือนที่เลือก`, never `เดือนนี้`. The Home day-detail action goes to the **monthly** transaction list, so its label is `ดูรายการเดือนที่เลือก`; do not imply a date-filtered destination.
+- **Transaction evidence:** Prefer `รายการล่าสุด` over bureaucratic labels; incoming slips may display the payer/sender, and search hints mention sender and recipient. All sums are records in the app, not actual bank balances.
+- **OCR status:** `บันทึกแล้ว` is included in recorded totals; `รายการซ้ำ` adds nothing new; `รอตรวจ` is not included; failed images may need retry. Do not turn uncertainty into success language. Preserve wallet top-up as bank outflow and warn against double counting.
+- **Voice:** Concise, neutral, actionable Thai. Show the next step in an error or empty state, but never promise a filter, data persistence, bank verification, or automatic accounting action that has not happened. Keep financial interpretation distinct from display wording.
