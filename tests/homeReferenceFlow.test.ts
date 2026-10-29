@@ -4,7 +4,7 @@ import {describe,expect,it} from 'vitest';
 import HomeScreen from '../src/HomeScreen';
 
 describe('Home reference UX hierarchy',()=>{
-  it('prioritizes financial briefing and upload ahead of optional calendar exploration',()=>{
+  it('puts calendar and selected-day details ahead of the monthly overview and actions',()=>{
     const markup=renderToStaticMarkup(createElement(HomeScreen,{
       month:'2026-10',
       monthLabel:'ตุลาคม 2569',
@@ -29,11 +29,11 @@ describe('Home reference UX hierarchy',()=>{
     const calendar=index('aria-label="ปฏิทินรายรับรายจ่าย"');
     const chosenDay=index('aria-label="รายการวันที่เลือก"');
 
+    expect(calendar).toBeLessThan(chosenDay);
+    expect(chosenDay).toBeLessThan(overview);
     expect(overview).toBeLessThan(briefing);
     expect(briefing).toBeLessThan(upload);
     expect(upload).toBeLessThan(recent);
-    expect(recent).toBeLessThan(calendar);
-    expect(calendar).toBeLessThan(chosenDay);
     expect(markup).toContain('สลิป K PLUS หรือใบเสร็จ · เลือกได้หลายรูป');
     expect(markup).toContain('ยังไม่มีรายการในวันที่เลือก');
   });

@@ -42,7 +42,7 @@ try{
       const pageGrid=gridTracks('.main-content');
       const homeGrid=gridTracks('.mt-home-screen');
       const splitGrid=gridTracks('.mt-home-balance-splits');
-      return {overflow:Math.max(0,document.documentElement.scrollWidth-innerWidth),order:!!(hero&&cta&&brief&&recent&&calendar&&day&&hero.bottom<brief.top&&brief.bottom<cta.top&&cta.bottom<recent.top&&recent.bottom<calendar.top&&calendar.bottom<day.top),calendarDays:document.querySelectorAll('.mt-calendar-day:not([disabled])').length,
+      return {overflow:Math.max(0,document.documentElement.scrollWidth-innerWidth),order:!!(hero&&cta&&brief&&recent&&calendar&&day&&calendar.bottom<day.top&&day.bottom<hero.top&&hero.bottom<brief.top&&brief.bottom<cta.top&&cta.bottom<recent.top),calendarDays:document.querySelectorAll('.mt-calendar-day:not([disabled])').length,
         actionCount:document.querySelectorAll('.mt-home-shortcut-grid button').length,navCount:document.querySelectorAll('.mobile-bottom-nav button').length,
         navVisible:!!(navigation&&navigation.top>=0&&navigation.bottom<=innerHeight+2),pageGrid,homeGrid,splitGrid,icons};
     });
