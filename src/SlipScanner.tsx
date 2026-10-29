@@ -471,7 +471,7 @@ export default function SlipScanner({onApply,onComplete,onBusyChange,onUndoBatch
       {(summary.undone||0)>0&&<p className="slip-batch-note">ยกเลิกการบันทึกแล้ว {summary.undone} รายการ</p>}
       {summary.saved>0&&<button type="button" className="btn btn-secondary slip-undo" disabled={undoing} onClick={()=>void undoSaved()}><Undo2 size={16}/>{undoing?'กำลังยกเลิกรายการ…':'ลบรายการที่เพิ่งบันทึก ('+summary.saved+')'}</button>}
       {correctionErrors[-1]&&<p role="alert" className="error-message">{correctionErrors[-1]}</p>}
-      {summary.queued>0&&<p className="slip-queued-note" role="status">เก็บไว้รอตรวจ {summary.queued} รูป · เปิดได้ที่ รายการ > รอตรวจจากสลิป · โปรดเก็บรูปต้นฉบับไว้</p>}
+      {summary.queued>0&&<p className="slip-queued-note" role="status">เก็บไว้รอตรวจ {summary.queued} รูป · เปิดได้ที่ รายการ → รอตรวจจากสลิป · โปรดเก็บรูปต้นฉบับไว้</p>}
       {summary.saved>0&&summary.incomplete===summary.queued&&<button type="button" className={'btn '+(needsAttention.length>0?'btn-secondary':'btn-primary')+' slip-batch-finish'} onClick={()=>onViewSaved(rows.find(row=>row.status==='saved')?.date||'')}>ดูรายการที่บันทึก</button>}
       {needsAttention.length>0&&<button type="button" className="btn btn-primary slip-batch-finish" onClick={()=>attentionRef.current?.scrollIntoView({behavior:window.matchMedia('(prefers-reduced-motion: reduce)').matches?'auto':'smooth',block:'start'})}>ตรวจ {needsAttention.length} รายการที่ยังไม่บันทึก</button>}
       <button type="button" className={'btn '+(needsAttention.length>0?'btn-secondary':'btn-primary')+' slip-batch-finish'} disabled={undoing} onClick={onClose}>{needsAttention.length>0?'ปิดและตรวจภายหลัง':'เสร็จสิ้น'}</button>
@@ -488,7 +488,7 @@ export default function SlipScanner({onApply,onComplete,onBusyChange,onUndoBatch
     </div>}
     {needsAttention.length>0&&<div ref={attentionRef} className="slip-attention" aria-label="แก้ไขสลิปที่อ่านไม่ครบ">
       <div className="slip-attention-title"><ScanLine size={19}/><strong>ข้อมูลที่อ่านได้จากสลิป · โปรดตรวจสอบ</strong></div>
-      <p>ตรวจจำนวนเงิน วันที่ และประเภทก่อนบันทึก หรือเปิดตรวจภายหลังที่ รายการ > รอตรวจจากสลิป · โปรดเก็บรูปต้นฉบับไว้</p>
+      <p>ตรวจจำนวนเงิน วันที่ และประเภทก่อนบันทึก หรือเปิดตรวจภายหลังที่ รายการ → รอตรวจจากสลิป · โปรดเก็บรูปต้นฉบับไว้</p>
       {needsAttention.map(([rawIndex,draft])=>{
         const index=Number(rawIndex);
         return <div id={'slip-review-'+index} key={rawIndex} className="slip-attention-card">
