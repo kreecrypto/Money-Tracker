@@ -30,14 +30,18 @@
   position:relative;display:grid;place-items:center; width:38px;height:38px;flex:none;
   border:0;background:transparent;color:#182f26;border-radius:999px;
 }
-.mt-home-alert-dot {
-  position:absolute;right:8px;top:6px;width:8px;height:8px;
-  background:#fa5360;border:2px solid #fff;border-radius:99px;
+.mt-home-alert-count {
+  position:absolute;right:-4px;top:-5px;min-width:18px;height:18px;
+  padding:0 4px;display:grid;place-items:center;
+  background:#9d4b15;color:#fff;border:2px solid #fff;border-radius:999px;
+  font-size:10px;font-weight:800;line-height:1;font-variant-numeric:tabular-nums;
 }
 .mt-home-avatar { width:34px;height:34px;background:#e8f5e9;color:#1c9654; }
 .mt-home-hello {font-size:13px;font-weight:750;line-height:1.2;margin:9px 0 1px;}
 .mt-home-subtitle {font-size:11px;line-height:1.4;margin:0;color:#7f8983;}
 .mt-home-screen {max-width:740px;margin-inline:auto;}
+/* Override the old global ledger order so the desktop grid follows the new Home flow. */
+.mt-home-screen > .mt-home-recent {order:0!important;}
 .mt-home-screen .mt-home-summary {
   display:block; width:100%; margin:0; padding:0; border:0; box-shadow:none;
 }
@@ -165,13 +169,13 @@
 .mt-home-screen button:focus-visible,.mt-home-topbar button:focus-visible,
 .mt-home-month-picker:focus-within{outline:3px solid #13784b;outline-offset:2px;}
 @media(max-width:660px){
-  body:has(.mt-home-screen),.app-body:has(.mt-home-screen) {background:#fff!important;}
+  body:has(.mt-home-screen),.app-body:has(.mt-home-screen) {background:var(--cute-canvas,#fffaf6)!important;}
   .topbar.topbar-home.home-v2-topbar {
     min-height:0!important;padding: max(12px,env(safe-area-inset-top,0px)) 20px 7px!important;
-    display:block;background:#fff!important;
+    display:block;background:var(--cute-canvas,#fffaf6)!important;
   }
   .main-content:has(.mt-home-screen) {
-    background:#fff!important;
+    background:var(--cute-canvas,#fffaf6)!important;
     padding:4px max(20px,env(safe-area-inset-right,0px)) 20px max(20px,env(safe-area-inset-left,0px))!important;
   }
   .mt-home-screen {
@@ -183,7 +187,7 @@
   .mt-home-screen>.mobile-quick-actions,
   .mt-home-screen>.transactions-surface{order:initial!important;margin:0!important;}
   .mt-home-screen>.summary-grid .mt-home-balance {
-    background:linear-gradient(113deg,#0c6040 5%,#126e49 62%,#187752 100%)!important;
+    /* Hero background owned by the final theme. */
     min-height:0!important;padding:16px 14px 13px!important;
     border-radius:16px!important;
   }

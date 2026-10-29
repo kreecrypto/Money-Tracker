@@ -40,7 +40,7 @@ type Correction={
   category:string;
 };
 const statusLabels:Record<SlipBatchRow['status'],string>={
-  saved:'บันทึกแล้ว',duplicate:'รายการซ้ำ',incomplete:'รอตรวจข้อมูล',
+  saved:'บันทึกแล้ว',duplicate:'รายการซ้ำ',incomplete:'รอตรวจ',
   error:'อ่านหรือบันทึกไม่สำเร็จ',cancelled:'ยกเลิกแล้ว',undone:'ยกเลิกการบันทึกแล้ว',excluded:'ไม่นับรายการ',
 };
 const toCorrection=(source:SlipFields):Correction=>({
@@ -433,7 +433,7 @@ export default function SlipScanner({onApply,onComplete,onBusyChange,onUndoBatch
   const needsAttention=Object.entries(corrections).filter(([index])=>rows[Number(index)]?.status==='incomplete');
   return <section className="slip-panel slip-panel-primary slip-workspace" aria-label="อัปโหลดสลิปหรือใบเสร็จหลายรูป">
     <div className="slip-head"><div><ScanLine size={18}/><strong>เพิ่มสลิปหรือใบเสร็จ</strong></div></div>
-    {!busy&&!complete&&<p className="slip-hint">อ่านข้อมูลและบันทึกอัตโนมัติ หากอ่านไม่ครบจะแจ้งให้ตรวจ</p>}
+    {!busy&&!complete&&<p className="slip-hint">เลือกรูปได้หลายรูป · ข้อมูลครบจะบันทึกทันที ส่วนที่อ่านไม่ครบต้องตรวจเพิ่ม</p>}
     {!busy&&(!complete||needsAttention.length===0)&&<div className="slip-upload-box">
       <div className="slip-upload-icon" aria-hidden="true"><img className="reference-slip-art" src={slipArt} alt=""/></div>
       <strong>{complete?'เพิ่มรูปอีกชุด':'เลือกรูปสลิป'}</strong>
@@ -460,7 +460,7 @@ export default function SlipScanner({onApply,onComplete,onBusyChange,onUndoBatch
     {complete&&<div className={'slip-batch-summary ref-ocr-results'+(summary.incomplete+summary.errors>0?' requires-review':'')} role="status" aria-live="polite">
       <div className="slip-batch-summary-title">{summary.incomplete+summary.errors>0?<AlertTriangle size={18}/>:<CheckCircle2 size={18}/>}<strong>{slipBatchHeading(summary)}</strong></div>
       <div className="slip-batch-counts"><span>บันทึกแล้ว<b>{summary.saved}</b></span><span>ซ้ำ<b>{summary.duplicate}</b></span><span>รอตรวจ<b>{summary.incomplete}</b></span><span>อ่านไม่สำเร็จ<b>{summary.errors}</b></span>{(summary.excluded||0)>0&&<span>ไม่นับรายการ<b>{summary.excluded}</b></span>}</div>
-       <p className="slip-batch-note">บันทึกแล้ว: อยู่ในรายการ · ซ้ำ: ไม่เพิ่มรายการใหม่ · รอตรวจ: ยังไม่รวมยอดเงิน</p>
+       <p className="slip-batch-note">บันทึกแล้ว: รวมในยอด · ซ้ำ: ไม่เพิ่มรายการ · รอตรวจ: ยังไม่รวมยอด</p>
       {summary.saved>0&&<div className="slip-batch-totals" aria-label="ยอดที่บันทึกแยกประเภทรายการ">
         <div className="slip-batch-total"><span>รายรับที่บันทึก</span><strong>฿{baht(savedTotals.incomeSatang)}</strong></div>
         <div className="slip-batch-total"><span>รายจ่ายที่บันทึก</span><strong>฿{baht(savedTotals.expenseSatang)}</strong></div>
@@ -471,7 +471,7 @@ export default function SlipScanner({onApply,onComplete,onBusyChange,onUndoBatch
       {(summary.undone||0)>0&&<p className="slip-batch-note">ยกเลิกการบันทึกแล้ว {summary.undone} รายการ</p>}
       {summary.saved>0&&<button type="button" className="btn btn-secondary slip-undo" disabled={undoing} onClick={()=>void undoSaved()}><Undo2 size={16}/>{undoing?'กำลังยกเลิกรายการ…':'ลบรายการที่เพิ่งบันทึก ('+summary.saved+')'}</button>}
       {correctionErrors[-1]&&<p role="alert" className="error-message">{correctionErrors[-1]}</p>}
-      {summary.queued>0&&<p className="slip-queued-note" role="status">เก็บรอตรวจ {summary.queued} รูป · กลับมาตรวจได้จากหน้ารายการ โปรดเก็บรูปต้นฉบับไว้ใน Photos</p>}
+      {summary.queued>0&&<p className="slip-queued-note" role="status">เก็บไว้รอตรวจ {summary.queued} รูป · เปิดได้ที่ รายการ → รอตรวจจากสลิป · โปรดเก็บรูปต้นฉบับไว้</p>}
       {summary.saved>0&&summary.incomplete===summary.queued&&<button type="button" className={'btn '+(needsAttention.length>0?'btn-secondary':'btn-primary')+' slip-batch-finish'} onClick={()=>onViewSaved(rows.find(row=>row.status==='saved')?.date||'')}>ดูรายการที่บันทึก</button>}
       {needsAttention.length>0&&<button type="button" className="btn btn-primary slip-batch-finish" onClick={()=>attentionRef.current?.scrollIntoView({behavior:window.matchMedia('(prefers-reduced-motion: reduce)').matches?'auto':'smooth',block:'start'})}>ตรวจ {needsAttention.length} รายการที่ยังไม่บันทึก</button>}
       <button type="button" className={'btn '+(needsAttention.length>0?'btn-secondary':'btn-primary')+' slip-batch-finish'} disabled={undoing} onClick={onClose}>{needsAttention.length>0?'ปิดและตรวจภายหลัง':'เสร็จสิ้น'}</button>
@@ -488,7 +488,7 @@ export default function SlipScanner({onApply,onComplete,onBusyChange,onUndoBatch
     </div>}
     {needsAttention.length>0&&<div ref={attentionRef} className="slip-attention" aria-label="แก้ไขสลิปที่อ่านไม่ครบ">
       <div className="slip-attention-title"><ScanLine size={19}/><strong>ข้อมูลที่อ่านได้จากสลิป · โปรดตรวจสอบ</strong></div>
-      <p>ตรวจวันที่ ยอดเงิน และประเภทรายการก่อนบันทึก หรือกลับมาที่ “รายการ → รอตรวจจากสลิป” (กรุณาเก็บรูปต้นฉบับไว้ เพราะระบบไม่เก็บรูปสำหรับดูภายหลัง)</p>
+      <p>ตรวจจำนวนเงิน วันที่ และประเภทก่อนบันทึก หรือเปิดตรวจภายหลังที่ รายการ → รอตรวจจากสลิป · โปรดเก็บรูปต้นฉบับไว้</p>
       {needsAttention.map(([rawIndex,draft])=>{
         const index=Number(rawIndex);
         return <div id={'slip-review-'+index} key={rawIndex} className="slip-attention-card">

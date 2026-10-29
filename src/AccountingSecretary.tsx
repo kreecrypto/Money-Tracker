@@ -14,10 +14,10 @@ type Props={
   onReviewIphone:()=>void;
 };
 const questions:{key:SecretaryQuestion;label:string}[]=[
-  {key:'today',label:'วันนี้ใช้เงินเท่าไร'},
+  {key:'today',label:'วันนี้มีเงินออกเท่าไร'},
   {key:'month',label:'สรุปเดือนที่เลือก'},
-  {key:'category',label:'จ่ายหมวดไหนมากสุด'},
-  {key:'pending',label:'มีอะไรต้องตรวจบ้าง'},
+  {key:'category',label:'รายจ่ายหมวดไหนมากสุด'},
+  {key:'pending',label:'มีรายการไหนรอตรวจ'},
 ];
 
 export default function AccountingSecretary({items,month,localPending,iphonePending,onTransactions,onReviewLocal,onReviewIphone}:Props){
@@ -25,14 +25,14 @@ export default function AccountingSecretary({items,month,localPending,iphonePend
   const today=todayLocal();
   const answer=secretaryAnswer(question,items,month,today,localPending,iphonePending);
   const briefing=secretaryBriefing(items,today,localPending,iphonePending);
-  const transactionAction=question==='today'?'เปิดรายการเดือนปัจจุบัน':question==='category'&&answer.metrics.length?'เปิดรายการหมวดนี้':'ดูรายการในเดือนที่เลือก';
+  const transactionAction=question==='today'?'ดูรายการเดือนปัจจุบัน':question==='category'&&answer.metrics.length?'ดูรายการในหมวดนี้':'ดูรายการในเดือนที่เลือก';
   return <section className="accounting-secretary surface" aria-label="เลขานักบัญชี">
     <div className="accounting-secretary-heading">
       <span className="accounting-secretary-avatar" aria-hidden="true"><Bot size={22}/></span>
-      <div><h2>เลขานักบัญชี</h2><p>สรุปสถานะการเงิน ชี้เรื่องที่ต้องตรวจ และแนะนำงานถัดไป</p></div>
+      <div><h2>เลขานักบัญชี</h2><p>สรุปรายการที่บันทึกและสิ่งที่ต้องตรวจ</p></div>
     </div>
     <div className="accounting-secretary-briefing">
-      <span>เรื่องที่ควรรู้ตอนนี้</span>
+      <span>สรุปที่ควรรู้</span>
       <strong>{briefing.title}</strong>
       <p>{briefing.detail}</p>
     </div>
@@ -54,6 +54,6 @@ export default function AccountingSecretary({items,month,localPending,iphonePend
       {localPending>0&&<button type="button" onClick={onReviewLocal}><ClipboardCheck size={17}/> ตรวจสลิป ({localPending})</button>}
       {iphonePending!==null&&iphonePending>0&&<button type="button" onClick={onReviewIphone}><ClipboardCheck size={17}/> ตรวจจาก iPhone ({iphonePending})</button>}
     </div>
-    <p className="accounting-secretary-disclaimer">คำตอบสำเร็จรูป ไม่ใช่ AI Chat · คำนวณในเครื่อง · ไม่ส่งข้อมูลให้ AI ภายนอกหรือแก้รายการอัตโนมัติ</p>
+    <p className="accounting-secretary-disclaimer">สรุปจากข้อมูลที่บันทึกในเครื่อง ไม่ใช่ AI แชต และไม่แก้ไขรายการให้อัตโนมัติ</p>
   </section>;
 }

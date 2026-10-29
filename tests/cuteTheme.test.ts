@@ -12,11 +12,11 @@ describe('Cute visual theme release guards',()=>{
       entry.indexOf("import './responsive-grids.css';")
     );
   });
-  it('overrides legacy forced white mobile canvas and dark balance card',()=>{
+  it('preserves the warm mobile canvas with a high-contrast branded balance card',()=>{
     expect(theme).toMatch(/body:has\(\.mt-home-screen\)/);
     expect(theme).toMatch(/\.main-content:has\(\.mt-home-screen\)[\s\S]*?background:var\(--cute-canvas\)!important/);
     expect(theme).toMatch(/\.mt-home-balance\.mt-home-calendar-summary[\s\S]*?background:[^;]+!important/);
-    expect(theme).toMatch(/\.mt-home-balance\.mt-home-calendar-summary \.mt-home-total[\s\S]*?color:var\(--cute-ink\)!important/);
+    expect(theme).toMatch(/\.mt-home-balance\.mt-home-calendar-summary \.mt-home-total[\s\S]*?color:#fff!important/);
   });
   it('styles all key screens and active states without hiding data or changing grid',()=>{
     for (const selector of [
@@ -27,6 +27,14 @@ describe('Cute visual theme release guards',()=>{
     ]) expect(theme).toContain(selector);
     expect(theme).not.toMatch(/display:\s*none\s*!important/);
     expect(theme).not.toMatch(/grid-template-columns\s*:/);
+  });
+  it('keeps financial colors, readable daily values, and avoids nested cards',()=>{
+    expect(theme).toContain('--cute-income:#087640;');
+    expect(theme).toContain('--cute-expense:#a52c50;');
+    expect(theme).toContain('.mt-home-day-detail .mt-home-transaction-list');
+    expect(theme).toMatch(/\.mt-home-day-detail \.mt-home-transaction-list\s*\{\s*border:0/);
+    expect(theme).toContain('.mt-home-day-detail .mt-home-day-summary strong');
+    expect(theme).toContain('.mt-home-screen .mt-home-balance-caption');
   });
   it('preserves visible focus and reduced-motion affordances',()=>{
     expect(theme).toContain(':focus-visible');

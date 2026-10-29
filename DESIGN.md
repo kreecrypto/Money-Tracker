@@ -1,7 +1,7 @@
 # Money Tracker — Design System
 
 ## Overview
-**Creative North Star: Quiet Financial Clarity.** Money Tracker should feel like a finished utility on a phone: one primary action, clear real financial values, low-friction navigation, reassuring states and no unnecessary marketing copy. In Impeccable terms each operational screen is in **Operate** mode. Preserve the existing green fintech identity rather than introducing a new dashboard template. The Home visual hierarchy is **monthly net → accounting secretary briefing and next action → upload supporting evidence → recent transactions**. The Reports screen leads with accounting review and classified cash movements before secondary charts and budget. This is a reporting experience rather than a form-first ledger. Use spacing to group information rather than nested cards.
+**Creative North Star: Quiet Financial Clarity.** Money Tracker should feel like a finished utility on a phone: one primary action, clear real financial values, low-friction navigation, reassuring states and no unnecessary marketing copy. In Impeccable terms each operational screen is in **Operate** mode. Preserve the existing green fintech identity rather than introducing a new dashboard template. The Home visual hierarchy is **calendar → selected-day transactions and totals → monthly net → accounting secretary briefing and next action → upload supporting evidence → recent transactions**. The calendar is the first actionable financial view directly below the Home header. The Reports screen leads with accounting review and classified cash movements before secondary charts and budget. This is a reporting experience rather than a form-first ledger. Use spacing to group information rather than nested cards.
 
 ## Colors
 Use CSS tokens and the current palette as authoritative; the source has older color variants that should be progressively consolidated, not treated as new colors to invent.
@@ -51,7 +51,8 @@ Flat by default. Use thin green-tinted borders and white backgrounds instead of 
 
 ## Components
 - **Topbar**: “เงินวันนี้” identity, accessible notifications and settings controls; 44×44px hit areas.
-- **Monthly summary**: month chooser, monthly net, split income/expense in compact internal white surfaces; no fabricated trends.
+- **Calendar-first Home**: show the current selected month and tappable days first, then the selected day's saved transactions and signed income/expense totals; changing month updates the calendar and monthly context together.
+- **Monthly summary**: month chooser, monthly net, split income/expense in compact internal white surfaces after the calendar detail; no fabricated trends.
 - **Month chooser**: real months, clear selected state, keyboard close and focus restoration; must not overflow the visual viewport.
 - **Accounting secretary**: display a truthful daily briefing, concise question-driven answers and any Pending next steps before the upload control. No AI-generated claims or artificial balances.
 - **Detailed accountant review**: separate recorded cash out into debt, wallet top-ups, unknown-purpose and classified spending; exact bucket totals must equal outflow. Drill down to the same transactions, never claim certified expenses.
@@ -75,3 +76,41 @@ Flat by default. Use thin green-tinted borders and white backgrounds instead of 
 - **Don't** merge an untested UI change or claim production is updated until its Vercel deployment is READY and the target domain is verified.
 
 **Impeccable usage:** From project root, run `npx impeccable install` in your coding environment, then `/impeccable polish the Home screen`, `/impeccable audit the app`, and `npx impeccable detect src/`. This is a hand-curated compatible context, not an assertion that the official init/document commands were run.
+
+
+## Thai UX Writing (Calendar-first, October 2026)
+
+- **Home-first language:** Calendar = `ปฏิทินรายรับ–รายจ่าย`; the selected day shows `รายการวันที่ ...` and the saved daily totals. A date without saved entries says `ยังไม่มีรายการที่บันทึกในวันที่เลือก`. Calendar empty days must not imply the user spent zero in the real world.
+- **Period accuracy:** For user-selected historic months say `เดือนที่เลือก`, never `เดือนนี้`. The Home day-detail action goes to the **monthly** transaction list, so its label is `ดูรายการเดือนที่เลือก`; do not imply a date-filtered destination.
+- **Transaction evidence:** Prefer `รายการล่าสุด` over bureaucratic labels; incoming slips may display the payer/sender, and search hints mention sender and recipient. All sums are records in the app, not actual bank balances.
+- **OCR status:** `บันทึกแล้ว` is included in recorded totals; `รายการซ้ำ` adds nothing new; `รอตรวจ` is not included; failed images may need retry. Do not turn uncertainty into success language. Preserve wallet top-up as bank outflow and warn against double counting.
+- **Voice:** Concise, neutral, actionable Thai. Show the next step in an error or empty state, but never promise a filter, data persistence, bank verification, or automatic accounting action that has not happened. Keep financial interpretation distinct from display wording.
+
+
+## Calendar-first actionable UX (P1)
+
+- Day detail shows at most four saved records, then a clear 'ดูทั้งหมด N รายการ' action leading to a date-filtered Transactions view (same selected month), never an unrelated whole-month list.
+- Transactions displays the active date explicitly with 'เฉพาะวันที่ ...' and an accessible 'ดูทั้งเดือน' reset; switching to another top-level Transactions tab, accountant group, or a different month clears the date constraint. Pending is never included in recorded totals.
+- At widths below 360px, colored indicator bars replace clipped 9px calendar numbers; full amounts remain in each calendar button's screen-reader name and in the selected-day summary. At larger widths compact values are at least 11px and use ellipsis.
+- Verify date scoping, other-day exclusion, reset, 320–430px + large font, and unaffected Upload/Pending/duplicate behavior before release.
+
+
+## The Five Elements of UX — calendar-first product contract (2026-10-29)
+
+- **Strategy — user needs and product goals:** On opening the app, the first job is understanding when recorded money moved, what remains incomplete, and what action is available. Never imply recorded totals equal the bank balance or real spending not yet captured.
+- **Scope — only necessary capabilities and content:** Keep one primary slip upload pathway, selected-day details, month summary and a single consolidated review destination. Do not add duplicate Home shortcuts or invent data. Pending slips are excluded from both the calendar and recorded totals.
+- **Structure — interaction architecture:** Home calendar → select day → exact-day Transactions → clear date filter → whole-month Transactions. The same month context must follow navigation. An explicit 'กลับไปวันนี้' returns from other days or months without retracing arrow taps; the notification bell leads to existing review tabs.
+- **Skeleton — information/navigation design:** Calendar first; selected-day numbers and list next; month financial totals, accounting summary, upload and recent activity below. A visible numeric review counter tells the user there are unfinished tasks; the calendar footer explains Saved-only data.
+- **Surface — legibility and sensory design:** Distinguish Today (underlined number) from Selected (filled, outlined state), preserve +/- signed income and expense, show complete amounts in details and accessibility names, keep minimum tap targets and iOS safe areas. Do not use color as the only indicator.
+
+Acceptance: in Safari/WebKit and Chromium on 320/375/390/430px, the date controls do not overflow; today and selected day are individually distinguishable, the reset action returns both month and selected day, the review counter is accurate, and Pending never appears as a Saved calendar transaction. Automated results are not physical-device proof.
+
+
+## UI fundamentals — calendar-first polish (2026-10-29)
+
+- **Visual hierarchy:** Date/day amounts first, month totals second, accountant briefing next, and the single slip-upload CTA after. The net amount gets an explicit +/− prefix, and supporting text clarifies these are recorded entries, not a bank balance.
+- **Consistency and color:** Shared green for Saved income and rose for Saved expense across calendar, date summary, and Home list. Do not rely on colors alone; signed values remain visible.
+- **Spacing and grouping:** The day-detail card owns its outer border; do not nest an extra bordered transaction card inside it. The standalone recent transaction list may retain its own surface border.
+- **Typography and contrast:** Daily income/expense sums receive a 15–19px size ramp; descriptive copy and empty states remain at least 12–13px, with large-text overrides. On small phones numeric values may wrap without clipping.
+- **Interaction affordance:** Calendar and transaction buttons retain focus indicators and ≥44px height where possible; hover color is only a mouse affordance and must not replace keyboard/VoiceOver labels.
+- **QA:** Check positive, zero and negative net formatting and financial disclaimers, 320/375/390/430px and large text, Chrome/WebKit, no card-border duplication or horizontal clipping. Monetary calculations and storage are unchanged.

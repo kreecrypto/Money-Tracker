@@ -32,7 +32,7 @@ function PendingCard({item,onSave,onKeep,onDiscard}:{
   });
   const keep=async()=>{
     setBusy(true);setError('');setNotice('');
-    try{const updated=assemble();await onKeep(updated);setDraft(updated);setNotice('บันทึกข้อมูลที่แก้ไขไว้ในเครื่องแล้ว (ยังไม่รวมยอด)');}
+    try{const updated=assemble();await onKeep(updated);setDraft(updated);setNotice('เก็บข้อมูลที่แก้ไขไว้แล้ว · ยังไม่รวมยอด');}
     catch(e){setError(e instanceof Error?e.message:'เก็บข้อมูลไม่สำเร็จ');}
     finally{setBusy(false);}
   };
@@ -59,9 +59,9 @@ function PendingCard({item,onSave,onKeep,onDiscard}:{
   return <article className="pending-slip-card" aria-label={draft.name}>
     <div className="pending-slip-row">
       <div className="pending-slip-main">
-        <span className="pending-slip-amount">{draft.amountSatang!==null?'฿'+baht(draft.amountSatang):'ยังอ่านยอดไม่ได้'}</span>
+        <span className="pending-slip-amount">{draft.amountSatang!==null?'฿'+baht(draft.amountSatang):'ยังอ่านจำนวนเงินไม่ได้'}</span>
         <strong>{draft.recipient||draft.name||'สลิปที่รอตรวจ'}</strong>
-        <span>{draft.date||'วันที่ยังไม่ครบ'}{draft.time?' · '+draft.time:''}</span>
+        <span>{draft.date||'ยังไม่ทราบวันที่'}{draft.time?' · '+draft.time:''}</span>
       </div>
       <span className={'pending-slip-chip'+(draft.kind==='wallet_topup'?' wallet':'')}>{draft.kind==='wallet_topup'?'เติม Wallet':'รอตรวจ'}</span>
     </div>
@@ -109,25 +109,25 @@ function PendingCard({item,onSave,onKeep,onDiscard}:{
       </button>
       <div className="pending-slip-secondary">
         <button type="button" className="btn btn-secondary" onClick={()=>void keep()} disabled={busy}>
-          <Save size={16}/> บันทึกไว้แก้ภายหลัง
+          <Save size={16}/> เก็บไว้ตรวจภายหลัง
         </button>
         <button type="button" className="btn btn-ghost bordered" onClick={()=>void discard()} disabled={busy}>
           <ArchiveX size={16}/> {draft.kind==='wallet_topup'?'ไม่นับรายการ':'ลบจากรอตรวจ'}
         </button>
       </div>
-      <p className="pending-slip-note">รายการนี้จะรวมในยอดรายรับ–รายจ่ายต่อเมื่อบันทึกสำเร็จเท่านั้น</p>
+      <p className="pending-slip-note">รายการนี้ยังไม่รวมในยอดรายรับ–รายจ่าย จนกว่าจะบันทึกสำเร็จ</p>
     </form>}
   </article>;
 }
 export default function PendingSlipsInbox({items,onSave,onKeep,onDiscard,onAdd}:Props){
   return <section className="surface pending-inbox" aria-label="รายการสลิปที่รอตรวจ">
     <div className="pending-inbox-head">
-      <div><h3>รอตรวจ {items.length>0?'('+items.length+')':''}</h3>{items.length>0&&<p>รายการเหล่านี้ยังไม่รวมในยอดเงิน</p>}
+      <div><h3>รอตรวจ {items.length>0?'('+items.length+')':''}</h3>{items.length>0&&<p>รายการเหล่านี้ยังไม่รวมในยอดรายรับ–รายจ่ายหรือปฏิทิน</p>}
       </div>
     </div>
     {items.length===0?<div className="pending-inbox-empty">
       <CheckCircle2 size={32}/>
-      <strong>ไม่มีสลิปค้างตรวจ</strong>
+      <strong>ไม่มีสลิปรอตรวจ</strong>
       
       <button className="btn btn-primary" onClick={onAdd}><Wallet size={16}/> เพิ่มสลิป</button>
     </div>:<div className="pending-inbox-list">{items.map(item=>
