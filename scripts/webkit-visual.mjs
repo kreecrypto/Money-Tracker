@@ -168,16 +168,61 @@ try{
       })
     );
     await page.locator('.modal-heading button').click();
-    findings.push({label,home,dateDrilldown,dateFilterCleared,returnToTodayVisible,returnToTodaySelected,calendarBoth,calendarSelected,calendarDetail,calendarPreviousMonth,calendarMonthRestored,monthOptions,arrowNavigatesMonth,menuUnclipped,monthCloses,detailsOpen,detailsClose,transactions,list,brandLoaded,scanner,slipArtLoaded,compactUploadButtons,scannerColors,readableScanner,reportOverview,trendsOnly,noReportsFab,settings,settingsDirectory,settingsAnchors,noSettingsFab,largeSetting,largeHome,savedReadingMode,largeScanner,errors});
+    // Synthetic only; full device and K PLUS original-image evidence still requires a real iPhone.
+    await page.evaluate(async()=>{
+      const {savePendingSlip}=await import('/src/lib/storage.ts');
+      const {todayLocal}=await import('/src/lib/finance.ts');
+      const now=Date.now();
+      await savePendingSlip({
+        id:'webkit-synthetic-pending',name:'synthetic-incomplete.jpg',
+        createdAt:now,updatedAt:now,amountSatang:null,date:todayLocal(),time:null,
+        recipient:null,direction:null,method:'bank',category:'อื่น ๆ',
+        directionReason:'ข้อมูลจำลองยังไม่ทราบทิศทาง',reason:'ข้อมูลจำลองไม่พบจำนวนเงิน',kind:'slip'
+      });
+    });
+    await page.close();
+    const reopenedPage=await context.newPage();
+    reopenedPage.on('pageerror',error=>errors.push(error.message));
+    await reopenedPage.goto(base,{waitUntil:'networkidle'});
+    await reopenedPage.locator('.mt-home-transaction').first().waitFor({timeout:10000});
+    const reopened=await reopenedPage.evaluate(async()=>{
+      const {loadTransactions,loadPendingSlips}=await import('/src/lib/storage.ts');
+      const {todayLocal}=await import('/src/lib/finance.ts');
+      const [saved,pending]=await Promise.all([loadTransactions(),loadPendingSlips()]);
+      const day=todayLocal();
+      const calendar=document.querySelector('.mt-calendar-day[data-date="'+day+'"]');
+      const detail=document.querySelector('.mt-home-day-detail')?.textContent||'';
+      const net=document.querySelector('.mt-home-total')?.textContent||'';
+      return {
+        savedExact:saved.length===3&&['safari-fixture-income','safari-fixture-expense','safari-fixture-other-day'].every(id=>saved.some(t=>t.id===id)),
+        pendingIncomplete:pending.length===1&&pending[0].amountSatang===null,
+        calendarExcludesPending:!!calendar?.getAttribute('aria-label')?.includes('2 รายการ'),
+        dayTotalsCorrect:detail.includes('32,400.00')&&detail.includes('7,750.00'),
+        monthNetCorrect:net.includes('24,350.00'),
+        reviewAccessible:document.querySelector('.mt-home-header-button')?.getAttribute('aria-label')?.includes('1 รายการ')||false,
+        largeTextRetained:document.documentElement.dataset.readingSize==='large',
+        overflow:Math.max(0,document.documentElement.scrollWidth-innerWidth)
+      };
+    });
+    await reopenedPage.locator('.mt-home-header-button').click();
+    const reviewAfterReopen=await reopenedPage.locator('.pending-slip-card').count()===1;
+    const manifestResponse=await context.request.get(base+'/manifest.webmanifest');
+    const workerResponse=await context.request.get(base+'/sw.js');
+    const iconResponse=await context.request.get(base+'/icon-192.png');
+    const manifest=manifestResponse.ok()?await manifestResponse.json():{};
+    const pwaAssetsReady=manifestResponse.ok()&&workerResponse.ok()&&iconResponse.ok()&&
+      manifest.display==='standalone'&&manifest.start_url==='/'&&manifest.scope==='/'&&
+      Array.isArray(manifest.icons)&&manifest.icons.some(icon=>icon.sizes==='192x192');
+    findings.push({label,home,reopened,reviewAfterReopen,pwaAssetsReady,dateDrilldown,dateFilterCleared,returnToTodayVisible,returnToTodaySelected,calendarBoth,calendarSelected,calendarDetail,calendarPreviousMonth,calendarMonthRestored,monthOptions,arrowNavigatesMonth,menuUnclipped,monthCloses,detailsOpen,detailsClose,transactions,list,brandLoaded,scanner,slipArtLoaded,compactUploadButtons,scannerColors,readableScanner,reportOverview,trendsOnly,noReportsFab,settings,settingsDirectory,settingsAnchors,noSettingsFab,largeSetting,largeHome,savedReadingMode,largeScanner,errors});
     await context.close();
   }
   fs.writeFileSync(`${directory}/webkit-report.json`,JSON.stringify(findings,null,2));
   console.log('WEBKIT_SAFARI_VISUAL_RESULTS',JSON.stringify(findings));
   const failed=findings.filter(f=>f.home.overflow>1||!f.home.order||f.home.calendarDays<28||f.home.actionCount!==0||!f.dateDrilldown||!f.dateFilterCleared||!f.returnToTodayVisible||!f.returnToTodaySelected||!f.calendarBoth||!f.calendarSelected||!f.calendarDetail||!f.calendarPreviousMonth||!f.calendarMonthRestored||f.home.navCount!==4||
     f.home.pageGrid!==4||f.home.homeGrid!==4||f.home.splitGrid!==4||
-    !f.home.navVisible||f.home.icons.some(icon=>icon.width<20||icon.height<20)||f.monthOptions!==13||!f.arrowNavigatesMonth||!f.menuUnclipped||!f.monthCloses||!f.detailsOpen||!f.detailsClose||f.transactions!==2||!f.list||!f.brandLoaded||!f.slipArtLoaded||!f.reportOverview||!f.settingsDirectory||!f.settingsAnchors||!f.scanner||!f.compactUploadButtons||!f.readableScanner||!f.trendsOnly||!f.noReportsFab||!f.settings||!f.noSettingsFab||!f.largeSetting.active||!f.largeSetting.selected||f.largeSetting.fontSize<16||f.largeHome.overflow>1||f.largeHome.textSize<16||!f.largeHome.navigation||!f.savedReadingMode||!f.largeScanner||f.errors.length);
+    !f.home.navVisible||f.home.icons.some(icon=>icon.width<20||icon.height<20)||f.monthOptions!==13||!f.arrowNavigatesMonth||!f.menuUnclipped||!f.monthCloses||!f.detailsOpen||!f.detailsClose||f.transactions!==2||!f.list||!f.brandLoaded||!f.slipArtLoaded||!f.reportOverview||!f.settingsDirectory||!f.settingsAnchors||!f.scanner||!f.compactUploadButtons||!f.readableScanner||!f.trendsOnly||!f.noReportsFab||!f.settings||!f.noSettingsFab||!f.largeSetting.active||!f.largeSetting.selected||f.largeSetting.fontSize<16||f.largeHome.overflow>1||f.largeHome.textSize<16||!f.largeHome.navigation||!f.savedReadingMode||!f.largeScanner||!f.reopened?.savedExact||!f.reopened?.pendingIncomplete||!f.reopened?.calendarExcludesPending||!f.reopened?.dayTotalsCorrect||!f.reopened?.monthNetCorrect||!f.reopened?.reviewAccessible||!f.reopened?.largeTextRetained||f.reopened?.overflow>1||!f.reviewAfterReopen||!f.pwaAssetsReady||f.errors.length);
   if(failed.length){console.error('WEBKIT_SAFARI_VISUAL_FAIL',JSON.stringify(failed));process.exitCode=1;}
-  else console.log('WEBKIT_SAFARI_VISUAL_PASS: 4 phone sizes, essential home, icons, tabbar, scan, transactions, settings');
+  else console.log('WEBKIT_SAFARI_VISUAL_PASS: 4 phone sizes; Home, scan, Saved/Pending after tab reopen, PWA files');
 }catch(error){
   console.error('WEBKIT_SAFARI_AUDIT_ERROR',error);
   process.exitCode=1;
