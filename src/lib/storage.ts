@@ -2,6 +2,7 @@ import {DEFAULT_SETTINGS,type Settings,type Transaction,isValidTransaction} from
 import {isValidPendingSlip,pendingFingerprintMatch,type PendingSlip} from './pendingSlips';
 import {sanitizeOwnerNames} from './slipIdentity';
 import {isLikelyEmailDuplicate} from './emailLedger';
+import {suggestCategory} from './categorySuggestions';
 const DB_NAME='ngoentoday-db';
 const VERSION=2;
 const STORE='transactions';
@@ -27,6 +28,28 @@ function getDB():Promise<IDBDatabase>{
 function request<T>(req:IDBRequest<T>):Promise<T>{return new Promise((resolve,reject)=>{req.onsuccess=()=>resolve(req.result);req.onerror=()=>reject(req.error);});}
 export async function loadTransactions(){ const db=await getDB(); const data=await request<Transaction[]>(db.transaction(STORE,'readonly').objectStore(STORE).getAll()); return data.filter(isValidTransaction).sort((a,b)=>b.date.localeCompare(a.date)||(b.time||'').localeCompare(a.time||'')||b.createdAt-a.createdAt); }
 export async function saveTransaction(item:Transaction){const db=await getDB(); const tx=db.transaction(STORE,'readwrite'); await request(tx.objectStore(STORE).put(item)); await completed(tx);}
+
+/** Confirmed category-only edits in a single IndexedDB transaction. */
+export async function applySuggestedCategories(ids:readonly string[]):Promise<number>{
+  if(ids.length>2000||ids.some(id=>typeof id!=='string'||id.length>149))
+    throw new Error('จำนวนรายการจัดหมวดไม่ถูกต้อง');
+  const selected=new Set(ids);
+  if(!selected.size)return 0;
+  const db=await getDB();
+  const tx=db.transaction(STORE,'readwrite'),store=tx.objectStore(STORE);
+  const records=await request<Transaction[]>(store.getAll());
+  let updated=0;
+  for(const item of records){
+    if(!selected.has(item.id)||!isValidTransaction(item))continue;
+    const suggestion=suggestCategory(item);
+    if(!suggestion)continue;
+    store.put({...item,category:suggestion.category});
+    updated++;
+  }
+  await completed(tx);
+  return updated;
+}
+
 /** Append private email records atomically; never erase or overwrite existing transactions. */
 export async function appendEmailTransactions(candidates:Transaction[]):Promise<{imported:number;duplicates:number}>{
   if(candidates.length>2000||candidates.some(item=>!isValidTransaction(item)||!item.id.startsWith('email-')))
