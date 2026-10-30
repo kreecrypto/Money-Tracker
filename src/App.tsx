@@ -1,7 +1,7 @@
 import {useCallback,useEffect,useMemo,useRef,useState,type FormEvent} from 'react';
 import {ArrowDownLeft,ArrowRight,ArrowUpRight,BarChart3,CalendarDays,Check,ScanLine,ChevronLeft,ChevronRight,CloudOff,Download,FileSpreadsheet,Menu,MoreHorizontal,Pencil,Plus,Search,Settings as SettingsIcon,ShieldCheck,Trash2,TrendingDown,Upload,Wallet,WalletCards,X,House,ReceiptText,UtensilsCrossed,ShoppingBag,TrainFront,HandCoins,Ellipsis,} from 'lucide-react';
 import {baht,DEFAULT_SETTINGS,EXPENSE_CATEGORIES,expenseByCategory,INCOME_CATEGORIES,lastMonths,METHODS,monthLocal,monthly,summarize,todayLocal,toSatang,transactionDisplayName,type EntryType,type Method,type Settings,type Transaction} from './lib/finance';
-import {deleteTransaction,loadSettings,loadTransactions,replaceAll,saveSettings,saveTransaction,loadPendingSlips,savePendingSlip,deletePendingSlip} from './lib/storage';
+import {deleteTransaction,loadSettings,loadTransactions,replaceAll,saveSettings,saveTransaction,loadPendingSlips,savePendingSlip,deletePendingSlip,applySuggestedCategories} from './lib/storage';
 import {makePendingSlip,pendingToSlipFields,matchingPendingBySlipHash,type PendingSlip} from './lib/pendingSlips';
 import PendingSlipsInbox from './PendingSlipsInbox';
 import {createBackup,downloadText,parseBackup,toCsv} from './lib/backup';
@@ -9,6 +9,7 @@ import SlipScanner from './SlipScanner';
 import HomeScreen,{HomeTopbar} from './HomeScreen';
 import AccountingSecretary from './AccountingSecretary';
 import AccountantReview from './AccountantReview';
+import CategoryReview from './CategoryReview';
 import {accountantBucketFor,ACCOUNTANT_BUCKET_LABELS,type AccountantBucketKey} from './lib/accountantAudit';
 import EmailLedgerImport from './EmailLedgerImport';
 import {emailLedgerCategory,emailLedgerEvidence,emailLedgerExplanation} from './lib/emailLedger';
@@ -377,6 +378,13 @@ export default function App(){
   };
   const exportJson=()=>{downloadText(`ngoentoday-backup-${todayLocal()}.json`,createBackup(items,settings),'application/json;charset=utf-8');const timestamp=Date.now();try{localStorage.setItem('ngoentoday-last-backup',String(timestamp));}catch{}setLastBackupAt(timestamp);setToast('ดาวน์โหลดข้อมูลสำรองแล้ว โปรดเก็บไฟล์อย่างปลอดภัย');};
   const exportCsv=()=>downloadText(`ngoentoday-${todayLocal()}.csv`,toCsv(items),'text/csv;charset=utf-8');
+  const applyCategoryReview=async(ids:string[])=>{
+    // Download a local backup before editing any saved category; no upload or API call.
+    exportJson();
+    const updated=await applySuggestedCategories(ids);
+    await reload();
+    setToast(updated?'จัดหมวดหมู่สำเร็จ '+updated+' รายการ':'ไม่มีรายการที่ต้องเปลี่ยนแล้ว');
+  };
   const importBackup=async(file:File)=>{try{
     if(file.size>25*1024*1024)throw new Error('ไฟล์ใหญ่เกิน 25 MB');
     const parsed=parseBackup(await file.text());
@@ -466,6 +474,7 @@ export default function App(){
         }
       </>}
       {view==='reports'&&<>
+        <CategoryReview items={selected} onApply={applyCategoryReview}/>
         <AccountantReview items={selected} localPending={pendingSlips.length} iphonePending={iphonePending}
           onTransactions={()=>{setReviewBucket(null);setSearch('');setFilter('all');setInboxTab(false);setSlipInboxTab(false);setView('transactions');}}
           onBucket={bucket=>{setReviewBucket(bucket);setSearch('');setFilter('expense');setInboxTab(false);setSlipInboxTab(false);setView('transactions');}}
