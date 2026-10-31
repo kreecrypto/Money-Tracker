@@ -55,3 +55,10 @@
   .mt-calendar-empty-dot{display:none}
   .mt-calendar-legend small{font-size:12px}
 }
+
+/* A 7-day row cannot fit 44px targets at 320px without contained horizontal scrolling. */
+.mt-calendar-scroll{min-width:0;max-width:100%;overflow-x:auto;overscroll-behavior-x:contain;-webkit-overflow-scrolling:touch}
+.mt-calendar-scroll:focus-visible{outline:3px solid #0b7545;outline-offset:2px}
+@media(max-width:400px){
+  .mt-calendar-grid{min-width:326px;grid-template-columns:repeat(7,minmax(44px,1fr))}
+}
