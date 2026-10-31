@@ -450,13 +450,13 @@ export default function App(){
           onMonthChange={setMonth}
           onUpload={openAdd}
           onTransactions={()=>{setReviewBucket(null);setSearch('');setFilter('all');setInboxTab(false);setSlipInboxTab(false);setView('transactions');}}
-        />
-        <div className="mt-home-below">
+          advisorySlot={<div className="mt-home-below">
           {(settings.ownerNames||[]).length===0&&<div className="mt-home-advisory"><div><strong>ตั้งชื่อเจ้าของบัญชีก่อนอ่านสลิป</strong><p>ช่วยระบุเงินเข้าและเงินออกให้ตรงกับชื่อบนสลิป</p></div><button type="button" onClick={()=>setView('settings')}>ตั้งชื่อของฉัน <ArrowRight size={16}/></button></div>}
           {pendingSlips.length>0&&<div className="mt-home-advisory mt-home-review pending-home-alert"><div><strong>มีสลิปรอตรวจ {pendingSlips.length} รายการ</strong><p>รายการที่ยังไม่ตรวจจะไม่รวมในยอดเงิน</p></div><button type="button" onClick={openPendingSlips}>ตรวจรายการ <ArrowRight size={16}/></button></div>}
           {items.length>=5&&Date.now()-lastBackupAt>30*24*60*60*1000&&<div className="mt-home-advisory"><div><strong>สำรองข้อมูลการเงิน</strong><p>ข้อมูลในเครื่องอาจสูญหายหากล้างข้อมูลของ Safari</p></div><button type="button" onClick={exportJson}>สำรองข้อมูล</button></div>}
           {iphoneConfigured()&&iphoneConnected()&&iphoneSyncError&&<div className="mt-home-advisory"><div><strong>ซิงก์จาก iPhone ไม่สำเร็จ</strong><p>รายการเดิมในเครื่องยังใช้งานได้</p></div><button type="button" onClick={()=>setView('settings')}>ดูการเชื่อมต่อ</button></div>}
-        </div>
+        </div>}
+        />
       </>}
             {view==='transactions'&&<>
         {(pendingSlips.length>0||(iphonePending!==null&&iphonePending>0)||slipInboxTab||inboxTab)&&<div className="inbox-view-tabs" role="group" aria-label="หมวดรายการ">
