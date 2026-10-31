@@ -36,13 +36,13 @@ try{
     await page.locator('.mt-home-transaction').first().waitFor({timeout:10000});
     const home=await page.evaluate(()=>{
       const rect=(selector)=>document.querySelector(selector)?.getBoundingClientRect();
-      const hero=rect('.mt-home-balance'),calendar=rect('.mt-finance-calendar'),cta=rect('.mt-home-upload'),recent=rect('.mt-home-recent'),navigation=rect('.mobile-bottom-nav');
+      const hero=rect('.mt-home-balance'),calendar=rect('.mt-finance-calendar'),cta=rect('.mt-home-upload'),report=rect('.accounting-secretary'),navigation=rect('.mobile-bottom-nav');
       const icons=Array.from(document.querySelectorAll('.mobile-bottom-nav button svg')).map(el=>{const r=el.getBoundingClientRect();return {width:r.width,height:r.height};});
       const gridTracks=selector=>getComputedStyle(document.querySelector(selector)).gridTemplateColumns.split(/\s+/).filter(Boolean).length;
       const pageGrid=gridTracks('.main-content');
       const homeGrid=gridTracks('.mt-home-screen');
       const splitGrid=gridTracks('.mt-home-balance-splits');
-      return {overflow:Math.max(0,document.documentElement.scrollWidth-innerWidth),order:!!(hero&&calendar&&cta&&recent&&hero.top<calendar.top&&calendar.bottom<cta.top&&cta.top<recent.top),calendarDays:document.querySelectorAll('.mt-calendar-day:not([disabled])').length,
+      return {overflow:Math.max(0,document.documentElement.scrollWidth-innerWidth),order:!!(hero&&calendar&&cta&&report&&hero.bottom<cta.top&&cta.bottom<report.top&&report.bottom<calendar.top),calendarDays:document.querySelectorAll('.mt-calendar-day:not([disabled])').length,
         actionCount:document.querySelectorAll('.mt-home-shortcut-grid button').length,navCount:document.querySelectorAll('.mobile-bottom-nav button').length,
         navVisible:!!(navigation&&navigation.top>=0&&navigation.bottom<=innerHeight+2),pageGrid,homeGrid,splitGrid,icons};
     });
@@ -51,16 +51,19 @@ try{
     // Verify same-day incoming/outgoing and an actual tap, not just calendar visibility.
     const today=await page.evaluate(async()=>(await import('/src/lib/finance.ts')).todayLocal());
     const todayCell=page.locator('.mt-calendar-day[data-date="'+today+'"]');
-    const calendarBoth=await todayCell.locator('.is-income,.is-expense').count()===2;
+    const calendarBoth=await todayCell.locator('.mt-calendar-day-indicators .is-income,.mt-calendar-day-indicators .is-expense').count()===2;
     await todayCell.click();
     const calendarSelected=await todayCell.getAttribute('aria-pressed')==='true';
     const calendarDetailText=await page.locator('.mt-home-day-detail').innerText();
     const calendarDetail=calendarDetailText.includes('32,400.00')&&calendarDetailText.includes('7,750.00');
-    const calendarMonthBefore=await page.locator('.mt-calendar-controls span').textContent();
-    await page.locator('.mt-calendar-controls button').first().click();
-    const calendarPreviousMonth=(await page.locator('.mt-calendar-controls span').textContent())!==calendarMonthBefore;
-    await page.locator('.mt-calendar-controls button').last().click();
-    const calendarMonthRestored=(await page.locator('.mt-calendar-controls span').textContent())===calendarMonthBefore;
+    // The summary month picker is now the only month-changing control on Home.
+    const calendarMonthBefore=await page.locator('.mt-calendar-month-label').textContent();
+    await page.locator('.mt-home-month-picker').click();
+    await page.locator('.mt-home-month-popover [role="option"]').nth(5).click();
+    const calendarPreviousMonth=(await page.locator('.mt-calendar-month-label').textContent())!==calendarMonthBefore;
+    await page.locator('.mt-home-month-picker').click();
+    await page.locator('.mt-home-month-popover [role="option"]').nth(7).click();
+    const calendarMonthRestored=(await page.locator('.mt-calendar-month-label').textContent())===calendarMonthBefore;
 
     // The V2 prototype month menu must not be clipped by the green card.
     await page.locator('.mt-home-month-picker').click();
