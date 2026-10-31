@@ -34,7 +34,7 @@ export function HomeTopbar({pendingCount,onNotifications,onSettings}:{
       <span className="mt-home-brand-icon" aria-hidden="true"><img className="reference-brand-img" src={sproutBrand} alt=""/></span>
       <strong className="mt-home-brand-name">เงินวันนี้</strong>
       <div className="mt-home-header-actions">
-        <button type="button" className="mt-home-header-button" aria-label={pendingCount>0?`การแจ้งเตือน: มีสลิปรอตรวจ ${pendingCount} รายการ`:'การแจ้งเตือน'} onClick={onNotifications}>
+        <button type="button" className="mt-home-header-button" aria-label={pendingCount>0?`การแจ้งเตือน: มีรายการรอตรวจ ${pendingCount} รายการ`:'การแจ้งเตือน'} onClick={onNotifications}>
           <Bell size={21} strokeWidth={2.1}/>{pendingCount>0&&<span className="mt-home-alert-dot"/>}
         </button>
         <button type="button" className="mt-home-avatar" aria-label="ตั้งค่าของฉัน" onClick={onSettings}><CircleUserRound size={23}/></button>
@@ -184,7 +184,7 @@ export default function HomeScreen({
           <span className="mt-home-transaction-text"><strong>{transactionDisplayName(tx)}</strong><small>{shortDate(tx.date,tx.time)}</small></span>
           <b className={tx.type==='income'?'is-income':'is-expense'}>{tx.type==='income'?'+':'−'} ฿ {baht(tx.amountSatang)}</b>
         </button>)}
-        {daily.length>4&&<p className="mt-home-calendar-more">อีก {daily.length-4} รายการ · ดูทั้งหมดในหน้ารายการ</p>}
+        {daily.length>4&&<p className="mt-home-calendar-more">อีก {daily.length-4} รายการ · ดูได้ในหน้ารายการของเดือนนี้</p>}
       </div>:<div className="mt-home-empty"><p>ยังไม่มีรายการในวันที่เลือก</p></div>}
     </section>
     <section className="summary-grid mt-home-summary" aria-label="ภาพรวมรายเดือน">
