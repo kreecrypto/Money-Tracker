@@ -190,7 +190,7 @@ try {
     await add.click({timeout:3500});
     const slipDefault=await page.locator('.modal .slip-panel').isVisible();
     const uploadPrimary=await page.getByRole('button',{name:'เลือกรูป',exact:true}).isVisible();
-    const autoSaveNext=await page.getByText('2 อ่านข้อมูลจากสลิป').isVisible() && await page.getByText('3 บันทึกหรือรอตรวจ').isVisible();
+    const autoSaveNext=await page.locator('.slip-panel .slip-hint').getByText('อ่านและบันทึกอัตโนมัติ หากข้อมูลไม่ครบจะแจ้งให้ตรวจ').isVisible();
     const multiSelectable=await page.locator('input[aria-label="เลือกรูปสลิปหลายรูป"]').evaluate(el=>el instanceof HTMLInputElement&&el.multiple);
     const batchLimitVisible=await page.getByText(/สูงสุด 20 รูป/).isVisible();
     const uploadControls=await page.evaluate(()=>{
