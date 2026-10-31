@@ -41,7 +41,7 @@ type Correction={
 };
 const statusLabels:Record<SlipBatchRow['status'],string>={
   saved:'บันทึกแล้ว',duplicate:'รายการซ้ำ',incomplete:'รอตรวจข้อมูล',
-  error:'อ่านหรือบันทึกไม่สำเร็จ',cancelled:'ยกเลิกแล้ว',undone:'ยกเลิกการบันทึกแล้ว',excluded:'ไม่นับรายการ',
+  error:'ไม่สำเร็จ',cancelled:'ยกเลิกแล้ว',undone:'ยกเลิกการบันทึกแล้ว',excluded:'ไม่นับรายการ',
 };
 const toCorrection=(source:SlipFields):Correction=>({
   source,date:source.date||'',time:source.time||'',
@@ -432,11 +432,11 @@ export default function SlipScanner({onApply,onComplete,onBusyChange,onUndoBatch
   const savedTotals=savedSlipTotals(rows);
   const needsAttention=Object.entries(corrections).filter(([index])=>rows[Number(index)]?.status==='incomplete');
   return <section className="slip-panel slip-panel-primary slip-workspace" aria-label="อัปโหลดสลิปหรือใบเสร็จหลายรูป">
-    <div className="slip-head"><div><ScanLine size={18}/><strong>เพิ่มสลิปหรือใบเสร็จ</strong></div></div>
+    
     {!busy&&!complete&&<p className="slip-hint">อ่านและบันทึกอัตโนมัติ หากข้อมูลไม่ครบจะแจ้งให้ตรวจ</p>}
     {!busy&&(!complete||needsAttention.length===0)&&<div className="slip-upload-box">
       <div className="slip-upload-icon" aria-hidden="true"><img className="reference-slip-art" src={slipArt} alt=""/></div>
-      <strong>{complete?'เพิ่มรูปอีกชุด':'เลือกรูปสลิป'}</strong>
+      <strong>{complete?'เพิ่มรูปอีกชุด':'เพิ่มสลิปหรือใบเสร็จ'}</strong>
       <span>สูงสุด 20 รูป</span>
       <div className="slip-actions"><button type="button" className="btn btn-primary" disabled={undoing||needsAttention.length>0} onClick={()=>cameraRef.current?.click()}><Camera size={18}/> ถ่ายรูป</button><button type="button" className="btn btn-secondary slip-pick" disabled={undoing||needsAttention.length>0} onClick={()=>galleryRef.current?.click()}><Upload size={18}/> เลือกรูป</button></div><details className="slip-more-options"><summary>นำเข้ารูปด้วยวิธีอื่น</summary><button type="button" className="btn btn-secondary" disabled={undoing||needsAttention.length>0} onClick={()=>void pasteFromShortcuts()}><ClipboardPaste size={18}/> วางรูปที่คัดลอก</button><small>รองรับ JPG, PNG, WebP, HEIC ขนาดไม่เกิน 10 MB ต่อรูป</small></details>
       {needsAttention.length>0&&<p className="slip-awaiting-review" role="status">รอตรวจ {needsAttention.length} รายการ · ยังไม่รวมในยอดเงิน</p>}
@@ -454,7 +454,7 @@ export default function SlipScanner({onApply,onComplete,onBusyChange,onUndoBatch
         // Tesseract calls may be CPU-bound; terminating the worker interrupts
         // an in-flight recognition rather than waiting for the next image.
         if(workerRef.current)void workerRef.current.terminate().catch(()=>{});
-      }}><Square size={16}/> {stopRequested?'กำลังหยุด…':'หยุดรูปที่เหลือ'}</button>
+      }}><Square size={16}/> {stopRequested?'กำลังหยุด…':'หยุดการอ่าน'}</button>
     </div>}
     {preview&&(busy||complete)&&<figure className="slip-preview ref-ocr-evidence"><img src={preview} alt={busy?'รูปสลิปที่กำลังประมวลผล':'รูปสลิปใบล่าสุดของชุดที่เลือก'}/><figcaption>{filename} · แสดงเฉพาะระหว่างเปิดหน้านี้ ไม่เก็บรูปถาวร</figcaption></figure>}
     {complete&&<div className={'slip-batch-summary ref-ocr-results'+(summary.incomplete+summary.errors>0?' requires-review':'')} role="status" aria-live="polite">
