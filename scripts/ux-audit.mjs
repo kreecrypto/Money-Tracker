@@ -68,7 +68,7 @@ try {
       const upload=document.querySelector('.mt-home-upload')?.getBoundingClientRect();
       const calendar=document.querySelector('.mt-finance-calendar')?.getBoundingClientRect();
       return {visible:!!(report&&report.width>0&&report.height>0),
-        afterCalendar:!!(report&&calendar&&calendar.bottom<report.top),
+        reportBeforeCalendar:!!(report&&calendar&&report.bottom<calendar.top),
         uploadBeforeReport:!!(report&&upload&&upload.bottom<report.top),
         questions:document.querySelectorAll('.accounting-secretary-questions button').length};
     });
@@ -76,9 +76,9 @@ try {
     if(width<=660){
       const mobileHome=await page.evaluate(()=>{
         const el=name=>document.querySelector(name)?.getBoundingClientRect();
-        const hero=el('.mt-home-balance'),calendar=el('.mt-finance-calendar'),cta=el('.mt-home-upload'),recent=el('.mt-home-recent'),nav=el('.mobile-bottom-nav');
+        const hero=el('.mt-home-balance'),calendar=el('.mt-finance-calendar'),cta=el('.mt-home-upload'),report=el('.accounting-secretary'),nav=el('.mobile-bottom-nav');
         const calendarDays=document.querySelectorAll('.mt-calendar-day:not([disabled])').length;
-        return {correctHierarchy:!!(hero&&calendar&&cta&&recent&&hero.top<calendar.top&&calendar.bottom<cta.top&&cta.top<recent.top),calendarDays,noDuplicateActions:document.querySelectorAll('.mt-home-shortcut-grid button').length===0,bottomNavVisible:!!(nav&&nav.width===innerWidth)};
+        return {correctHierarchy:!!(hero&&calendar&&cta&&report&&hero.bottom<cta.top&&cta.bottom<report.top&&report.bottom<calendar.top),calendarDays,noDuplicateActions:document.querySelectorAll('.mt-home-shortcut-grid button').length===0,bottomNavVisible:!!(nav&&nav.width===innerWidth)};
       });
       await page.locator('.mobile-action-scan').click();
       const openedOCR=await page.locator('.modal .slip-panel').isVisible();
@@ -309,7 +309,7 @@ try {
   console.log('AXE_DETAILS_START');
   console.log(JSON.stringify(focus.map(x=>({viewport:x.viewport,view:x.view,violations:x.axe?.violations,smallTouchTargets:x.smallTouchTargets})),null,2));
   console.log('AXE_DETAILS_END');
-  const critical=findings.filter(x=>(x.view==='calendar-first-home'&&(!x.visible||!x.afterCalendar||!x.uploadBeforeReport||x.questions!==4||x.pageErrors?.length))
+  const critical=findings.filter(x=>(x.view==='calendar-first-home'&&(!x.visible||!x.reportBeforeCalendar||!x.uploadBeforeReport||x.questions!==4||x.pageErrors?.length))
     ||(x.view==='accountant-report-first'&&(!x.visible||!x.beforeCharts||!x.safetyText||x.pageErrors?.length))
     ||x.view==='navigation-obstruction'
     ||x.overflowPx>0

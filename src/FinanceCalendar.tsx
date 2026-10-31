@@ -1,5 +1,4 @@
 import {useMemo} from 'react';
-import {ChevronLeft,ChevronRight} from 'lucide-react';
 import {baht,type Transaction} from './lib/finance';
 import {calendarMonthGrid,compactCalendarBaht} from './lib/calendar';
 
@@ -8,29 +7,20 @@ type Props={
   transactions:readonly Transaction[];
   selectedDate:string;
   onSelect:(date:string)=>void;
-  onMonthChange:(month:string)=>void;
 };
 
 const weekdays=['อา','จ','อ','พ','พฤ','ศ','ส'];
 const longDate=(date:string)=>new Intl.DateTimeFormat('th-TH',{day:'numeric',month:'long',year:'numeric'}).format(new Date(date+'T12:00:00'));
 const monthName=(date:string)=>new Intl.DateTimeFormat('th-TH',{month:'long',year:'numeric'}).format(new Date(date+'-01T12:00:00'));
 
-export default function FinanceCalendar({month,transactions,selectedDate,onSelect,onMonthChange}:Props){
+export default function FinanceCalendar({month,transactions,selectedDate,onSelect}:Props){
   const grid=useMemo(()=>calendarMonthGrid(month,transactions),[month,transactions]);
-  const changeMonth=(delta:number)=>{
-    const [year,number]=month.split('-').map(Number);
-    const date=new Date(year,number-1+delta,1);
-    onMonthChange(String(date.getFullYear())+'-'+String(date.getMonth()+1).padStart(2,'0'));
-  };
   return <section className="mt-finance-calendar" aria-label="ปฏิทินรายรับรายจ่าย">
     <div className="mt-calendar-heading">
       <h2>ปฏิทินรายรับรายจ่าย</h2>
-      <div className="mt-calendar-controls">
-        <button type="button" onClick={()=>changeMonth(-1)} aria-label="เดือนก่อนหน้า"><ChevronLeft size={18}/></button>
-        <span>{monthName(month)}</span>
-        <button type="button" onClick={()=>changeMonth(1)} aria-label="เดือนถัดไป"><ChevronRight size={18}/></button>
-      </div>
+      <span className="mt-calendar-month-label">{monthName(month)}</span>
     </div>
+    <div className="mt-calendar-scroll" role="region" aria-label="เลื่อนปฏิทินแนวนอนบนจอเล็ก" tabIndex={0}>
     <div className="mt-calendar-grid" role="group" aria-label={'ปฏิทิน '+monthName(month)}>
       {weekdays.map(day=><span key={day} className="mt-calendar-weekday" aria-hidden="true">{day}</span>)}
       {grid.map(cell=>{
@@ -44,6 +34,10 @@ export default function FinanceCalendar({month,transactions,selectedDate,onSelec
           disabled={!cell.inCurrentMonth} aria-pressed={cell.inCurrentMonth?cell.date===selectedDate:undefined}
           aria-label={description} title={description} onClick={()=>onSelect(cell.date)}>
           <span className="mt-calendar-day-number">{cell.day}</span>
+          <span className="mt-calendar-day-indicators" aria-hidden="true">
+            {hasIncome&&<i className="is-income"/>}
+            {hasExpense&&<i className="is-expense"/>}
+          </span>
           <span className="mt-calendar-day-amounts" aria-hidden="true">
             {hasIncome&&<span className="is-income">+{compactCalendarBaht(cell.incomeSatang)}</span>}
             {hasExpense&&<span className="is-expense">−{compactCalendarBaht(cell.expenseSatang)}</span>}
@@ -51,7 +45,7 @@ export default function FinanceCalendar({month,transactions,selectedDate,onSelec
           </span>
         </button>;
       })}
-    </div>
-    <p className="mt-calendar-legend"><span><i className="income-dot"/>รายรับ</span><span><i className="expense-dot"/>รายจ่าย</span><small>แตะวันที่เพื่อดูจำนวนเต็ม · เฉพาะรายการที่บันทึกแล้ว</small></p>
+    </div></div>
+    <p className="mt-calendar-legend"><span><i className="income-dot"/>รายรับ</span><span><i className="expense-dot"/>รายจ่าย</span><small>แตะวันที่เพื่อดูยอดรายรับ–รายจ่าย · เฉพาะรายการที่บันทึกแล้ว</small></p>
   </section>;
 }

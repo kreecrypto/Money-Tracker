@@ -204,3 +204,9 @@ body{color:var(--mobile-ink);background:var(--mobile-canvas)}
 @media(prefers-reduced-motion:reduce){
   .modal,.btn,.slip-progress-track>div{animation:none!important;transition:none!important}
 }
+
+/* iPhone Safari: focusable fields at 16px avoid unintended viewport zoom. */
+@media(max-width:660px){
+  .search-box input,.modal input:not(.amount-input input),.modal select,
+  .slip-attention input,.slip-attention select{font-size:16px}
+}

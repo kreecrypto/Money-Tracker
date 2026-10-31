@@ -3,7 +3,7 @@ import {createPortal} from 'react-dom';
 import {
   ArrowDownLeft, ArrowRight, ArrowUpRight, Bell, Camera,
   ChevronDown, CircleUserRound,
-  UtensilsCrossed, ShoppingBag, TrainFront, HandCoins, Ellipsis, Wallet,
+  UtensilsCrossed, ShoppingBag, TrainFront, HandCoins, Ellipsis,
 } from 'lucide-react';
 import {baht, METHODS, transactionDisplayName, type Transaction} from './lib/finance';
 import {emailLedgerEvidence,emailLedgerExplanation,emailLedgerCategory} from './lib/emailLedger';
@@ -23,6 +23,7 @@ type Props={
   onUpload:()=>void;
   onTransactions:()=>void;
   reportSlot:ReactNode;
+  advisorySlot:ReactNode;
 };
 
 export function HomeTopbar({pendingCount,onNotifications,onSettings}:{
@@ -156,12 +157,13 @@ function TransactionDetail({value,onClose}:{
 
 export default function HomeScreen({
   month,monthLabel,net,income,expense,recent,
-  onMonthChange,onUpload,onTransactions,reportSlot
+  onMonthChange,onUpload,onTransactions,reportSlot,advisorySlot
 }:Props){
   const [detail,setDetail]=useState<Transaction|null>(null);
   const detailTriggerRef=useRef<HTMLButtonElement|null>(null);
   const [selectedDate,setSelectedDate]=useState(todayLocal());
-  const activeDate=selectedDate.startsWith(month+'-')?selectedDate:month+'-01';
+  const activeDate=selectedDate.startsWith(month+'-')?selectedDate:(recent.find(item=>item.date.startsWith(month+'-'))?.date??month+'-01');
+  const recentOthers=useMemo(()=>recent.filter(item=>item.date!==activeDate),[recent,activeDate]);
   const daily=useMemo(()=>recent.filter(item=>item.date===activeDate).sort((a,b)=>(b.time||'').localeCompare(a.time||'')||b.createdAt-a.createdAt),[recent,activeDate]);
   const daySums=useMemo(()=>summarize(daily),[daily]);
   const dayLabel=new Intl.DateTimeFormat('th-TH',{day:'numeric',month:'long',year:'numeric'}).format(new Date(activeDate+'T12:00:00'));
@@ -200,11 +202,13 @@ export default function HomeScreen({
         </div>
       </div>
     </section>
-    <FinanceCalendar month={month} transactions={recent} selectedDate={activeDate} onSelect={setSelectedDate} onMonthChange={onMonthChange}/>
+    {advisorySlot}
     <button className="ref-home-upload mobile-action-scan mt-home-upload" type="button" onClick={onUpload}>
       <span className="mt-home-camera"><Camera size={25} strokeWidth={2.7}/></span>
       <span><strong>อัปโหลดสลิป</strong><small>เลือกรูปหรือถ่ายสลิป</small></span>
     </button>
+    {reportSlot}
+    <FinanceCalendar month={month} transactions={recent} selectedDate={activeDate} onSelect={setSelectedDate}/>
     <section className="mt-home-day-detail" aria-label="รายการวันที่เลือก">
       <div className="mt-home-day-detail-heading"><h2>{dayLabel}</h2><button type="button" onClick={onTransactions}>ดูรายการทั้งเดือน <ArrowRight size={15}/></button></div>
       <div className="mt-home-day-summary">
@@ -218,21 +222,18 @@ export default function HomeScreen({
           <b className={tx.type==='income'?'is-income':'is-expense'}>{tx.type==='income'?'+':'−'} ฿ {baht(tx.amountSatang)}</b>
         </button>)}
         {daily.length>4&&<p className="mt-home-calendar-more">อีก {daily.length-4} รายการ · ดูทั้งหมดในหน้ารายการ</p>}
-      </div>:<div className="mt-home-empty"><p>วันนี้ยังไม่มีรายการที่บันทึกแล้ว</p></div>}
+      </div>:<div className="mt-home-empty"><p>ไม่มีรายการที่บันทึกในวันที่เลือก</p></div>}
     </section>
-    {reportSlot}
-    <section className="surface transactions-surface mt-home-recent" aria-label="รายการล่าสุด">
+    {recentOthers.length>0&&<section className="surface transactions-surface mt-home-recent" aria-label="รายการล่าสุด">
       <div className="mt-home-section-heading"><h2>หลักฐานธุรกรรมล่าสุด</h2><button type="button" onClick={onTransactions}>ดูทั้งหมด <ArrowRight size={15}/></button></div>
-      {recent.length?
-        <div className="mt-home-transaction-list">
-          {recent.slice(0,4).map(tx=><button type="button" className="mt-home-transaction" key={tx.id} onClick={event=>{detailTriggerRef.current=event.currentTarget;setDetail(tx);}} aria-label={`ดูรายละเอียด ${transactionDisplayName(tx)} ${tx.type==='income'?'รายรับ':'รายจ่าย'} ${baht(tx.amountSatang)} บาท ${shortDate(tx.date,tx.time)}`}>
+      <div className="mt-home-transaction-list">
+          {recentOthers.slice(0,4).map(tx=><button type="button" className="mt-home-transaction" key={tx.id} onClick={event=>{detailTriggerRef.current=event.currentTarget;setDetail(tx);}} aria-label={`ดูรายละเอียด ${transactionDisplayName(tx)} ${tx.type==='income'?'รายรับ':'รายจ่าย'} ${baht(tx.amountSatang)} บาท ${shortDate(tx.date,tx.time)}`}>
             <RecentIcon transaction={tx}/>
             <span className="mt-home-transaction-text"><strong>{transactionDisplayName(tx)}</strong><small>{shortDate(tx.date,tx.time)}</small></span>
             <b className={tx.type==='income'?'is-income':'is-expense'}>{tx.type==='income'?'+':'−'} ฿ {baht(tx.amountSatang)}</b>
           </button>)}
         </div>
-       :<div className="mt-home-empty"><Wallet size={22}/><p>ยังไม่มีรายการในเดือนนี้</p></div>}
-    </section>
+    </section>}
     {detail&&<TransactionDetail value={detail} onClose={closeDetail}/>}
   </div>;
 }
