@@ -460,13 +460,13 @@ export default function SlipScanner({onApply,onComplete,onBusyChange,onUndoBatch
     {complete&&<div className={'slip-batch-summary ref-ocr-results'+(summary.incomplete+summary.errors>0?' requires-review':'')} role="status" aria-live="polite">
       <div className="slip-batch-summary-title">{summary.incomplete+summary.errors>0?<AlertTriangle size={18}/>:<CheckCircle2 size={18}/>}<strong>{slipBatchHeading(summary)}</strong></div>
       <div className="slip-batch-counts"><span>บันทึกแล้ว<b>{summary.saved}</b></span><span>ซ้ำ<b>{summary.duplicate}</b></span><span>รอตรวจ<b>{summary.incomplete}</b></span><span>อ่านไม่สำเร็จ<b>{summary.errors}</b></span>{(summary.excluded||0)>0&&<span>ไม่นับรายการ<b>{summary.excluded}</b></span>}</div>
-       <p className="slip-batch-note">รายการซ้ำไม่บันทึกเพิ่ม · รอตรวจยังไม่รวมยอด</p>
+       {summary.incomplete>0&&<p className="slip-batch-note">รอตรวจ {summary.incomplete} รูป · ยังไม่รวมยอด</p>}
       {summary.saved>0&&<div className="slip-batch-totals" aria-label="ยอดที่บันทึกแยกประเภทรายการ">
         <div className="slip-batch-total"><span>รายรับที่บันทึก</span><strong>฿{baht(savedTotals.incomeSatang)}</strong></div>
         <div className="slip-batch-total"><span>รายจ่ายที่บันทึก</span><strong>฿{baht(savedTotals.expenseSatang)}</strong></div>
         {savedTotals.unknownSatang>0&&<div className="slip-batch-total"><span>ยอดที่ยังไม่แยกประเภท</span><strong>฿{baht(savedTotals.unknownSatang)}</strong></div>}
       </div>}
-      {summary.errors>0&&<p className="slip-batch-note" role="note">มี {summary.errors} รูปที่ไม่สำเร็จ · ลองใหม่ครั้งละ 1 รูป</p>}
+      {summary.errors>0&&<p className="slip-batch-note" role="note">อ่านหรือบันทึกไม่สำเร็จ {summary.errors} รูป · ลองใหม่ครั้งละ 1 รูป</p>}
       {(summary.cancelled||0)>0&&<p className="slip-batch-note">ยกเลิกไป {summary.cancelled} รูป รายการที่บันทึกสำเร็จก่อนหยุดยังอยู่ในแอป</p>}
       {(summary.undone||0)>0&&<p className="slip-batch-note">ยกเลิกการบันทึกแล้ว {summary.undone} รายการ</p>}
       {summary.saved>0&&<button type="button" className="btn btn-secondary slip-undo" disabled={undoing} onClick={()=>void undoSaved()}><Undo2 size={16}/>{undoing?'กำลังยกเลิกรายการ…':'ลบรายการที่เพิ่งบันทึก ('+summary.saved+')'}</button>}
