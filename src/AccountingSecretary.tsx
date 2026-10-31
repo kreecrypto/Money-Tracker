@@ -29,7 +29,7 @@ export default function AccountingSecretary({items,month,localPending,iphonePend
   return <section className="accounting-secretary surface" aria-label="เลขานักบัญชี">
     <div className="accounting-secretary-heading">
       <span className="accounting-secretary-avatar" aria-hidden="true"><Bot size={22}/></span>
-      <div><h2>เลขานักบัญชี</h2><p>สรุปสถานะการเงิน ชี้เรื่องที่ต้องตรวจ และแนะนำงานถัดไป</p></div>
+      <div><h2>เลขานักบัญชี</h2></div>
     </div>
     <div className="accounting-secretary-briefing">
       <span>เรื่องที่ควรรู้ตอนนี้</span>
@@ -54,6 +54,6 @@ export default function AccountingSecretary({items,month,localPending,iphonePend
       {localPending>0&&<button type="button" onClick={onReviewLocal}><ClipboardCheck size={17}/> ตรวจสลิป ({localPending})</button>}
       {iphonePending!==null&&iphonePending>0&&<button type="button" onClick={onReviewIphone}><ClipboardCheck size={17}/> ตรวจจาก iPhone ({iphonePending})</button>}
     </div>
-    <p className="accounting-secretary-disclaimer">คำตอบสำเร็จรูป ไม่ใช่ AI Chat · คำนวณในเครื่อง · ไม่ส่งข้อมูลให้ AI ภายนอกหรือแก้รายการอัตโนมัติ</p>
+    <p className="accounting-secretary-disclaimer">คำนวณจากข้อมูลในเครื่อง · ไม่ส่งให้ AI หรือแก้รายการอัตโนมัติ</p>
   </section>;
 }
