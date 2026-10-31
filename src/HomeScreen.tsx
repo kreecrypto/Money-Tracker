@@ -173,7 +173,7 @@ export default function HomeScreen({
   return <div className="home-dashboard mt-home-screen" aria-label="หน้าแรก เงินวันนี้">
     <FinanceCalendar month={month} transactions={recent} selectedDate={activeDate} onSelect={setSelectedDate} monthControl={<MonthChooser month={month} label={monthLabel} onChange={onMonthChange}/>}/>
     <section className="mt-home-day-detail" aria-label="รายการวันที่เลือก">
-      <div className="mt-home-day-detail-heading"><h2>{dayLabel}</h2><button type="button" onClick={onTransactions}>ดูรายการทั้งเดือน <ArrowRight size={15}/></button></div>
+      <div className="mt-home-day-detail-heading"><h2>{dayLabel}</h2><button type="button" onClick={onTransactions}>ดูทั้งเดือน <ArrowRight size={15}/></button></div>
       <div className="mt-home-day-summary">
         <div><span>รายรับ</span><strong className="is-income">+฿{baht(daySums.income)}</strong></div>
         <div><span>รายจ่าย</span><strong className="is-expense">−฿{baht(daySums.expense)}</strong></div>
@@ -185,7 +185,7 @@ export default function HomeScreen({
           <b className={tx.type==='income'?'is-income':'is-expense'}>{tx.type==='income'?'+':'−'} ฿ {baht(tx.amountSatang)}</b>
         </button>)}
         {daily.length>4&&<p className="mt-home-calendar-more">อีก {daily.length-4} รายการ · ดูทั้งหมดในหน้ารายการ</p>}
-      </div>:<div className="mt-home-empty"><p>ไม่มีรายการที่บันทึกในวันที่เลือก</p></div>}
+      </div>:<div className="mt-home-empty"><p>ยังไม่มีรายการในวันที่เลือก</p></div>}
     </section>
     <section className="summary-grid mt-home-summary" aria-label="ภาพรวมรายเดือน">
       <div className="hero-card mt-home-balance mt-home-calendar-summary">
@@ -204,7 +204,7 @@ export default function HomeScreen({
           <span>ภาพรวม</span>
           
         </div>
-        <div className="mt-home-total-label">สุทธิจากรายรับ − รายจ่าย</div>
+        <div className="mt-home-total-label">รายรับ − รายจ่าย</div>
         <strong className="mt-home-total">฿ {baht(net)}</strong>
         <div className="mt-home-balance-splits">
           <div className="mt-home-split">
@@ -221,12 +221,12 @@ export default function HomeScreen({
     {advisorySlot}
     <button className="ref-home-upload mobile-action-scan mt-home-upload" type="button" onClick={onUpload}>
       <span className="mt-home-camera"><Camera size={25} strokeWidth={2.7}/></span>
-      <span><strong>อัปโหลดสลิป</strong><small>เลือกรูปหรือถ่ายสลิป</small></span>
+      <span><strong>อัปโหลดสลิป</strong><small>ถ่ายรูปหรือเลือกรูป</small></span>
     </button>
     {reportSlot}
 
     {recentOthers.length>0&&<section className="surface transactions-surface mt-home-recent" aria-label="รายการล่าสุด">
-      <div className="mt-home-section-heading"><h2>หลักฐานธุรกรรมล่าสุด</h2><button type="button" onClick={onTransactions}>ดูทั้งหมด <ArrowRight size={15}/></button></div>
+      <div className="mt-home-section-heading"><h2>รายการล่าสุด</h2><button type="button" onClick={onTransactions}>ดูทั้งหมด <ArrowRight size={15}/></button></div>
       <div className="mt-home-transaction-list">
           {recentOthers.slice(0,4).map(tx=><button type="button" className="mt-home-transaction" key={tx.id} onClick={event=>{detailTriggerRef.current=event.currentTarget;setDetail(tx);}} aria-label={`ดูรายละเอียด ${transactionDisplayName(tx)} ${tx.type==='income'?'รายรับ':'รายจ่าย'} ${baht(tx.amountSatang)} บาท ${shortDate(tx.date,tx.time)}`}>
             <RecentIcon transaction={tx}/>
