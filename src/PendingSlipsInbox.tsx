@@ -32,7 +32,7 @@ function PendingCard({item,onSave,onKeep,onDiscard}:{
   });
   const keep=async()=>{
     setBusy(true);setError('');setNotice('');
-    try{const updated=assemble();await onKeep(updated);setDraft(updated);setNotice('บันทึกข้อมูลที่แก้ไขไว้ในเครื่องแล้ว (ยังไม่รวมยอด)');}
+    try{const updated=assemble();await onKeep(updated);setDraft(updated);setNotice('เก็บแบบร่างแล้ว · ยังไม่รวมยอด');}
     catch(e){setError(e instanceof Error?e.message:'เก็บข้อมูลไม่สำเร็จ');}
     finally{setBusy(false);}
   };
@@ -43,13 +43,13 @@ function PendingCard({item,onSave,onKeep,onDiscard}:{
     try{
       const result=await onSave(assemble());
       if(result.status==='incomplete')setError(result.reason||'ข้อมูลยังไม่ครบ กรุณาตรวจอีกครั้ง');
-      else if(result.status==='duplicate')setNotice('รายการนี้มีอยู่แล้วในสมุดบันทึก จึงลบออกจากคิวรอตรวจ');
+      else if(result.status==='duplicate')setNotice('มีรายการนี้แล้ว · นำออกจากรอตรวจ');
     }catch(e){setError(e instanceof Error?e.message:'บันทึกรายการไม่สำเร็จ');}
     finally{setBusy(false);}
   };
   const discard=async()=>{
     const label=draft.kind==='wallet_topup'?'การเติมเงินนี้':'รายการรอตรวจนี้';
-    if(!window.confirm('ต้องการลบ'+label+'ออกจากคิวใช่หรือไม่? ไม่มีรายการรายรับ–รายจ่ายถูกลบ'))return;
+    if(!window.confirm('ต้องการลบ'+label+'ออกจากรอตรวจ? ไม่กระทบรายการที่บันทึกแล้ว'))return;
     setBusy(true);setError('');
     try{await onDiscard(item.id);}
     catch(e){setError(e instanceof Error?e.message:'ลบรายการรอตรวจไม่สำเร็จ');}
@@ -59,17 +59,17 @@ function PendingCard({item,onSave,onKeep,onDiscard}:{
   return <article className="pending-slip-card" aria-label={draft.name}>
     <div className="pending-slip-row">
       <div className="pending-slip-main">
-        <span className="pending-slip-amount">{draft.amountSatang!==null?'฿'+baht(draft.amountSatang):'ยังอ่านยอดไม่ได้'}</span>
+        <span className="pending-slip-amount">{draft.amountSatang!==null?'฿'+baht(draft.amountSatang):'อ่านยอดไม่ได้'}</span>
         <strong>{draft.recipient||draft.name||'สลิปที่รอตรวจ'}</strong>
         <span>{draft.date||'วันที่ยังไม่ครบ'}{draft.time?' · '+draft.time:''}</span>
       </div>
       <span className={'pending-slip-chip'+(draft.kind==='wallet_topup'?' wallet':'')}>{draft.kind==='wallet_topup'?'เติม Wallet':'รอตรวจ'}</span>
     </div>
     <div className="pending-slip-detail">{isTrueMoneyBankTopUp(draft)
-      ?'เติมเงิน TrueMoney: ระบบกำหนดเป็นรายจ่ายจากธนาคารแล้ว ตรวจยอด วันที่ เวลา และผู้รับก่อนบันทึก'
+      ?'เติม TrueMoney จัดเป็นรายจ่ายจากธนาคาร · ตรวจข้อมูลก่อนบันทึก'
       :draft.kind==='wallet_topup'
-        ?'เติมเงิน Wallet: ระบบกำหนดเป็นรายจ่ายจากธนาคารแล้ว ตรวจข้อมูลที่ยังไม่ครบก่อนบันทึก'
-        :draft.reason||'ยังอ่านข้อมูลจากสลิปไม่ครบ กรุณาตรวจข้อมูลก่อนบันทึก'}</div>
+        ?'เติม Wallet จัดเป็นรายจ่ายจากธนาคาร · ตรวจข้อมูลก่อนบันทึก'
+        :draft.reason||'อ่านข้อมูลไม่ครบ · ตรวจสอบก่อนบันทึก'}</div>
     <button type="button" className="pending-slip-toggle" aria-expanded={expanded} onClick={()=>setExpanded(v=>!v)}>
       {expanded?'ซ่อนรายละเอียด':'ตรวจและแก้ไข'} {expanded?<ChevronUp size={17}/>:<ChevronDown size={17}/>}
     </button>
@@ -109,13 +109,13 @@ function PendingCard({item,onSave,onKeep,onDiscard}:{
       </button>
       <div className="pending-slip-secondary">
         <button type="button" className="btn btn-secondary" onClick={()=>void keep()} disabled={busy}>
-          <Save size={16}/> บันทึกไว้แก้ภายหลัง
+          <Save size={16}/> เก็บไว้ตรวจภายหลัง
         </button>
         <button type="button" className="btn btn-ghost bordered" onClick={()=>void discard()} disabled={busy}>
-          <ArchiveX size={16}/> {draft.kind==='wallet_topup'?'ไม่นับรายการ':'ลบจากรอตรวจ'}
+          <ArchiveX size={16}/> {draft.kind==='wallet_topup'?'ไม่นับรายการ':'นำออกจากรอตรวจ'}
         </button>
       </div>
-      <p className="pending-slip-note">รายการนี้จะรวมในยอดรายรับ–รายจ่ายต่อเมื่อบันทึกสำเร็จเท่านั้น</p>
+      <p className="pending-slip-note">ยังไม่รวมในยอดรายรับ–รายจ่าย</p>
     </form>}
   </article>;
 }
@@ -127,12 +127,12 @@ export default function PendingSlipsInbox({items,onSave,onKeep,onDiscard,onAdd}:
     </div>
     {items.length===0?<div className="pending-inbox-empty">
       <CheckCircle2 size={32}/>
-      <strong>ไม่มีสลิปค้างตรวจ</strong>
+      <strong>ไม่มีรายการรอตรวจ</strong>
       
       <button className="btn btn-primary" onClick={onAdd}><Wallet size={16}/> เพิ่มสลิป</button>
     </div>:<div className="pending-inbox-list">{items.map(item=>
       <PendingCard key={item.id} item={item} onSave={onSave} onKeep={onKeep} onDiscard={onDiscard}/>
     )}</div>}
-    {items.length>0&&<p className="pending-privacy"><AlertTriangle size={15}/> รายการรอตรวจอยู่ในเครื่องนี้ ไม่เก็บภาพสลิป กรุณาเก็บรูปต้นฉบับไว้ เพราะข้อมูลอาจหายเมื่อล้างข้อมูลเบราว์เซอร์</p>}
+    {items.length>0&&<p className="pending-privacy"><AlertTriangle size={15}/> รายการรอตรวจเก็บในเครื่อง ไม่เก็บภาพ · โปรดเก็บรูปต้นฉบับและสำรองข้อมูลก่อนล้างเบราว์เซอร์</p>}
   </section>;
 }

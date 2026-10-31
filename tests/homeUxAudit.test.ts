@@ -28,7 +28,7 @@ describe('Home UI audit regressions',()=>{
     expect(homeCss).toContain('.home-dashboard.mt-home-screen > *{order:0!important}');
   });
   it('shows the correct empty-state date context and does not duplicate selected-day transactions',()=>{
-    expect(home).toContain('ไม่มีรายการที่บันทึกในวันที่เลือก');
+    expect(home).toContain('ยังไม่มีรายการในวันที่เลือก');
     expect(home).not.toContain('วันนี้ยังไม่มีรายการที่บันทึกแล้ว');
     expect(home).toContain('recent.filter(item=>item.date!==activeDate)');
     expect(home).toContain('recentOthers.length>0&&<section');

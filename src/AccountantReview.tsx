@@ -56,7 +56,7 @@ export default function AccountantReview({
     <div className="accountant-review-focus" aria-live="polite">
       {hasReview?<AlertCircle size={20} aria-hidden="true"/>:<CheckCircle2 size={20} aria-hidden="true"/>}
       <div><strong>{reviewCount>0?`มี ${reviewCount.toLocaleString('th-TH')} รายการที่ยังไม่ทราบประเภท`:
-        hasReview?'ยังมีรายการรอตรวจในคิว':'ไม่พบรายการที่ยังไม่จัดหมวดในเดือนนี้'}</strong>
+        hasReview?'ยังมีรายการรอตรวจในคิว':'ไม่พบรายการที่ยังไม่จัดหมวดในเดือนที่เลือก'}</strong>
         <span>{reviewCount>0?'แตะกลุ่ม “ยังจำแนกไม่ชัดเจน” เพื่อดูและแก้ไขได้ทันที':
           'รายการ Pending แยกจากยอดเงินที่บันทึกแล้ว และอาจอยู่คนละเดือน'}</span>
       </div>
@@ -75,7 +75,7 @@ export default function AccountantReview({
         </button>
       </div>)}
       <div className="accountant-review-check"><span>ตรวจยอดรวมทุกประเภท</span><strong>{money(combined)}</strong></div>
-    </div>:<p className="accountant-review-empty">เดือนนี้ยังไม่มีเงินออกที่บันทึกไว้</p>}
+    </div>:<p className="accountant-review-empty">เดือนที่เลือกยังไม่มีเงินออกที่บันทึกไว้</p>}
     <div className="accountant-review-flags">
       <h4>สิ่งที่ต้องตรวจต่อ</h4>
       <ul>
@@ -92,7 +92,7 @@ export default function AccountantReview({
       <p>ข้อมูลนี้ยังไม่ได้กระทบยอดกับ Bank Statement · ไม่ใช่ยอดคงเหลือ กำไร หรือค่าใช้จ่ายที่ตรวจรับรองแล้ว</p>
     </div>
     <div className="accountant-review-actions">
-      <button type="button" className="btn btn-secondary" onClick={onTransactions}>รายการเดือนนี้ <ArrowRight size={16}/></button>
+      <button type="button" className="btn btn-secondary" onClick={onTransactions}>รายการเดือนที่เลือก <ArrowRight size={16}/></button>
       {localPending>0&&<button type="button" className="btn btn-ghost bordered" onClick={onLocalReview}><ClipboardCheck size={16}/> ตรวจสลิป ({localPending})</button>}
       {iphonePending!==null&&iphonePending>0&&<button type="button" className="btn btn-ghost bordered" onClick={onIphoneReview}><ClipboardCheck size={16}/> ตรวจ iPhone ({iphonePending})</button>}
       <button type="button" className="btn btn-ghost bordered" onClick={onExport}><Download size={16}/> ส่งออก CSV (ทุกเดือน)</button>

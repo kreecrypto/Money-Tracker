@@ -35,7 +35,7 @@ export default function ResetDataDialog({transactionCount,pendingCount,busy,erro
   },[]);
   return <div className="modal-backdrop"><section className="modal restore-modal local-reset-modal"
     role="alertdialog" aria-modal="true" aria-labelledby="local-reset-title" aria-describedby="local-reset-description" tabIndex={-1} ref={dialogRef}>
-    <div className="modal-heading"><div><span className="eyebrow">DEVICE DATA</span><h2 id="local-reset-title">ลบข้อมูลในเครื่อง</h2></div>
+    <div className="modal-heading"><div><h2 id="local-reset-title">ลบข้อมูลในเครื่อง</h2></div>
       <button type="button" className="icon-btn" aria-label="ปิด" disabled={busy} onClick={onClose}><X size={20}/></button></div>
     <div className="restore-notice"><AlertTriangle size={22}/><div id="local-reset-description">
       <strong>ข้อมูลบนอุปกรณ์นี้จะถูกลบถาวร</strong>
