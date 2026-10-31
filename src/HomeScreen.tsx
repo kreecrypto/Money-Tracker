@@ -171,6 +171,22 @@ export default function HomeScreen({
   useEffect(()=>{if(!detail)detailTriggerRef.current?.focus();},[detail]);
   const closeDetail=()=>setDetail(null);
   return <div className="home-dashboard mt-home-screen" aria-label="หน้าแรก เงินวันนี้">
+    <FinanceCalendar month={month} transactions={recent} selectedDate={activeDate} onSelect={setSelectedDate} monthControl={<MonthChooser month={month} label={monthLabel} onChange={onMonthChange}/>}/>
+    <section className="mt-home-day-detail" aria-label="รายการวันที่เลือก">
+      <div className="mt-home-day-detail-heading"><h2>{dayLabel}</h2><button type="button" onClick={onTransactions}>ดูรายการทั้งเดือน <ArrowRight size={15}/></button></div>
+      <div className="mt-home-day-summary">
+        <div><span>รายรับ</span><strong className="is-income">+฿{baht(daySums.income)}</strong></div>
+        <div><span>รายจ่าย</span><strong className="is-expense">−฿{baht(daySums.expense)}</strong></div>
+      </div>
+      {daily.length?<div className="mt-home-transaction-list">
+        {daily.slice(0,4).map(tx=><button key={tx.id} type="button" className="mt-home-transaction" onClick={event=>{detailTriggerRef.current=event.currentTarget;setDetail(tx);}}>
+          <RecentIcon transaction={tx}/>
+          <span className="mt-home-transaction-text"><strong>{transactionDisplayName(tx)}</strong><small>{shortDate(tx.date,tx.time)}</small></span>
+          <b className={tx.type==='income'?'is-income':'is-expense'}>{tx.type==='income'?'+':'−'} ฿ {baht(tx.amountSatang)}</b>
+        </button>)}
+        {daily.length>4&&<p className="mt-home-calendar-more">อีก {daily.length-4} รายการ · ดูทั้งหมดในหน้ารายการ</p>}
+      </div>:<div className="mt-home-empty"><p>ไม่มีรายการที่บันทึกในวันที่เลือก</p></div>}
+    </section>
     <section className="summary-grid mt-home-summary" aria-label="ภาพรวมรายเดือน">
       <div className="hero-card mt-home-balance mt-home-calendar-summary">
         <div className="mt-home-balance-decoration" aria-hidden="true">
@@ -186,7 +202,7 @@ export default function HomeScreen({
         </div>
         <div className="mt-home-balance-header">
           <span>ภาพรวม</span>
-          <MonthChooser month={month} label={monthLabel} onChange={onMonthChange}/>
+          
         </div>
         <div className="mt-home-total-label">สุทธิจากรายรับ − รายจ่าย</div>
         <strong className="mt-home-total">฿ {baht(net)}</strong>
@@ -208,22 +224,7 @@ export default function HomeScreen({
       <span><strong>อัปโหลดสลิป</strong><small>เลือกรูปหรือถ่ายสลิป</small></span>
     </button>
     {reportSlot}
-    <FinanceCalendar month={month} transactions={recent} selectedDate={activeDate} onSelect={setSelectedDate}/>
-    <section className="mt-home-day-detail" aria-label="รายการวันที่เลือก">
-      <div className="mt-home-day-detail-heading"><h2>{dayLabel}</h2><button type="button" onClick={onTransactions}>ดูรายการทั้งเดือน <ArrowRight size={15}/></button></div>
-      <div className="mt-home-day-summary">
-        <div><span>รายรับ</span><strong className="is-income">+฿{baht(daySums.income)}</strong></div>
-        <div><span>รายจ่าย</span><strong className="is-expense">−฿{baht(daySums.expense)}</strong></div>
-      </div>
-      {daily.length?<div className="mt-home-transaction-list">
-        {daily.slice(0,4).map(tx=><button key={tx.id} type="button" className="mt-home-transaction" onClick={event=>{detailTriggerRef.current=event.currentTarget;setDetail(tx);}}>
-          <RecentIcon transaction={tx}/>
-          <span className="mt-home-transaction-text"><strong>{transactionDisplayName(tx)}</strong><small>{shortDate(tx.date,tx.time)}</small></span>
-          <b className={tx.type==='income'?'is-income':'is-expense'}>{tx.type==='income'?'+':'−'} ฿ {baht(tx.amountSatang)}</b>
-        </button>)}
-        {daily.length>4&&<p className="mt-home-calendar-more">อีก {daily.length-4} รายการ · ดูทั้งหมดในหน้ารายการ</p>}
-      </div>:<div className="mt-home-empty"><p>ไม่มีรายการที่บันทึกในวันที่เลือก</p></div>}
-    </section>
+
     {recentOthers.length>0&&<section className="surface transactions-surface mt-home-recent" aria-label="รายการล่าสุด">
       <div className="mt-home-section-heading"><h2>หลักฐานธุรกรรมล่าสุด</h2><button type="button" onClick={onTransactions}>ดูทั้งหมด <ArrowRight size={15}/></button></div>
       <div className="mt-home-transaction-list">

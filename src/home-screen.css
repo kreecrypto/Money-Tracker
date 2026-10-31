@@ -372,3 +372,6 @@ button.mt-home-month-picker {
 @media(max-width:375px){
   .mt-home-screen .mt-home-advisory button{width:100%}
 }
+
+/* Calendar-first Home must follow DOM order, overriding legacy summary-first order rules. */
+.home-dashboard.mt-home-screen > *{order:0!important}
