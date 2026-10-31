@@ -20,6 +20,7 @@ export default function FinanceCalendar({month,transactions,selectedDate,onSelec
       <h2>ปฏิทินรายรับรายจ่าย</h2>
       <span className="mt-calendar-month-label">{monthName(month)}</span>
     </div>
+    <div className="mt-calendar-scroll" role="region" aria-label="เลื่อนปฏิทินแนวนอนบนจอเล็ก" tabIndex={0}>
     <div className="mt-calendar-grid" role="group" aria-label={'ปฏิทิน '+monthName(month)}>
       {weekdays.map(day=><span key={day} className="mt-calendar-weekday" aria-hidden="true">{day}</span>)}
       {grid.map(cell=>{
@@ -44,7 +45,7 @@ export default function FinanceCalendar({month,transactions,selectedDate,onSelec
           </span>
         </button>;
       })}
-    </div>
+    </div></div>
     <p className="mt-calendar-legend"><span><i className="income-dot"/>รายรับ</span><span><i className="expense-dot"/>รายจ่าย</span><small>แตะวันที่เพื่อดูยอดรายรับ–รายจ่าย · เฉพาะรายการที่บันทึกแล้ว</small></p>
   </section>;
 }
