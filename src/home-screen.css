@@ -360,3 +360,15 @@ button.mt-home-month-picker {
 
 /* Impeccable: keep supplemental OCR evidence legible without another card. */
 .slip-ocr-party-hint {margin:0;font-size:13px;line-height:1.5;color:#435b4c;overflow-wrap:anywhere;}
+
+/* Keep moved Home notices compact, readable and aligned with the monthly summary. */
+.mt-home-screen>.mt-home-below{width:100%;max-width:none;margin:0}
+.mt-home-screen>.mt-home-below:empty{display:none}
+.mt-home-screen .mt-home-advisory{flex-wrap:wrap}
+.mt-home-screen .mt-home-advisory>div{flex:1 1 180px;min-width:0}
+.mt-home-screen .mt-home-advisory strong{font-size:14px;line-height:1.4}
+.mt-home-screen .mt-home-advisory p{font-size:13px;line-height:1.55}
+.mt-home-screen .mt-home-advisory button{font-size:13px;min-height:44px}
+@media(max-width:375px){
+  .mt-home-screen .mt-home-advisory button{width:100%}
+}
