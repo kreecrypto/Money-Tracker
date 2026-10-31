@@ -36,13 +36,13 @@ try{
     await page.locator('.mt-home-transaction').first().waitFor({timeout:10000});
     const home=await page.evaluate(()=>{
       const rect=(selector)=>document.querySelector(selector)?.getBoundingClientRect();
-      const hero=rect('.mt-home-balance'),calendar=rect('.mt-finance-calendar'),cta=rect('.mt-home-upload'),report=rect('.accounting-secretary'),navigation=rect('.mobile-bottom-nav');
+      const hero=rect('.mt-home-balance'),calendar=rect('.mt-finance-calendar'),day=rect('.mt-home-day-detail'),cta=rect('.mt-home-upload'),report=rect('.accounting-secretary'),navigation=rect('.mobile-bottom-nav');
       const icons=Array.from(document.querySelectorAll('.mobile-bottom-nav button svg')).map(el=>{const r=el.getBoundingClientRect();return {width:r.width,height:r.height};});
       const gridTracks=selector=>getComputedStyle(document.querySelector(selector)).gridTemplateColumns.split(/\s+/).filter(Boolean).length;
       const pageGrid=gridTracks('.main-content');
       const homeGrid=gridTracks('.mt-home-screen');
       const splitGrid=gridTracks('.mt-home-balance-splits');
-      return {overflow:Math.max(0,document.documentElement.scrollWidth-innerWidth),order:!!(hero&&calendar&&cta&&report&&hero.bottom<cta.top&&cta.bottom<report.top&&report.bottom<calendar.top),calendarDays:document.querySelectorAll('.mt-calendar-day:not([disabled])').length,
+      return {overflow:Math.max(0,document.documentElement.scrollWidth-innerWidth),order:!!(calendar&&day&&hero&&cta&&report&&calendar.bottom<day.top&&day.bottom<hero.top&&hero.bottom<cta.top&&cta.bottom<report.top),calendarDays:document.querySelectorAll('.mt-calendar-day:not([disabled])').length,
         actionCount:document.querySelectorAll('.mt-home-shortcut-grid button').length,navCount:document.querySelectorAll('.mobile-bottom-nav button').length,
         navVisible:!!(navigation&&navigation.top>=0&&navigation.bottom<=innerHeight+2),pageGrid,homeGrid,splitGrid,icons};
     });
@@ -51,7 +51,11 @@ try{
     // Verify same-day incoming/outgoing and an actual tap, not just calendar visibility.
     const today=await page.evaluate(async()=>(await import('/src/lib/finance.ts')).todayLocal());
     const todayCell=page.locator('.mt-calendar-day[data-date="'+today+'"]');
-    const calendarBoth=await todayCell.locator('.mt-calendar-day-indicators .is-income,.mt-calendar-day-indicators .is-expense').count()===2;
+    const figures=todayCell.locator('.mt-calendar-day-amounts');
+    const calendarBoth=await figures.locator('.is-income,.is-expense').count()===2;
+    const calendarFiguresVisible=await figures.isVisible();
+    const calendarFiguresText=await figures.innerText();
+    const calendarFiguresNumeric=calendarFiguresText.includes('+')&&calendarFiguresText.includes('−')&&/\d/.test(calendarFiguresText);
     await todayCell.click();
     const calendarSelected=await todayCell.getAttribute('aria-pressed')==='true';
     const calendarDetailText=await page.locator('.mt-home-day-detail').innerText();
@@ -160,12 +164,12 @@ try{
       })
     );
     await page.locator('.modal-heading button').click();
-    findings.push({label,home,calendarBoth,calendarSelected,calendarDetail,calendarPreviousMonth,calendarMonthRestored,monthOptions,arrowNavigatesMonth,menuUnclipped,monthCloses,detailsOpen,detailsClose,transactions,list,brandLoaded,scanner,slipArtLoaded,compactUploadButtons,scannerColors,readableScanner,reportOverview,trendsOnly,noReportsFab,settings,settingsDirectory,settingsAnchors,noSettingsFab,largeSetting,largeHome,savedReadingMode,largeScanner,errors});
+    findings.push({label,home,calendarBoth,calendarFiguresVisible,calendarFiguresNumeric,calendarSelected,calendarDetail,calendarPreviousMonth,calendarMonthRestored,monthOptions,arrowNavigatesMonth,menuUnclipped,monthCloses,detailsOpen,detailsClose,transactions,list,brandLoaded,scanner,slipArtLoaded,compactUploadButtons,scannerColors,readableScanner,reportOverview,trendsOnly,noReportsFab,settings,settingsDirectory,settingsAnchors,noSettingsFab,largeSetting,largeHome,savedReadingMode,largeScanner,errors});
     await context.close();
   }
   fs.writeFileSync(`${directory}/webkit-report.json`,JSON.stringify(findings,null,2));
   console.log('WEBKIT_SAFARI_VISUAL_RESULTS',JSON.stringify(findings));
-  const failed=findings.filter(f=>f.home.overflow>1||!f.home.order||f.home.calendarDays<28||f.home.actionCount!==0||!f.calendarBoth||!f.calendarSelected||!f.calendarDetail||!f.calendarPreviousMonth||!f.calendarMonthRestored||f.home.navCount!==4||
+  const failed=findings.filter(f=>f.home.overflow>1||!f.home.order||f.home.calendarDays<28||f.home.actionCount!==0||!f.calendarBoth||!f.calendarFiguresVisible||!f.calendarFiguresNumeric||!f.calendarSelected||!f.calendarDetail||!f.calendarPreviousMonth||!f.calendarMonthRestored||f.home.navCount!==4||
     f.home.pageGrid!==4||f.home.homeGrid!==4||f.home.splitGrid!==4||
     !f.home.navVisible||f.home.icons.some(icon=>icon.width<20||icon.height<20)||f.monthOptions!==13||!f.arrowNavigatesMonth||!f.menuUnclipped||!f.monthCloses||!f.detailsOpen||!f.detailsClose||f.transactions!==2||!f.list||!f.brandLoaded||!f.slipArtLoaded||!f.reportOverview||!f.settingsDirectory||!f.settingsAnchors||!f.scanner||!f.compactUploadButtons||!f.readableScanner||!f.trendsOnly||!f.noReportsFab||!f.settings||!f.noSettingsFab||!f.largeSetting.active||!f.largeSetting.selected||f.largeSetting.fontSize<16||f.largeHome.overflow>1||f.largeHome.textSize<16||!f.largeHome.navigation||!f.savedReadingMode||!f.largeScanner||f.errors.length);
   if(failed.length){console.error('WEBKIT_SAFARI_VISUAL_FAIL',JSON.stringify(failed));process.exitCode=1;}
