@@ -75,3 +75,40 @@ Flat by default. Use thin green-tinted borders and white backgrounds instead of 
 - **Don't** merge an untested UI change or claim production is updated until its Vercel deployment is READY and the target domain is verified.
 
 **Impeccable usage:** From project root, run `npx impeccable install` in your coding environment, then `/impeccable polish the Home screen`, `/impeccable audit the app`, and `npx impeccable detect src/`. This is a hand-curated compatible context, not an assertion that the official init/document commands were run.
+
+## Component Implementation Contract (2026-11-01)
+
+### Token governance
+- Existing source CSS variables and rendered production behavior take precedence over illustrative values in this document until reconciled in a reviewed PR.
+- Use semantic aliases (`color-primary`, `color-income`, `color-expense`, `color-text`, `color-border`) mapped to existing variables; do not scatter new hex values through components.
+- Any palette or type-scale change requires visual regression checks on Home, Transactions, Reports, Settings, scanner, and Pending.
+
+### Component state matrix
+| Component | Required states | Behavior |
+| --- | --- | --- |
+| Button / FAB | default, pressed, focus-visible, disabled, loading | Single clear action; prevent double submission |
+| Calendar / month chooser | current, selected, empty, loading | Preserve date selection and keyboard accessibility |
+| Transaction row | income, expense, pending, long text | Show signed amount and accessible transaction detail |
+| Slip upload | idle, selecting, processing, saved, duplicate, pending, error | Never present unconfirmed OCR as saved |
+| Navigation | selected, unselected, focus-visible | Four stable destinations, safe-area padding |
+| Modal / confirmation | open, close, validation error | Restore focus; protect destructive actions |
+
+### Spacing, radius, and motion
+- Follow existing source spacing/radius tokens rather than inventing a parallel scale. Use consistent gaps between related controls and larger gaps between distinct sections.
+- Prefer borders to shadows; avoid stacked cards.
+- Motion communicates state changes only, respects `prefers-reduced-motion`, and never delays a core accounting action.
+
+### UX writing and data integrity
+- Use concise Thai labels and distinguish `บันทึกแล้ว`, `รอตรวจ`, `รายการซ้ำ`, and `ไม่สำเร็จ` according to actual state.
+- Treat wallet top-ups as cash outflows in transaction classification without implying all outflows are final consumption expenses.
+- Never fabricate OCR certainty, transaction data, or account balances.
+
+### Design change checklist
+1. Inspect existing component and tokens before editing; reuse first.
+2. Document any new token or component and explain why existing ones cannot be reused.
+3. Validate 320/375/390/430px mobile and 768/1280px larger layouts, including large-text mode.
+4. Check Thai truncation, long amounts, focus states, contrast, reduced motion, and iOS Safari safe areas.
+5. Run tests/typecheck/build and review preview before merge; verify production separately after deployment.
+
+### Document maintenance
+Update this file in the same pull request as any approved design-system change. This document is a contract, not proof that a browser/device QA pass has occurred.
