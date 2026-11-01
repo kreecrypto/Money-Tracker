@@ -4,13 +4,13 @@
 web (mobile-first responsive PWA, optimized for iPhone Safari; not a native iOS application).
 
 ## Product
-A private Thai-language **personal accounting secretary and financial reporting app**. The primary experience is **open the app → read a factual financial briefing → see what needs review → drill into classified cash movements and their evidence**. Upload/capture K PLUS slips, email-ledger CSV import, Pending review, manual entry, backup, settings and transaction history remain the evidence-capture and correction tools; the app does not fabricate or certify financial statements.
+A private Thai-language **personal accounting secretary and financial reporting app**. The primary experience is **open the app → select a calendar date → read all saved transactions for that date → open a transaction or monthly ledger**. Financial briefing, pending/backup notices and classified cash movements are accessible from Reports and other existing dedicated screens. Upload/capture K PLUS slips, email-ledger CSV import, Pending review, manual entry, backup, settings and transaction history remain the evidence-capture and correction tools; the app does not fabricate or certify financial statements.
 
 ## Audience
 People in Thailand who routinely handle bank transfer slips on their phones and want a dependable record of money received and spent without bookkeeping jargon.
 
 ## Jobs to be done
-1. Receive a useful, understandable report without having to start by adding a transaction.
+1. Open the Home calendar and inspect recorded income, expense and all saved transactions for a selected date.
 2. Know exactly how much came in, went out and was classified this month, with explicit caveats about wallet top-ups and debt repayment.
 3. See Pending/uncategorized/possible-duplicate review work and open the supporting evidence.
 4. Capture or correct transactions using K PLUS slip OCR, local email CSV and manual entry without silently fabricating missing fields.
@@ -34,7 +34,7 @@ People in Thailand who routinely handle bank transfer slips on their phones and 
 - Ensure 320–430px layouts, safe areas, VoiceOver labels, 44px touch targets, focus and reduced motion.
 
 ## Success criteria
-The Home screen answers: what happened this month, what is important today, and what needs my attention? The Reports screen groups saved cash out into debt repayments, wallet top-ups, unknown-purpose items and classified spending with an exact transaction drill-down. Monthly net is **not** a bank balance or certified accounting profit. Upload is visible but secondary to reading the brief; existing personal data remains local unless the user enables separate integrations.
+The Home screen contains only a calendar, the selected date's income/expense totals and its complete saved transaction list. On mobile the primary slip entry is a persistent FAB; on desktop it is in the Home header. The notification control remains available for Pending slips. Detailed briefings, review notices and account analysis are on Reports. The Reports screen groups saved cash out into debt repayments, wallet top-ups, unknown-purpose items and classified spending with an exact transaction drill-down. Monthly net is **not** a bank balance or certified accounting profit. Upload is visible but secondary to reading the brief; existing personal data remains local unless the user enables separate integrations.
 
 ## Source of truth
 - App: `src/App.tsx`, `src/HomeScreen.tsx`, `src/SlipScanner.tsx`.
