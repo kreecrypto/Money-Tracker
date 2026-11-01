@@ -72,18 +72,28 @@ function MonthChooser({month,label,onChange}:{
   const [isOpen,setOpen]=useState(false);
   const triggerRef=useRef<HTMLButtonElement>(null);
   const menuRef=useRef<HTMLDivElement>(null);
-  const [position,setPosition]=useState({top:0,right:16});
+  const [position,setPosition]=useState({top:12,left:12});
   const options=useMemo(()=>chooseMonthKeys(month),[month]);
   useEffect(()=>{
     if(!isOpen)return;
-    const focusSelected=window.requestAnimationFrame(()=>menuRef.current?.querySelector<HTMLButtonElement>('[aria-selected="true"]')?.focus());
     const place=()=>{
-      const r=triggerRef.current?.getBoundingClientRect();
-      if(!r)return;
-      const height=Math.min(272,Math.max(120,window.innerHeight-36));
-      const top=Math.max(12,Math.min(r.bottom+8,window.innerHeight-height-12));
-      setPosition({top,right:Math.max(12,window.innerWidth-r.right)});
+      const trigger=triggerRef.current?.getBoundingClientRect();
+      const menu=menuRef.current?.getBoundingClientRect();
+      if(!trigger||!menu)return;
+      const viewport=window.visualViewport;
+      const leftBound=(viewport?.offsetLeft??0)+12;
+      const topBound=(viewport?.offsetTop??0)+12;
+      const rightBound=(viewport?.offsetLeft??0)+(viewport?.width??window.innerWidth)-menu.width-12;
+      const bottomBound=(viewport?.offsetTop??0)+(viewport?.height??window.innerHeight)-menu.height-12;
+      setPosition({
+        left:Math.max(leftBound,Math.min(trigger.right-menu.width,rightBound)),
+        top:Math.max(topBound,Math.min(trigger.bottom+8,bottomBound))
+      });
     };
+    const focusSelected=window.requestAnimationFrame(()=>{
+      menuRef.current?.querySelector<HTMLButtonElement>('[aria-selected="true"]')?.focus();
+      place();
+    });
     const outside=(event:PointerEvent)=>{
       if(event.target instanceof Node&&!menuRef.current?.contains(event.target)&&!triggerRef.current?.contains(event.target))setOpen(false);
     };
@@ -116,7 +126,7 @@ function MonthChooser({month,label,onChange}:{
     <button ref={triggerRef} type="button" className="mt-home-month-picker" aria-haspopup="listbox" aria-expanded={isOpen} aria-controls="mt-home-month-menu" aria-label={'เลือกเดือน '+label} onClick={()=>setOpen(x=>!x)}>
       <span>{label} <ChevronDown size={14}/></span>
     </button>
-    {isOpen&&createPortal(<div ref={menuRef} id="mt-home-month-menu" className="mt-home-month-popover" role="listbox" aria-label="เลือกเดือนของภาพรวม" onKeyDown={onOptionKeyDown} style={{top:position.top,right:position.right}}>
+    {isOpen&&createPortal(<div ref={menuRef} id="mt-home-month-menu" className="mt-home-month-popover" role="listbox" aria-label="เลือกเดือนของภาพรวม" onKeyDown={onOptionKeyDown} style={{top:position.top,left:position.left}}>
       {options.map(item=><button type="button" key={item.key} role="option" aria-selected={item.key===month} className={item.key===month?'selected':''} onClick={()=>{onChange(item.key);setOpen(false);triggerRef.current?.focus();}}>{item.label}</button>)}
     </div>,document.body)}
   </div>;
