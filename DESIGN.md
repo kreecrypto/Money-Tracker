@@ -1,14 +1,14 @@
 # Money Tracker — Design System
 
 ## Overview
-**Creative North Star: Quiet Financial Clarity.** Money Tracker should feel like a finished utility on a phone: one primary action, clear real financial values, low-friction navigation, reassuring states and no unnecessary marketing copy. In Impeccable terms each operational screen is in **Operate** mode. Preserve the existing green fintech identity rather than introducing a new dashboard template. The Home visual hierarchy is **monthly net → accounting secretary briefing and next action → upload supporting evidence → recent transactions**. The Reports screen leads with accounting review and classified cash movements before secondary charts and budget. This is a reporting experience rather than a form-first ledger. Use spacing to group information rather than nested cards.
+**Creative North Star: Quiet Financial Clarity.** Money Tracker should feel like a finished utility on a phone: one primary action, clear real financial values, low-friction navigation, reassuring states and no unnecessary marketing copy. In Impeccable terms each operational screen is in **Operate** mode. Preserve the existing green fintech identity rather than introducing a new dashboard template. The Home visual hierarchy is **calendar with month chooser → selected-date signed income/expense totals → complete selected-date saved transaction list**. Slip upload is outside Home content (mobile FAB / desktop header), while accounting briefings and notices are in Reports. The Reports screen leads with accounting review and classified cash movements before secondary charts and budget. This is a reporting experience rather than a form-first ledger. Use spacing to group information rather than nested cards.
 
 ## Colors
 Use CSS tokens and the current palette as authoritative; the source has older color variants that should be progressively consolidated, not treated as new colors to invent.
 
 | Role | Color | Usage |
 | --- | --- | --- |
-| Primary dark green | `#0c6040` | Home financial summary |
+| Primary dark green | `#0c6040` | Reports financial summary |
 | Primary green | `#126e49` | Summary, important actions |
 | Green highlight | `#187752` | Gradient endpoint with legible white type |
 | Primary CTA | `#08783f` | Upload slip |
@@ -25,7 +25,7 @@ White text belongs only on sufficiently dark green. Secondary copy must maintain
 ## Typography
 - Thai UI first: rely on the installed Thai-capable platform fallback stack while planning a measured Thai typography consolidation; the UI now prefers `Noto Sans Thai` with Thai-capable OS fallbacks; web-font loading can be evaluated separately for performance.
 - Money uses tabular numerals; keep signs, currency symbol and amount together when possible, but allow wrapping for unusually long values on 320px screens.
-- Home monthly amount: `clamp(26px, 7.1vw, 33px)`; main recent amounts: 14px; recent descriptions: 14px; metadata: 12px; upload CTA: 14px.
+- Home selected-day amounts: 13px or larger and signed; ledger amounts/descriptions: 14px; metadata: 12px; upload CTA: 13–14px.
 - Body reading size should generally be at least 13–14px; avoid 9–11px for important financial information.
 - Prefer clear Thai action labels (e.g. “อัปโหลดสลิป”, “ดูทั้งหมด”, “รอตรวจ”) over mixed English metadata. Do not use uppercase or overly spaced lettering for Thai.
 
@@ -39,7 +39,7 @@ White text belongs only on sufficiently dark green. Secondary copy must maintain
 ## Responsive Grid Contract (2026-10-18)
 - Design is mobile first and non-decorative: **320–767px = 4 columns** (16px page margin, 12px gutter); **768–1199px = 8 columns** (24px margin, 16px gutter); **1200px+ = 12 columns** (32px margin, 24px gutter).
 - The page header and body share one left/right content margin. Child surfaces do not add a separate page gutter. Use `minmax(0,1fr)` on every track and `min-width:0` on financial rows to avoid clipping signed amounts and Thai strings.
-- Home: monthly summary, one primary slip CTA and recent transactions each span the available page; income / expense inside the hero split evenly across two halves.
+- Home: calendar and selected-date ledger each span the available page, with two even income/expense totals; no hero, advisory panel, recent-duplicates or inline upload content.
 - Transactions: search then filter chips stack on narrow phones; use 5/3 tracks on tablet and 8/4 tracks on desktop. Ledger rows retain flexible text + amount to preserve long account names.
 - Reports: monthly metrics occupy 2+2 and net full width on phone, 4+4 and net full width on tablet, 4+4+4 on desktop. Supporting charts use 5/3 or 7/5 split only when wide enough.
 - Upload: camera and gallery buttons each span half of the available scanner width; minimum 48px hit height, no giant flex buttons at 320px.
@@ -47,17 +47,17 @@ White text belongs only on sufficiently dark green. Secondary copy must maintain
 - QA contract: check `getComputedStyle(...).gridTemplateColumns` and overflow on 320, 375, 390, 430, 768 and 1280px, both normal and large-text modes; include OCR modal and report views. This layout contract does not change data, API or OCR logic.
 
 ## Elevation
-Flat by default. Use thin green-tinted borders and white backgrounds instead of cards inside cards. Only the monthly summary, floating popover and modal may need restrained elevation. Do not add glowing accents, generic gradients, or decorative highlights that compromise readability. Existing brand green gradient is a deliberate exception, kept within AA contrast.
+Flat by default. Use thin green-tinted borders and white backgrounds instead of cards inside cards. Only floating popover and modal may need restrained elevation. Do not add glowing accents, generic gradients, or decorative highlights that compromise readability. Existing brand green gradient is a deliberate exception, kept within AA contrast.
 
 ## Components
-- **Topbar**: “เงินวันนี้” identity, accessible notifications and settings controls; 44×44px hit areas.
-- **Monthly summary**: month chooser, monthly net, split income/expense in compact internal white surfaces; no fabricated trends.
+- **Topbar**: “เงินวันนี้” identity, accessible notifications/settings and desktop upload control; 44×44px minimum hit areas.
+- **Home calendar + ledger**: month selector inside calendar, signed day totals and every saved entry on the selected date; tapping a row opens its details. Empty dates have explicit empty states.
 - **Month chooser**: real months, clear selected state, keyboard close and focus restoration; must not overflow the visual viewport.
-- **Accounting secretary**: display a truthful daily briefing, concise question-driven answers and any Pending next steps before the upload control. No AI-generated claims or artificial balances.
+- **Accounting secretary**: in Reports, display a truthful briefing, concise question-driven answers and Pending next steps. No AI-generated claims or artificial balances.
 - **Detailed accountant review**: separate recorded cash out into debt, wallet top-ups, unknown-purpose and classified spending; exact bucket totals must equal outflow. Drill down to the same transactions, never claim certified expenses.
-- **Primary upload**: remains visible on Home with one verb, but is secondary to the read-only report; use secondary text only to distinguish camera/gallery choices.
-- **Recent transactions**: one tappable row per saved entry, icon + counterparty/category + date + signed amount; truncate long titles but avoid clipping values.
-- **Bottom navigation**: exactly four persistent destinations — ภาพรวม, รายการ, รายงาน, ตั้งค่า; no duplicate Home shortcuts.
+- **Primary upload**: reachable from the mobile Home FAB and desktop header; the Home content contains only calendar and ledger. Keep scanner entry unchanged.
+- **Selected-date transactions**: one tappable row for each saved entry, icon + counterparty/category + date + signed amount; do not truncate the list at four rows; avoid clipping values.
+- **Bottom navigation**: exactly four persistent destinations — ปฏิทิน, รายการ, รายงาน, ตั้งค่า; no duplicate Home shortcuts.
 - **Slip scanner and Pending**: truthful progress, duplicate and uncertain states; no false completed statuses; privacy/safety warnings remain readable.
 - **Settings**: advanced Shortcut, LINE and build information progressively disclosed, not mixed with daily options.
 - **Modal and menu**: focus-visible rings, Escape where appropriate, accessible labels, safe-area awareness and reduced-motion fallback.
