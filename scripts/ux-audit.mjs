@@ -149,10 +149,11 @@ try {
       // can be corrected into a single ledger transaction, and disappears afterward.
       await page.evaluate(async()=>{
         const store=await import('/src/lib/storage.ts');
+        const {todayLocal}=await import('/src/lib/finance.ts');
         await store.savePendingSlip({
           id:'audit-pending-25',name:'sample-kplus.jpg',
           createdAt:Date.now(),updatedAt:Date.now(),
-          amountSatang:2500,date:'2026-10-11',time:'17:10',
+          amountSatang:2500,date:todayLocal(),time:'17:10',
           recipient:'ร้านค้าตัวอย่าง',direction:null,method:'bank',category:'อื่น ๆ',
           directionReason:'ต้องตรวจประเภทรายการ',
           reason:'OCR ระบุประเภทไม่ได้',kind:'slip',
