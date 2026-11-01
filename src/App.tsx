@@ -32,8 +32,8 @@ import {APP_DISPLAY_VERSION,APP_BUILD_SHA,APP_BUILT_AT,hasNewBundle} from './lib
 
 type Page='home'|'transactions'|'reports'|'settings';
 type Filter='all'|'income'|'expense';
-const pageLabels:Record<Page,string>={home:'ภาพรวม',transactions:'รายการ',reports:'รายงาน',settings:'ตั้งค่า'};
-const navItems=[{key:'home' as const,icon:House,label:'ภาพรวม'},{key:'transactions' as const,icon:ReceiptText,label:'รายการ'},{key:'reports' as const,icon:BarChart3,label:'รายงาน'},{key:'settings' as const,icon:SettingsIcon,label:'ตั้งค่า'}];
+const pageLabels:Record<Page,string>={home:'ปฏิทิน',transactions:'รายการ',reports:'รายงาน',settings:'ตั้งค่า'};
+const navItems=[{key:'home' as const,icon:House,label:'ปฏิทิน'},{key:'transactions' as const,icon:ReceiptText,label:'รายการ'},{key:'reports' as const,icon:BarChart3,label:'รายงาน'},{key:'settings' as const,icon:SettingsIcon,label:'ตั้งค่า'}];
 const monthText=(value:string)=>{const [year,m]=value.split('-').map(Number);return new Intl.DateTimeFormat('th-TH',{month:'long',year:'numeric'}).format(new Date(year,m-1,1));};
 const dateText=(date:string)=>new Intl.DateTimeFormat('th-TH',{day:'numeric',month:'short',year:'numeric'}).format(new Date(`${date}T12:00:00`));
 const percent=(n:number,d:number)=>d<=0?0:Math.round(n/d*100);
@@ -429,36 +429,17 @@ export default function App(){
   if(loadingError) return <div className="loading-screen"><span>⚠️</span><h2>ไม่สามารถเปิดข้อมูลได้</h2><p>{loadingError}</p><button className="btn btn-primary" onClick={()=>window.location.reload()}>ลองอีกครั้ง</button></div>;
   return <div className="app-shell"><a href="#main-content" className="skip-link">ข้ามไปยังเนื้อหาหลัก</a><aside className="sidebar"><Logo/><nav aria-label="เมนูหลัก">{navItems.map(({key,label,icon:Icon})=><button key={key} className={`nav-item ${view===key?'active':''}`} aria-label={label} aria-current={view===key?'page':undefined} onClick={()=>{if(key==='transactions'){setReviewBucket(null);setInboxTab(false);setSlipInboxTab(false);}setView(key);}}><Icon size={19} strokeWidth={1.9}/><span>{label}</span>{view===key&&<span className="nav-active-indicator"/>}</button>)}</nav><div className="sidebar-spacer"/></aside>
     <div className="app-body"><header className={`topbar ${view==='home'?'topbar-home home-v2-topbar':''}`}>{view==='home'
-      ?<HomeTopbar pendingCount={pendingSlips.length+(iphonePending||0)} onNotifications={()=>{if(pendingSlips.length)openPendingSlips();else if(iphonePending&&iphonePending>0)openReview();else setToast('ยังไม่มีรายการที่ต้องตรวจในตอนนี้');}} onSettings={()=>setView('settings')}/>
+      ?<HomeTopbar pendingCount={pendingSlips.length+(iphonePending||0)} onUpload={openAdd} onNotifications={()=>{if(pendingSlips.length)openPendingSlips();else if(iphonePending&&iphonePending>0)openReview();else setToast('ยังไม่มีรายการที่ต้องตรวจในตอนนี้');}} onSettings={()=>setView('settings')}/>
       :<><div className="topbar-left"><div className="ref-topbar-copy"><h1>{pageLabels[view]}</h1></div></div><div className="topbar-actions"><div className="today-chip"><CalendarDays size={16}/><span>{dateText(todayLocal())}</span></div><button className="btn btn-primary top-add" onClick={openAdd}><ScanLine size={18}/> <span>อัปโหลดสลิป</span></button></div></>}</header>
     <main id="main-content" className="main-content" tabIndex={-1}>
       {updateAvailable&&<div className="app-update-notice" role="status"><div><strong>มีแอปเวอร์ชันใหม่พร้อมใช้งาน</strong><span>อัปเดตหน้าเว็บโดยไม่ลบรายการที่บันทึกในเครื่อง</span></div><button type="button" className="btn btn-primary" onClick={()=>window.location.reload()}>โหลดเวอร์ชันใหม่</button></div>}
       {view!=='settings'&&view!=='home'&&(view==='reports'||(!inboxTab&&!slipInboxTab))&&<div className="view-topline view-topline-compact"><div className="month-picker"><button aria-label="เดือนก่อนหน้า" title="เดือนก่อนหน้า" onClick={()=>changeMonth(-1)}><ChevronLeft size={18}/></button><span>{monthText(month)}</span><button aria-label="เดือนถัดไป" title="เดือนถัดไป" onClick={()=>changeMonth(1)}><ChevronRight size={18}/></button></div></div>}
-      {view==='home'&&<>
-        <HomeScreen
-          month={month} monthLabel={monthText(month)} net={sums.net} income={sums.income} expense={sums.expense}
-          recent={selected}
-          reportSlot={<AccountingSecretary items={items} month={month} localPending={pendingSlips.length} iphonePending={iphonePending}
-            onTransactions={question=>{
-              setReviewBucket(null);
-              if(question==='today')setMonth(monthLocal());
-              setSearch(question==='category'&&byCategory.length?byCategory[0].name:'');
-              setFilter(question==='category'?'expense':'all');
-              setInboxTab(false);setSlipInboxTab(false);setView('transactions');
-            }}
-            onReviewLocal={openPendingSlips} onReviewIphone={openReview}/>}
-          onMonthChange={setMonth}
-          onUpload={openAdd}
-          onTransactions={()=>{setReviewBucket(null);setSearch('');setFilter('all');setInboxTab(false);setSlipInboxTab(false);setView('transactions');}}
-          advisorySlot={<div className="mt-home-below">
-          {(settings.ownerNames||[]).length===0&&<div className="mt-home-advisory"><div><strong>ตั้งชื่อเจ้าของบัญชีก่อนอ่านสลิป</strong><p>ช่วยระบุเงินเข้าและเงินออกให้ตรงกับชื่อบนสลิป</p></div><button type="button" onClick={()=>setView('settings')}>ตั้งชื่อของฉัน <ArrowRight size={16}/></button></div>}
-          {pendingSlips.length>0&&<div className="mt-home-advisory mt-home-review pending-home-alert"><div><strong>มีสลิปรอตรวจ {pendingSlips.length} รายการ</strong><p>รายการที่ยังไม่ตรวจจะไม่รวมในยอดเงิน</p></div><button type="button" onClick={openPendingSlips}>ตรวจรายการ <ArrowRight size={16}/></button></div>}
-          {items.length>=5&&Date.now()-lastBackupAt>30*24*60*60*1000&&<div className="mt-home-advisory"><div><strong>สำรองข้อมูลการเงิน</strong><p>ข้อมูลในเครื่องอาจสูญหายหากล้างข้อมูลของ Safari</p></div><button type="button" onClick={exportJson}>สำรองข้อมูล</button></div>}
-          {iphoneConfigured()&&iphoneConnected()&&iphoneSyncError&&<div className="mt-home-advisory"><div><strong>ซิงก์จาก iPhone ไม่สำเร็จ</strong><p>รายการเดิมในเครื่องยังใช้งานได้</p></div><button type="button" onClick={()=>setView('settings')}>ดูการเชื่อมต่อ</button></div>}
-        </div>}
-        />
-      </>}
-            {view==='transactions'&&<>
+      {view==='home'&&<HomeScreen
+        month={month} monthLabel={monthText(month)} recent={selected}
+        onMonthChange={setMonth} onUpload={openAdd}
+        onTransactions={()=>{setReviewBucket(null);setSearch('');setFilter('all');setInboxTab(false);setSlipInboxTab(false);setView('transactions');}}
+      />}
+      {view==='transactions'&&<>
         {(pendingSlips.length>0||(iphonePending!==null&&iphonePending>0)||slipInboxTab||inboxTab)&&<div className="inbox-view-tabs" role="group" aria-label="หมวดรายการ">
           <button type="button" className={!inboxTab&&!slipInboxTab?'active':''} aria-pressed={!inboxTab&&!slipInboxTab} onClick={()=>{setInboxTab(false);setSlipInboxTab(false);}}>บันทึกแล้ว</button>
           <button type="button" className={slipInboxTab?'active':''} aria-pressed={slipInboxTab} onClick={()=>{setInboxTab(false);setSlipInboxTab(true);}}>
@@ -474,6 +455,21 @@ export default function App(){
         }
       </>}
       {view==='reports'&&<>
+        <div className="mt-home-below">
+          {(settings.ownerNames||[]).length===0&&<div className="mt-home-advisory"><div><strong>ตั้งชื่อเจ้าของบัญชีก่อนอ่านสลิป</strong><p>ช่วยระบุเงินเข้าและเงินออกให้ตรงกับชื่อบนสลิป</p></div><button type="button" onClick={()=>setView('settings')}>ตั้งชื่อของฉัน <ArrowRight size={16}/></button></div>}
+          {pendingSlips.length>0&&<div className="mt-home-advisory mt-home-review pending-home-alert"><div><strong>มีสลิปรอตรวจ {pendingSlips.length} รายการ</strong><p>รายการที่ยังไม่ตรวจจะไม่รวมในยอดเงิน</p></div><button type="button" onClick={openPendingSlips}>ตรวจรายการ <ArrowRight size={16}/></button></div>}
+          {items.length>=5&&Date.now()-lastBackupAt>30*24*60*60*1000&&<div className="mt-home-advisory"><div><strong>สำรองข้อมูลการเงิน</strong><p>ข้อมูลในเครื่องอาจสูญหายหากล้างข้อมูลของ Safari</p></div><button type="button" onClick={exportJson}>สำรองข้อมูล</button></div>}
+          {iphoneConfigured()&&iphoneConnected()&&iphoneSyncError&&<div className="mt-home-advisory"><div><strong>ซิงก์จาก iPhone ไม่สำเร็จ</strong><p>รายการเดิมในเครื่องยังใช้งานได้</p></div><button type="button" onClick={()=>setView('settings')}>ดูการเชื่อมต่อ</button></div>}
+        </div>
+        <AccountingSecretary items={items} month={month} localPending={pendingSlips.length} iphonePending={iphonePending}
+            onTransactions={question=>{
+              setReviewBucket(null);
+              if(question==='today')setMonth(monthLocal());
+              setSearch(question==='category'&&byCategory.length?byCategory[0].name:'');
+              setFilter(question==='category'?'expense':'all');
+              setInboxTab(false);setSlipInboxTab(false);setView('transactions');
+            }}
+            onReviewLocal={openPendingSlips} onReviewIphone={openReview}/>
         <CategoryReview items={selected} onApply={applyCategoryReview}/>
         <AccountantReview items={selected} localPending={pendingSlips.length} iphonePending={iphonePending}
           onTransactions={()=>{setReviewBucket(null);setSearch('');setFilter('all');setInboxTab(false);setSlipInboxTab(false);setView('transactions');}}
@@ -537,7 +533,7 @@ export default function App(){
     <EmailLedgerImport existing={items} onImported={reload}/>
   </section><section id="settings-privacy" className="surface settings-card privacy-settings"><div className="settings-icon blue"><ShieldCheck size={24}/></div><h3>ข้อมูลและความเป็นส่วนตัว</h3><p>รายการที่เพิ่มในแอปจะเก็บไว้บนอุปกรณ์นี้ ส่วนรายการที่เชื่อมต่อจาก iPhone จะซิงก์ตามการตั้งค่าของคุณ</p><div className="info-banner"><CloudOff size={18}/><span>รายการในเครื่องใช้ได้แม้ไม่มีอินเทอร์เน็ต</span></div></section><details id="settings-connections" className="settings-connections"><summary>การเชื่อมต่อเพิ่มเติม</summary><div className="settings-connections-content"><IPhoneShortcutSettings onImported={reload}/><LineSyncSettings onImported={reload}/></div></details><section id="settings-about" className="surface settings-card privacy-settings"><div className="settings-icon lavender"><Menu size={24}/></div><h3>เกี่ยวกับแอป</h3><div className="app-meta"><span>เวอร์ชัน</span><strong>{APP_DISPLAY_VERSION}</strong></div><details className="app-technical-details"><summary>ข้อมูลเวอร์ชันเพิ่มเติม</summary><div className="app-meta"><span>Build</span><strong>{APP_BUILD_SHA}</strong></div><div className="app-meta"><span>อัปเดตเมื่อ</span><strong>{new Intl.DateTimeFormat('th-TH',{dateStyle:'medium',timeStyle:'short',timeZone:'Asia/Bangkok'}).format(new Date(APP_BUILT_AT))}</strong></div></details></section></div></>}
     </main></div>
-    {view==='transactions'&&!inboxTab&&!slipInboxTab&&!modalOpen&&<button aria-label="อัปโหลดสลิป" title="อัปโหลดสลิป" className="mobile-fab" onClick={openAdd}><ScanLine size={25}/></button>}<nav className="mobile-bottom-nav" aria-label="เมนูมือถือ">{navItems.map(({key,label,icon:Icon})=><button key={key} className={view===key?'active':''} aria-current={view===key?'page':undefined} onClick={()=>{if(key==='transactions'){setReviewBucket(null);setInboxTab(false);setSlipInboxTab(false);}setView(key);}}><Icon size={21}/><span>{label}</span></button>)}</nav>
+    {(view==='home'||(view==='transactions'&&!inboxTab&&!slipInboxTab))&&!modalOpen&&<button aria-label="อัปโหลดสลิป" title="อัปโหลดสลิป" className="mobile-fab" onClick={openAdd}><ScanLine size={25}/></button>}<nav className="mobile-bottom-nav" aria-label="เมนูมือถือ">{navItems.map(({key,label,icon:Icon})=><button key={key} className={view===key?'active':''} aria-current={view===key?'page':undefined} onClick={()=>{if(key==='transactions'){setReviewBucket(null);setInboxTab(false);setSlipInboxTab(false);}setView(key);}}><Icon size={21}/><span>{label}</span></button>)}</nav>
     {toast&&<div className="toast" role="status"><Check size={17}/>{toast}</div>}
     {modalOpen&&<EntryModal initial={editing} existing={items} startWithScanner={scanOnOpen} close={()=>setModalOpen(false)} submit={onSave} submitImported={onSaveImported} undoImported={undoImported} queuePending={queuePending} resolvePending={resolvePending} ownerNames={settings.ownerNames||[]} viewSaved={date=>{
       setModalOpen(false);setInboxTab(false);setSlipInboxTab(false);
