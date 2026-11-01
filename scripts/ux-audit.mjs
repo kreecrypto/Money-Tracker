@@ -63,26 +63,24 @@ try {
     page.on('pageerror',e=>errors.push(e.message));
     await page.goto(base,{waitUntil:'networkidle'});
     await scan(page,'home',name);
-    const secretaryHome=await page.evaluate(()=>{
-      const report=document.querySelector('.accounting-secretary')?.getBoundingClientRect();
-      const upload=document.querySelector('.mt-home-upload')?.getBoundingClientRect();
+    const homeComposition=await page.evaluate(()=>{
       const calendar=document.querySelector('.mt-finance-calendar')?.getBoundingClientRect();
-      const hero=document.querySelector('.mt-home-balance')?.getBoundingClientRect();
-      return {visible:!!(report&&report.width>0&&report.height>0),
-        calendarFirst:!!(calendar&&hero&&calendar.bottom<hero.top),
-        uploadBeforeReport:!!(report&&upload&&upload.bottom<report.top),
-        questions:document.querySelectorAll('.accounting-secretary-questions button').length};
+      const day=document.querySelector('.mt-home-day-detail')?.getBoundingClientRect();
+      const fab=document.querySelector('.mobile-fab')?.getBoundingClientRect();
+      return {calendarFirst:!!(calendar&&day&&calendar.bottom<day.top),
+        onlyCalendarAndLedger:!document.querySelector('.mt-home-balance,.mt-home-upload,.mt-home-recent,.mt-home-below,.accounting-secretary'),
+        uploadAccessible:innerWidth>660?!!document.querySelector('.mt-home-desktop-upload'):!!(fab&&fab.width>=44&&fab.height>=44)};
     });
-    record('calendar-first-home',name,{...secretaryHome,pageErrors:errors});
+    record('calendar-list-home',name,{...homeComposition,pageErrors:errors});
     if(width<=660){
       const mobileHome=await page.evaluate(()=>{
         const el=name=>document.querySelector(name)?.getBoundingClientRect();
-        const hero=el('.mt-home-balance'),calendar=el('.mt-finance-calendar'),day=el('.mt-home-day-detail'),cta=el('.mt-home-upload'),report=el('.accounting-secretary'),nav=el('.mobile-bottom-nav');
+        const calendar=el('.mt-finance-calendar'),day=el('.mt-home-day-detail'),cta=el('.mobile-fab'),nav=el('.mobile-bottom-nav');
         const calendarNumbersVisible=Array.from(document.querySelectorAll('.mt-calendar-day-amounts')).some(el=>getComputedStyle(el).display!=='none');
         const calendarDays=document.querySelectorAll('.mt-calendar-day:not([disabled])').length;
-        return {correctHierarchy:!!(calendar&&day&&hero&&cta&&report&&calendar.bottom<day.top&&day.bottom<hero.top&&hero.bottom<cta.top&&cta.bottom<report.top),calendarDays,calendarNumbersVisible,noDuplicateActions:document.querySelectorAll('.mt-home-shortcut-grid button').length===0,bottomNavVisible:!!(nav&&nav.width===innerWidth)};
+        return {correctHierarchy:!!(calendar&&day&&cta&&calendar.bottom<day.top&&cta.width>=44),calendarDays,calendarNumbersVisible,noDuplicateActions:document.querySelectorAll('.mt-home-shortcut-grid button').length===0,bottomNavVisible:!!(nav&&nav.width===innerWidth)};
       });
-      await page.locator('.mobile-action-scan').click();
+      await page.locator('.mobile-fab').click();
       const openedOCR=await page.locator('.modal .slip-panel').isVisible();
       await page.locator('.modal .modal-heading button').click();
       record('mobile-home-actions',name,{...mobileHome,openedOCR,
@@ -151,17 +149,18 @@ try {
       // can be corrected into a single ledger transaction, and disappears afterward.
       await page.evaluate(async()=>{
         const store=await import('/src/lib/storage.ts');
+        const {todayLocal}=await import('/src/lib/finance.ts');
         await store.savePendingSlip({
           id:'audit-pending-25',name:'sample-kplus.jpg',
           createdAt:Date.now(),updatedAt:Date.now(),
-          amountSatang:2500,date:'2026-10-11',time:'17:10',
+          amountSatang:2500,date:todayLocal(),time:'17:10',
           recipient:'ร้านค้าตัวอย่าง',direction:null,method:'bank',category:'อื่น ๆ',
           directionReason:'ต้องตรวจประเภทรายการ',
           reason:'OCR ระบุประเภทไม่ได้',kind:'slip',
         });
       });
       await page.reload({waitUntil:'networkidle'});
-      const homeBadge=await page.locator('.pending-home-alert').isVisible();
+      const homeBadge=await page.locator('.mt-home-header-button[aria-label^="การแจ้งเตือน:"]').isVisible();
       await page.locator('.mobile-bottom-nav button').nth(1).click();
       await page.getByRole('button',{name:/รอตรวจจากสลิป/}).click();
       const pendingBefore=await page.locator('.pending-slip-card').count();
@@ -311,7 +310,7 @@ try {
   console.log('AXE_DETAILS_START');
   console.log(JSON.stringify(focus.map(x=>({viewport:x.viewport,view:x.view,violations:x.axe?.violations,smallTouchTargets:x.smallTouchTargets})),null,2));
   console.log('AXE_DETAILS_END');
-  const critical=findings.filter(x=>(x.view==='calendar-first-home'&&(!x.visible||!x.calendarFirst||!x.uploadBeforeReport||x.questions!==4||x.pageErrors?.length))
+  const critical=findings.filter(x=>(x.view==='calendar-list-home'&&(!x.calendarFirst||!x.onlyCalendarAndLedger||!x.uploadAccessible||x.pageErrors?.length))
     ||(x.view==='accountant-report-first'&&(!x.visible||!x.beforeCharts||!x.safetyText||x.pageErrors?.length))
     ||x.view==='navigation-obstruction'
     ||x.overflowPx>0

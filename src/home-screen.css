@@ -375,3 +375,9 @@ button.mt-home-month-picker {
 
 /* Calendar-first Home must follow DOM order, overriding legacy summary-first order rules. */
 .home-dashboard.mt-home-screen > *{order:0!important}
+
+/* Calendar + ledger Home: one upload action outside the two content sections. */
+.mt-home-desktop-upload{display:inline-flex;align-items:center;justify-content:center;gap:7px;min-height:44px;padding:0 12px;border:0;border-radius:11px;background:#08783f;color:#fff;font-size:13px;font-weight:750;white-space:nowrap}
+.mt-home-desktop-upload:focus-visible{outline:3px solid #0b7545;outline-offset:2px}
+.mt-home-day-count{font-size:12px;font-weight:500;color:#586a60;white-space:nowrap}
+@media(max-width:660px){.mt-home-desktop-upload{display:none}}

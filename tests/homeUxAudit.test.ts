@@ -11,28 +11,26 @@ const homeCss=source('src/home-screen.css');
 const mobileCss=source('src/mobile-first.css');
 
 describe('Home UI audit regressions',()=>{
-  it('puts numeric calendar and selected-day totals before the monthly summary and actions',()=>{
+  it('shows only calendar then the complete selected-day ledger on Home',()=>{
     const page=home.slice(home.indexOf('return <div className="home-dashboard mt-home-screen"'));
-    const positions=[
-      '<FinanceCalendar',
-      'className="mt-home-day-detail"',
-      'className="summary-grid mt-home-summary"',
-      '{advisorySlot}',
-      'className="ref-home-upload',
-      '{reportSlot}',
-      'className="surface transactions-surface mt-home-recent"'
-    ].map(marker=>page.indexOf(marker));
-    expect(positions.every(x=>x>=0)).toBe(true);
-    expect(positions).toEqual([...positions].sort((a,b)=>a-b));
-    expect(app).toContain('advisorySlot={<div className="mt-home-below">');
+    expect(page.indexOf('<FinanceCalendar')).toBeLessThan(page.indexOf('className="mt-home-day-detail"'));
+    for(const removed of ['mt-home-summary','mt-home-recent','mt-home-upload','{advisorySlot}','{reportSlot}']){
+      expect(page).not.toContain(removed);
+    }
+    expect(home).toContain('daily.map(tx=>');
+    expect(home).not.toContain('daily.slice(0,4)');
+    expect(app).toContain("{view==='reports'&&<>");
+    expect(app).toContain('<AccountingSecretary items={items}');
     expect(homeCss).toContain('.home-dashboard.mt-home-screen > *{order:0!important}');
   });
   it('shows the correct empty-state date context and does not duplicate selected-day transactions',()=>{
     expect(home).toContain('ไม่มีรายการที่บันทึกในวันที่เลือก');
     expect(home).not.toContain('วันนี้ยังไม่มีรายการที่บันทึกแล้ว');
-    expect(home).toContain('recent.filter(item=>item.date!==activeDate)');
-    expect(home).toContain('recentOthers.length>0&&<section');
-    expect(home).toContain('recentOthers.slice(0,4)');
+    expect(home).toContain('recent.filter(item=>item.date===activeDate)');
+    expect(home).not.toContain('recentOthers');
+    expect(home).toContain('({daily.length} รายการ)');
+    expect(app).toContain("view==='home'||(view==='transactions'&&!inboxTab&&!slipInboxTab)");
+    expect(home).toContain('mt-home-desktop-upload');
   });
   it('uses a single month change control and retains full-value accessible calendar labels',()=>{
     expect(calendar).not.toContain('onMonthChange');
