@@ -33,7 +33,7 @@ import {APP_DISPLAY_VERSION,APP_BUILD_SHA,APP_BUILT_AT,hasNewBundle} from './lib
 type Page='home'|'transactions'|'reports'|'settings';
 type Filter='all'|'income'|'expense';
 const pageLabels:Record<Page,string>={home:'ปฏิทิน',transactions:'รายการ',reports:'รายงาน',settings:'ตั้งค่า'};
-const navItems=[{key:'home' as const,icon:House,label:'ปฏิทิน'},{key:'transactions' as const,icon:ReceiptText,label:'รายการ'},{key:'reports' as const,icon:BarChart3,label:'รายงาน'},{key:'settings' as const,icon:SettingsIcon,label:'ตั้งค่า'}];
+const navItems=[{key:'home' as const,icon:CalendarDays,label:'ปฏิทิน'},{key:'transactions' as const,icon:ReceiptText,label:'รายการ'},{key:'reports' as const,icon:BarChart3,label:'รายงาน'},{key:'settings' as const,icon:SettingsIcon,label:'ตั้งค่า'}];
 const monthText=(value:string)=>{const [year,m]=value.split('-').map(Number);return new Intl.DateTimeFormat('th-TH',{month:'long',year:'numeric'}).format(new Date(year,m-1,1));};
 const dateText=(date:string)=>new Intl.DateTimeFormat('th-TH',{day:'numeric',month:'short',year:'numeric'}).format(new Date(`${date}T12:00:00`));
 const percent=(n:number,d:number)=>d<=0?0:Math.round(n/d*100);
