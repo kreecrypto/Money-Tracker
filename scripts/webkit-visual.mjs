@@ -125,7 +125,7 @@ try{
       elements.length>=2&&elements.every(el=>{
         const style=getComputedStyle(el),rect=el.getBoundingClientRect(),row=el.closest('.transaction-row')?.getBoundingClientRect();
         return style.whiteSpace==='nowrap'&&rect.right<innerWidth+2&&(!row||row.right<innerWidth+2)&&
-          rect.height<=parseFloat(style.lineHeight||'20')*1.25;
+          rect.height<=(parseFloat(style.lineHeight)||parseFloat(style.fontSize)*1.6)*1.25;
       })
     );
     await page.screenshot({path:`${directory}/${label}-transactions.png`,fullPage:true});
