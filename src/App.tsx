@@ -69,6 +69,7 @@ function TransactionRow({entry,onEdit,onDelete,readOnly=false}:{entry:Transactio
   const [actionsOpen,setActionsOpen]=useState(false);
   const [detail,setDetail]=useState(false);
   const detailTriggerRef=useRef<HTMLButtonElement|null>(null);
+  const hasOpenedDetail=useRef(false);
   const actionsRef=useRef<HTMLDivElement>(null);
   useEffect(()=>{
     if(!actionsOpen)return;
@@ -85,7 +86,7 @@ function TransactionRow({entry,onEdit,onDelete,readOnly=false}:{entry:Transactio
       document.removeEventListener('keydown',onKey);
     };
   },[actionsOpen]);
-  useEffect(()=>{if(!detail)detailTriggerRef.current?.focus();},[detail]);
+  useEffect(()=>{if(detail)hasOpenedDetail.current=true;else if(hasOpenedDetail.current)detailTriggerRef.current?.focus();},[detail]);
   return <div className="transaction-with-receipt"><div className="transaction-row">
     <button type="button" className="transaction-open" aria-label={`ดูรายละเอียด ${transactionDisplayName(entry)} ${entry.type==='income'?'รายรับ':'รายจ่าย'} ฿${baht(entry.amountSatang)}`} onClick={event=>{detailTriggerRef.current=event.currentTarget;setDetail(true);}}>
     <CategoryGlyph category={entry.category} type={entry.type}/>
