@@ -14,6 +14,8 @@ describe('finance math',()=>{
    expect(transactionDisplayName(transfer)).toBe('ผู้โอนเงิน');
    expect(transactionDisplayName({...transfer,type:'expense'})).toBe('ผู้รับเงิน');
    expect(transactionDisplayName({...i,sender:undefined,recipient:undefined,note:'รับเงิน'})).toBe('รับเงิน');
+   expect(transactionDisplayName({...e,recipient:undefined,note:'หมวดย่อย: กาแฟ\nลาเต้'})).toBe('กาแฟ · ลาเต้');
+   expect(transactionDisplayName({...e,recipient:undefined,note:'หมวดย่อย: เติมน้ำมัน'})).toBe('เติมน้ำมัน');
  });
 });
 describe('backup',()=>{
