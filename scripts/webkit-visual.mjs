@@ -7,6 +7,7 @@ const base='http://127.0.0.1:4173';
 const directory='audit-artifacts';
 fs.mkdirSync(directory,{recursive:true});
 const server=spawn('npm',['run','dev','--','--host','127.0.0.1','--port','4173','--strictPort'],{stdio:'ignore'});
+let demoServer;
 let browser;
 const findings=[];
 try{
@@ -179,6 +180,44 @@ try{
     findings.push({label,home,calendarBoth,calendarFiguresVisible,calendarFiguresNumeric,calendarSelected,calendarDetail,calendarPreviousMonth,calendarMonthRestored,monthOptions,arrowNavigatesMonth,menuUnclipped,monthCloses,detailsOpen,detailsClose,transactions,list,ledgerMonthCorrect,ledgerSenderSearch,ledgerDetailOpen,ledgerDetailClosed,ledgerFocusRestored,brandLoaded,scanner,slipArtLoaded,compactUploadButtons,scannerColors,readableScanner,reportOverview,trendsOnly,noReportsFab,settings,settingsDirectory,settingsAnchors,noSettingsFab,largeSetting,largeHome,savedReadingMode,largeScanner,errors});
     await context.close();
   }
+  // Exercise the *same* compile-time Preview flag as Vercel, using a disposable WebKit context.
+  demoServer=spawn('npm',['run','dev','--','--host','127.0.0.1','--port','4174','--strictPort'],{
+    stdio:'ignore',env:{...process.env,VERCEL_ENV:'preview'}
+  });
+  const demoBase='http://127.0.0.1:4174';
+  let demoReady=false;
+  for(let attempt=0;attempt<100;attempt++){
+    try{if((await fetch(demoBase)).ok){demoReady=true;break;}}catch{}
+    await delay(250);
+  }
+  if(!demoReady)throw new Error('Preview demo dev server did not become ready');
+  const demoContext=await browser.newContext({viewport:{width:390,height:844},isMobile:true,hasTouch:true});
+  const demoPage=await demoContext.newPage();
+  const demoErrors=[];
+  demoPage.on('pageerror',error=>demoErrors.push(error.message));
+  await demoPage.goto(demoBase,{waitUntil:'networkidle'});
+  await demoPage.getByText('DEMO · ข้อมูลตัวอย่างเท่านั้น').waitFor({timeout:12000});
+  const demoHomeRows=await demoPage.locator('.mt-home-transaction').count();
+  await demoPage.locator('.mobile-bottom-nav button').nth(1).click();
+  const demoAllRows=await demoPage.locator('.transaction-open').count();
+  const searchInput=demoPage.locator('.transaction-page input[aria-label="ค้นหารายการ"]');
+  await searchInput.fill('บริษัทตัวอย่าง');
+  const demoSenderRows=await demoPage.locator('.transaction-open').count();
+  const demoSearchFocus=await searchInput.evaluate(el=>document.activeElement===el);
+  await demoPage.locator('.transaction-open').first().click();
+  const demoDetails=await demoPage.locator('.mt-home-detail[open]').isVisible();
+  await demoPage.locator('.mt-home-detail-done').click();
+  const demoDetailsClosed=await demoPage.locator('.mt-home-detail[open]').count()===0;
+  const demoReadOnly=await demoPage.locator('.transaction-actions,.mobile-row-actions').count()===0;
+  await demoPage.locator('.mobile-bottom-nav button').nth(2).click();
+  const demoReports=await demoPage.locator('.accountant-review').isVisible();
+  await demoPage.screenshot({path:`${directory}/preview-demo-safari390.png`,fullPage:true});
+  const demoEvidence={demoHomeRows,demoAllRows,demoSenderRows,demoSearchFocus,demoDetails,demoDetailsClosed,demoReadOnly,demoReports,demoErrors};
+  findings.push({label:'preview-demo-safari390',...demoEvidence});
+  await demoContext.close();
+  if(demoHomeRows<2||demoAllRows<5||demoSenderRows!==1||!demoSearchFocus||!demoDetails||!demoDetailsClosed||!demoReadOnly||!demoReports||demoErrors.length)
+    throw new Error('WEBKIT_PREVIEW_DEMO_FAIL '+JSON.stringify(demoEvidence));
+  console.log('WEBKIT_PREVIEW_DEMO_PASS',JSON.stringify(demoEvidence));
   fs.writeFileSync(`${directory}/webkit-report.json`,JSON.stringify(findings,null,2));
   console.log('WEBKIT_SAFARI_VISUAL_RESULTS',JSON.stringify(findings));
   const failed=findings.filter(f=>f.home.overflow>1||!f.home.order||!f.home.onlyCalendarAndLedger||f.home.calendarDays<28||f.home.actionCount!==0||!f.calendarBoth||!f.calendarFiguresVisible||!f.calendarFiguresNumeric||!f.calendarSelected||!f.calendarDetail||!f.calendarPreviousMonth||!f.calendarMonthRestored||f.home.navCount!==4||
@@ -192,4 +231,5 @@ try{
 }finally{
   if(browser)await browser.close();
   server.kill('SIGTERM');
+  demoServer?.kill('SIGTERM');
 }
