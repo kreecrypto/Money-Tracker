@@ -8,6 +8,8 @@ export default defineConfig({
   plugins: [react()],
   define: {
     __MONEY_APP_VERSION__: JSON.stringify(appVersion),
+    // Demo renders in memory only. Production builds must never load preview sample data.
+    __MONEY_PREVIEW_DEMO__: JSON.stringify(process.env.VERCEL_ENV === 'preview'),
     __MONEY_BUILD_SHA__: JSON.stringify((process.env.VERCEL_GIT_COMMIT_SHA || process.env.GITHUB_SHA || 'local').slice(0,8)),
     __MONEY_BUILT_AT__: JSON.stringify(new Date().toISOString()),
   },

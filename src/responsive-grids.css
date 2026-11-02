@@ -67,8 +67,8 @@
 .transaction-page .search-box input { min-width:0;width:100%; }
 .transaction-page .transaction-row { width:100%;min-width:0; }
 .transaction-page .transaction-copy { min-width:0;flex:1 1 auto; }
-.transaction-page .transaction-end { min-width:0;max-width:45%; }
-.transaction-page .transaction-end b { overflow-wrap:anywhere;white-space:normal; }
+.transaction-page .transaction-end { min-width:0;max-width:none;flex:0 0 auto; }
+.transaction-page .transaction-end b { overflow-wrap:normal;word-break:normal;white-space:nowrap; }
 
 /* REPORTS: metric 2/2, full-width net on phone; chart columns align. */
 .ref-report-tabs { display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:4px; }

@@ -58,3 +58,13 @@
 @media(max-width:400px){
   .mt-calendar-grid{min-width:326px;grid-template-columns:repeat(7,minmax(44px,1fr))}
 }
+
+/* The 7×44px calendar needs contained scrolling at 320px; make the hidden days discoverable. */
+.mt-calendar-scroll-actions{display:none}
+@media(max-width:400px){
+  .mt-calendar-scroll-actions{display:flex;align-items:center;gap:7px;margin-top:6px}
+  .mt-calendar-scroll-actions span{flex:1;min-width:0;font-size:11px;line-height:1.5;color:#465d50}
+  .mt-calendar-scroll-actions button{flex:none;width:44px;height:44px;border:1px solid #d7e8dd;border-radius:10px;background:#eff8f1;color:#12583a;font-size:18px}
+  .mt-calendar-scroll-actions button:disabled{opacity:.35}
+  .mt-calendar-scroll-actions button:focus-visible{outline:3px solid #0b7545;outline-offset:2px}
+}

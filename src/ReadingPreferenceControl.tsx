@@ -3,10 +3,11 @@ import {Type} from 'lucide-react';
 import {getReadingSize,setReadingSize,type ReadingSize} from './lib/readingPreference';
 
 /** A discoverable reading preference shared by Home, ledger, charts and scanner. */
-export default function ReadingPreferenceControl(){
+export default function ReadingPreferenceControl({preview=false}:{preview?:boolean}){
   const [value,setValue]=useState<ReadingSize>(getReadingSize);
   const choose=(next:ReadingSize)=>{
-    setReadingSize(next);
+    if(preview)document.documentElement.dataset.readingSize=next;
+    else setReadingSize(next);
     setValue(next);
   };
   return <section id="settings-reading" className="surface settings-card reading-preference-card" aria-labelledby="reading-preference-heading">
@@ -21,6 +22,6 @@ export default function ReadingPreferenceControl(){
         <span className="reading-preference-preview is-large" aria-hidden="true">กก</span><span>ตัวอักษรใหญ่</span>
       </button>
     </div>
-    <p className="reading-preference-help">บันทึกตัวเลือกไว้เฉพาะอุปกรณ์นี้ และเปลี่ยนกลับได้ทุกเมื่อ</p>
+    <p className="reading-preference-help">{preview?'ทดลองขนาดตัวอักษรใน Preview โดยไม่บันทึกการตั้งค่า':'บันทึกตัวเลือกไว้เฉพาะอุปกรณ์นี้ และเปลี่ยนกลับได้ทุกเมื่อ'}</p>
   </section>;
 }

@@ -7,6 +7,7 @@ const base='http://127.0.0.1:4173';
 const directory='audit-artifacts';
 fs.mkdirSync(directory,{recursive:true});
 const server=spawn('npm',['run','dev','--','--host','127.0.0.1','--port','4173','--strictPort'],{stdio:'ignore'});
+let demoServer;
 let browser;
 const findings=[];
 try{
@@ -29,7 +30,7 @@ try{
       const {saveTransaction}=await import('/src/lib/storage.ts');
       const {todayLocal}=await import('/src/lib/finance.ts');
       const day=todayLocal();
-      await saveTransaction({id:'safari-fixture-income',type:'income',amountSatang:3240000,date:day,category:'เงินเดือน',note:'เงินเข้าทดสอบ',method:'bank',createdAt:Date.now()-5000});
+      await saveTransaction({id:'safari-fixture-income',type:'income',amountSatang:3240000,date:day,category:'เงินเดือน',note:'เงินเข้าทดสอบ',sender:'ผู้โอนทดสอบ',method:'bank',createdAt:Date.now()-5000});
       await saveTransaction({id:'safari-fixture-expense',type:'expense',amountSatang:775000,date:day,category:'อาหารและเครื่องดื่ม',note:'อาหารทดสอบ',method:'bank',createdAt:Date.now()});
     });
     await page.reload({waitUntil:'networkidle'});
@@ -46,6 +47,24 @@ try{
         actionCount:document.querySelectorAll('.mt-home-shortcut-grid button').length,navCount:document.querySelectorAll('.mobile-bottom-nav button').length,
         navVisible:!!(navigation&&navigation.top>=0&&navigation.bottom<=innerHeight+2),pageGrid,homeGrid,icons};
     });
+
+    // At 320px, retain 44px date targets but make the last weekday discoverable.
+    const calendarAccess=await page.locator('.mt-calendar-scroll').evaluate(el=>({
+      overflows:el.scrollWidth>el.clientWidth+1,
+      initial:el.scrollLeft
+    }));
+    let calendarCanNavigate=true;
+    if(calendarAccess.overflows){
+      const hintVisible=await page.locator('.mt-calendar-scroll-actions').isVisible();
+      const next=page.getByRole('button',{name:'เลื่อนปฏิทินไปทางขวา'});
+      const previous=page.getByRole('button',{name:'เลื่อนปฏิทินไปทางซ้าย'});
+      const ready=await next.isEnabled();
+      await next.click();
+      const advanced=await page.locator('.mt-calendar-scroll').evaluate(el=>el.scrollLeft>1);
+      await previous.click();
+      const restored=await page.locator('.mt-calendar-scroll').evaluate(el=>el.scrollLeft<=1);
+      calendarCanNavigate=hintVisible&&ready&&advanced&&restored;
+    }
     const brandLoaded=await page.locator('.mt-home-brand-icon img').evaluate(img=>img.complete&&img.naturalWidth>0);
     await page.screenshot({path:`${directory}/${label}-home.png`,fullPage:true});
     // Verify same-day incoming/outgoing and an actual tap, not just calendar visibility.
@@ -90,6 +109,25 @@ try{
     await page.locator('.mobile-bottom-nav button').nth(1).click();
     const transactions=await page.locator('.transaction-financial-summary>div').count();
     const list=await page.locator('.transaction-page').isVisible();
+    const monthLabel=(await page.locator('.month-picker span').textContent())?.trim();
+    const ledgerMonthCorrect=(await page.locator('.transaction-month-summary summary').textContent()).includes(monthLabel);
+    const searchInput=page.locator('.transaction-page input[aria-label="ค้นหารายการ"]');
+    await searchInput.fill('ผู้โอนทดสอบ');
+    const ledgerSenderSearch=await page.locator('.transaction-page .transaction-open').count()===1;
+    await searchInput.fill('');
+    const ledgerRow=page.locator('.transaction-page .transaction-open').first();
+    await ledgerRow.click();
+    const ledgerDetailOpen=await page.locator('.mt-home-detail[open]').isVisible();
+    await page.locator('.mt-home-detail-done').click();
+    const ledgerDetailClosed=await page.locator('.mt-home-detail[open]').count()===0;
+    const ledgerFocusRestored=await ledgerRow.evaluate(el=>document.activeElement===el);
+    const ledgerMoneySingleLine=await page.locator('.transaction-page .transaction-end b').evaluateAll(elements=>
+      elements.length>=2&&elements.every(el=>{
+        const style=getComputedStyle(el),rect=el.getBoundingClientRect(),row=el.closest('.transaction-row')?.getBoundingClientRect();
+        return style.whiteSpace==='nowrap'&&rect.right<innerWidth+2&&(!row||row.right<innerWidth+2)&&
+          rect.height<=(parseFloat(style.lineHeight)||parseFloat(style.fontSize)*1.6)*1.25;
+      })
+    );
     await page.screenshot({path:`${directory}/${label}-transactions.png`,fullPage:true});
     await page.locator('.mobile-fab').click();
     const scanner=await page.locator('.slip-upload-box').isVisible();
@@ -164,14 +202,72 @@ try{
       })
     );
     await page.locator('.modal-heading button').click();
-    findings.push({label,home,calendarBoth,calendarFiguresVisible,calendarFiguresNumeric,calendarSelected,calendarDetail,calendarPreviousMonth,calendarMonthRestored,monthOptions,arrowNavigatesMonth,menuUnclipped,monthCloses,detailsOpen,detailsClose,transactions,list,brandLoaded,scanner,slipArtLoaded,compactUploadButtons,scannerColors,readableScanner,reportOverview,trendsOnly,noReportsFab,settings,settingsDirectory,settingsAnchors,noSettingsFab,largeSetting,largeHome,savedReadingMode,largeScanner,errors});
+    findings.push({label,home,calendarCanNavigate,calendarBoth,calendarFiguresVisible,calendarFiguresNumeric,calendarSelected,calendarDetail,calendarPreviousMonth,calendarMonthRestored,monthOptions,arrowNavigatesMonth,menuUnclipped,monthCloses,detailsOpen,detailsClose,transactions,list,ledgerMonthCorrect,ledgerSenderSearch,ledgerDetailOpen,ledgerDetailClosed,ledgerFocusRestored,ledgerMoneySingleLine,brandLoaded,scanner,slipArtLoaded,compactUploadButtons,scannerColors,readableScanner,reportOverview,trendsOnly,noReportsFab,settings,settingsDirectory,settingsAnchors,noSettingsFab,largeSetting,largeHome,savedReadingMode,largeScanner,errors});
     await context.close();
   }
+  // Exercise the *same* compile-time Preview flag as Vercel, using a disposable WebKit context.
+  demoServer=spawn('npm',['run','dev','--','--host','127.0.0.1','--port','4174','--strictPort'],{
+    stdio:'ignore',env:{...process.env,VERCEL_ENV:'preview'}
+  });
+  const demoBase='http://127.0.0.1:4174';
+  let demoReady=false;
+  for(let attempt=0;attempt<100;attempt++){
+    try{if((await fetch(demoBase)).ok){demoReady=true;break;}}catch{}
+    await delay(250);
+  }
+  if(!demoReady)throw new Error('Preview demo dev server did not become ready');
+  const demoContext=await browser.newContext({viewport:{width:390,height:844},isMobile:true,hasTouch:true});
+  const demoPage=await demoContext.newPage();
+  const demoErrors=[];
+  demoPage.on('pageerror',error=>demoErrors.push(error.message));
+  await demoPage.goto(demoBase,{waitUntil:'networkidle'});
+  await demoPage.getByText('DEMO · ข้อมูลตัวอย่างเท่านั้น').waitFor({timeout:12000});
+  const demoHomeRows=await demoPage.locator('.mt-home-transaction').count();
+  await demoPage.locator('.mobile-bottom-nav button').nth(1).click();
+  const demoAllRows=await demoPage.locator('.transaction-open').count();
+  const searchInput=demoPage.locator('.transaction-page input[aria-label="ค้นหารายการ"]');
+  await searchInput.fill('บริษัทตัวอย่าง');
+  const demoSenderRows=await demoPage.locator('.transaction-open').count();
+  const demoSearchFocus=await searchInput.evaluate(el=>document.activeElement===el);
+  await demoPage.locator('.transaction-open').first().click();
+  const demoDetails=await demoPage.locator('.mt-home-detail[open]').isVisible();
+  await demoPage.locator('.mt-home-detail-done').click();
+  const demoDetailsClosed=await demoPage.locator('.mt-home-detail[open]').count()===0;
+  const demoReadOnly=await demoPage.locator('.transaction-actions,.mobile-row-actions').count()===0;
+  await demoPage.locator('.mobile-bottom-nav button').nth(2).click();
+
+  const demoReports=await demoPage.locator('.accountant-review').isVisible();
+  const demoReportsTabs=await demoPage.locator('.ref-report-tabs button').count()===4;
+  await demoPage.locator('.ref-report-tabs button').nth(2).click();
+  const demoTrend=await demoPage.locator('#report-trends .bars-chart').isVisible();
+  await demoPage.locator('.ref-report-tabs button').nth(1).click();
+  const demoCategories=await demoPage.locator('.report-panels').isVisible();
+  await demoPage.locator('.ref-report-tabs button').nth(3).click();
+  const demoBudget=await demoPage.locator('#report-budget').isVisible();
+  await demoPage.locator('.mobile-bottom-nav button').nth(3).click();
+  const demoSettings=await demoPage.locator('.settings-grid > .settings-card').count()>=6;
+  const demoSettingsLinks=await demoPage.locator('.reference-settings-index a').count()===7;
+  const demoReading=await demoPage.locator('#settings-reading .reading-preference-options button').count()===2;
+  const demoNoDangerousButtons=await demoPage.locator('#settings-data button:not([disabled])').count()===0;
+  await demoPage.locator('#settings-reading .reading-preference-options button').nth(1).click();
+  const demoLargeText=await demoPage.evaluate(()=>document.documentElement.dataset.readingSize==='large');
+  const demoNoFinanceStorage=await demoPage.evaluate(async()=>{
+    const names=await indexedDB.databases();
+    return !names.some(db=>db.name==='ngoentoday-db');
+  });
+
+  await demoPage.screenshot({path:`${directory}/preview-demo-safari390.png`,fullPage:true});
+  const demoEvidence={demoHomeRows,demoAllRows,demoSenderRows,demoSearchFocus,demoDetails,demoDetailsClosed,demoReadOnly,demoReports,demoReportsTabs,demoTrend,demoCategories,demoBudget,demoSettings,demoSettingsLinks,demoReading,demoNoDangerousButtons,demoLargeText,demoNoFinanceStorage,demoErrors};
+  findings.push({label:'preview-demo-safari390',...demoEvidence});
+  await demoContext.close();
+  if(demoHomeRows<2||demoAllRows<5||demoSenderRows!==1||!demoSearchFocus||!demoDetails||!demoDetailsClosed||!demoReadOnly||!demoReports||!demoReportsTabs||!demoTrend||!demoCategories||!demoBudget||!demoSettings||!demoSettingsLinks||!demoReading||!demoNoDangerousButtons||!demoLargeText||!demoNoFinanceStorage||demoErrors.length)
+    throw new Error('WEBKIT_PREVIEW_DEMO_FAIL '+JSON.stringify(demoEvidence));
+  console.log('WEBKIT_PREVIEW_DEMO_PASS',JSON.stringify(demoEvidence));
   fs.writeFileSync(`${directory}/webkit-report.json`,JSON.stringify(findings,null,2));
   console.log('WEBKIT_SAFARI_VISUAL_RESULTS',JSON.stringify(findings));
-  const failed=findings.filter(f=>f.home.overflow>1||!f.home.order||!f.home.onlyCalendarAndLedger||f.home.calendarDays<28||f.home.actionCount!==0||!f.calendarBoth||!f.calendarFiguresVisible||!f.calendarFiguresNumeric||!f.calendarSelected||!f.calendarDetail||!f.calendarPreviousMonth||!f.calendarMonthRestored||f.home.navCount!==4||
+  const failed=findings.filter(f=>f.label!=='preview-demo-safari390').filter(f=>f.home.overflow>1||!f.calendarCanNavigate||!f.ledgerMoneySingleLine||!f.home.order||!f.home.onlyCalendarAndLedger||f.home.calendarDays<28||f.home.actionCount!==0||!f.calendarBoth||!f.calendarFiguresVisible||!f.calendarFiguresNumeric||!f.calendarSelected||!f.calendarDetail||!f.calendarPreviousMonth||!f.calendarMonthRestored||f.home.navCount!==4||
     f.home.pageGrid!==4||f.home.homeGrid!==4||
-    !f.home.navVisible||f.home.icons.some(icon=>icon.width<20||icon.height<20)||f.monthOptions!==13||!f.arrowNavigatesMonth||!f.menuUnclipped||!f.monthCloses||!f.detailsOpen||!f.detailsClose||f.transactions!==2||!f.list||!f.brandLoaded||!f.slipArtLoaded||!f.reportOverview||!f.settingsDirectory||!f.settingsAnchors||!f.scanner||!f.compactUploadButtons||!f.readableScanner||!f.trendsOnly||!f.noReportsFab||!f.settings||!f.noSettingsFab||!f.largeSetting.active||!f.largeSetting.selected||f.largeSetting.fontSize<16||f.largeHome.overflow>1||f.largeHome.textSize<16||!f.largeHome.navigation||!f.savedReadingMode||!f.largeScanner||f.errors.length);
+    !f.home.navVisible||f.home.icons.some(icon=>icon.width<20||icon.height<20)||f.monthOptions!==13||!f.arrowNavigatesMonth||!f.menuUnclipped||!f.monthCloses||!f.detailsOpen||!f.detailsClose||f.transactions!==2||!f.list||!f.ledgerMonthCorrect||!f.ledgerSenderSearch||!f.ledgerDetailOpen||!f.ledgerDetailClosed||!f.ledgerFocusRestored||!f.brandLoaded||!f.slipArtLoaded||!f.reportOverview||!f.settingsDirectory||!f.settingsAnchors||!f.scanner||!f.compactUploadButtons||!f.readableScanner||!f.trendsOnly||!f.noReportsFab||!f.settings||!f.noSettingsFab||!f.largeSetting.active||!f.largeSetting.selected||f.largeSetting.fontSize<16||f.largeHome.overflow>1||f.largeHome.textSize<16||!f.largeHome.navigation||!f.savedReadingMode||!f.largeScanner||f.errors.length);
   if(failed.length){console.error('WEBKIT_SAFARI_VISUAL_FAIL',JSON.stringify(failed));process.exitCode=1;}
   else console.log('WEBKIT_SAFARI_VISUAL_PASS: 4 phone sizes, essential home, icons, tabbar, scan, transactions, settings');
 }catch(error){
@@ -180,4 +276,5 @@ try{
 }finally{
   if(browser)await browser.close();
   server.kill('SIGTERM');
+  demoServer?.kill('SIGTERM');
 }

@@ -193,10 +193,21 @@ body:has(.mt-home-screen),
   border-radius:var(--cute-radius);
   box-shadow:0 4px 16px rgba(34,75,45,.045);
 }
-.transaction-page .transaction-row {
-  background:#fff;border:1px solid #e7eee8;
-  border-radius:16px;padding-inline:10px;
+.transaction-page.surface {
+  background:transparent;border:0;box-shadow:none;padding:0;
 }
+.transaction-page .transaction-row {
+  background:transparent;border:0;border-radius:0;padding-inline:0;
+}
+.transaction-page .transaction-open {
+  display:flex;flex:1;align-items:center;gap:10px;min-width:0;min-height:48px;
+  padding:0;border:0;border-radius:10px;background:transparent;color:inherit;
+  font:inherit;text-align:left;touch-action:manipulation;
+}
+.transaction-page .transaction-open:hover {background:var(--cute-mint-soft);}
+.transaction-page .transaction-open:focus-visible {outline:3px solid var(--cute-accent);outline-offset:2px;}
+.transaction-page .transaction-open .transaction-copy {min-width:0;}
+.transaction-page .transaction-open .transaction-end {min-width:0;max-width:45%;}
 .transaction-page .search-box {
   background:#fff;border-color:var(--cute-line);border-radius:15px;
 }
@@ -258,3 +269,19 @@ button:focus-visible,.mt-calendar-day:focus-visible,
   .mt-home-screen .mt-home-upload,
   .mt-calendar-day,.mt-calendar-controls button {transition:none!important;}
 }
+
+/* Vercel Preview-only read-only demo: keep its label visible on every tab. */
+.preview-demo-banner {
+  display:flex;flex-direction:column;gap:3px;margin:0 0 15px;
+  padding:12px 14px;border:1px solid var(--cute-line,#dce9df);
+  border-radius:14px;background:var(--cute-mint-soft,#eff8f1);
+  color:var(--cute-ink,#101f1b);font-size:12px;line-height:1.6;
+}
+.preview-demo-banner strong {font-size:13px;font-weight:800;}
+.preview-demo-banner span {color:#41594b;}
+.preview-demo-settings h2 {margin-top:0;font-size:18px;}
+.preview-demo-settings p {font-size:14px;line-height:1.75;}
+
+/* P1: dates may wrap; a signed monetary amount must never split mid-number. */
+.transaction-page .transaction-open .transaction-end{max-width:none;flex:0 0 auto}
+.transaction-page .transaction-end b{white-space:nowrap;overflow-wrap:normal;word-break:normal}
