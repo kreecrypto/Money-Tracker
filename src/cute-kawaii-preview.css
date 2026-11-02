@@ -281,3 +281,7 @@ button:focus-visible,.mt-calendar-day:focus-visible,
 .preview-demo-banner span {color:#41594b;}
 .preview-demo-settings h2 {margin-top:0;font-size:18px;}
 .preview-demo-settings p {font-size:14px;line-height:1.75;}
+
+/* P1: dates may wrap; a signed monetary amount must never split mid-number. */
+.transaction-page .transaction-open .transaction-end{max-width:none;flex:0 0 auto}
+.transaction-page .transaction-end b{white-space:nowrap;overflow-wrap:normal;word-break:normal}
