@@ -236,6 +236,7 @@ function EntryModal({initial,existing,startWithScanner,close,submit,submitImport
 function ReportPanels({items,month,settings,onSettings,onExport}:{
   items:readonly Transaction[];month:string;settings:Settings;onSettings:()=>void;onExport:()=>void;
 }){
+  const [reportTab,setReportTab]=useState<'overview'|'categories'|'trends'|'budget'>('overview');
   const selected=useMemo(()=>monthly([...items],month),[items,month]);
   const sums=useMemo(()=>summarize(selected),[selected]);
   const allSums=useMemo(()=>summarize([...items]),[items]);
@@ -271,7 +272,6 @@ function ReportPanels({items,month,settings,onSettings,onExport}:{
 
 function LiveApp(){
   const [items,setItems]=useState<Transaction[]>([]);const [settings,setSettings]=useState<Settings>(DEFAULT_SETTINGS);
-  const [reportTab,setReportTab]=useState<'overview'|'categories'|'trends'|'budget'>('overview');
   const [view,setView]=useState<Page>('home');const [month,setMonth]=useState(monthLocal());const [modalOpen,setModalOpen]=useState(false);const [scanOnOpen,setScanOnOpen]=useState(false);const [editing,setEditing]=useState<Transaction|null>(null);
   const [updateAvailable,setUpdateAvailable]=useState(false);
   const [inboxTab,setInboxTab]=useState(false);
