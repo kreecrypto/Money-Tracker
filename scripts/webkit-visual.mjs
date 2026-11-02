@@ -158,6 +158,7 @@ try{
     await page.screenshot({path:`${directory}/${label}-report-overview.png`,fullPage:true});
     await page.locator('.ref-report-tabs button').nth(2).click();
     const trendsOnly=await page.locator('#report-trends').isVisible()&&await page.locator('#report-budget').count()===0;
+    await page.screenshot({path:`${directory}/${label}-report-trends.png`,fullPage:true});
     await page.locator('.ref-report-tabs button').nth(1).click();
     const categorySummary=page.locator('.report-category-breakdown summary').first();
     const reportCategoryPresent=await categorySummary.isVisible();
@@ -165,9 +166,8 @@ try{
     const reportExpenseRows=await page.locator('.report-category-breakdown[open] .report-category-expense-row').count();
     const reportExpenseTotal=await page.locator('.report-category-breakdown[open] .report-category-expense-total').innerText();
     const reportBreakdown=reportCategoryPresent&&reportExpenseRows>0&&reportExpenseTotal.includes('฿');
-    await page.screenshot({path:`${directory}/${label}-report-category-details.png`,fullPage:true);
+    await page.screenshot({path:`${directory}/${label}-report-category-details.png`,fullPage:true});
     const noReportsFab=await page.locator('.mobile-fab').isHidden();
-    await page.screenshot({path:`${directory}/${label}-report-trends.png`,fullPage:true});
     await page.locator('.mobile-bottom-nav button').nth(3).click();
     const settings=await page.locator('#settings-about h3').isVisible();
     const settingsDirectory=await page.locator('.reference-settings-link').count()===7;
