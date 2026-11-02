@@ -131,7 +131,7 @@ function MonthChooser({month,label,onChange}:{
     </div>,document.body)}
   </div>;
 }
-function TransactionDetail({value,onClose}:{
+export function TransactionDetail({value,onClose}:{
  value:Transaction;onClose:()=>void
 }){
  const ref=useRef<HTMLDialogElement>(null);

@@ -60,6 +60,11 @@ export function transactionDisplayName(
   const primary=t.type==='income'?t.sender?.trim():t.recipient?.trim();
   return primary||t.recipient?.trim()||t.sender?.trim()||t.note?.trim()||t.category;
 }
+export function matchesTransactionSearch(entry:Transaction,search:string):boolean {
+  const term=search.trim().toLocaleLowerCase('th-TH');
+  if(!term)return true;
+  return `${entry.category} ${entry.note} ${entry.sender||''} ${entry.recipient||''} ${entry.time||''} ${entry.receipt?.receiptId||''} ${(entry.receipt?.items||[]).map(item=>item.name).join(' ')} ${METHODS[entry.method]}`.toLocaleLowerCase('th-TH').includes(term);
+}
 export const formatter = new Intl.NumberFormat('th-TH', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 export const baht = (satang:number) => formatter.format(satang/100);
 export const todayLocal = (date = new Date()) => [date.getFullYear(),String(date.getMonth()+1).padStart(2,'0'),String(date.getDate()).padStart(2,'0')].join('-');
