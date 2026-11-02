@@ -28,6 +28,7 @@ import {prepareAutoSlip} from './lib/slipAutoSave';
 import {sanitizeOwnerNames} from './lib/slipIdentity';
 import type {SlipBatchOutcome,SlipBatchSummary} from './lib/slipBatch';
 import {groupTransactionsByDay,dateSectionLabel} from './lib/spendingInsights';
+import {previewTransactions} from './lib/previewDemo';
 import {APP_DISPLAY_VERSION,APP_BUILD_SHA,APP_BUILT_AT,hasNewBundle} from './lib/appVersion';
 
 type Page='home'|'transactions'|'reports'|'settings';
@@ -64,7 +65,7 @@ function MoneyCard({title,value,icon,variation}:{title:string;value:number;icon:
   const Icon=icon==='income'?ArrowDownLeft:icon==='expense'?ArrowUpRight:Wallet;
   return <div className={`metric ${icon}`}><div className="metric-top"><span>{title}</span><span className="metric-icon"><Icon size={18}/></span></div><div className="metric-number">฿{baht(value)}</div>{variation&&<span className="metric-foot">{variation}</span>}</div>;
 }
-function TransactionRow({entry,onEdit,onDelete}:{entry:Transaction;onEdit:(t:Transaction)=>void;onDelete:(t:Transaction)=>void}){
+function TransactionRow({entry,onEdit,onDelete,readOnly=false}:{entry:Transaction;onEdit:(t:Transaction)=>void;onDelete:(t:Transaction)=>void;readOnly?:boolean}){
   const [actionsOpen,setActionsOpen]=useState(false);
   const [detail,setDetail]=useState(false);
   const detailTriggerRef=useRef<HTMLButtonElement|null>(null);
@@ -91,13 +92,13 @@ function TransactionRow({entry,onEdit,onDelete}:{entry:Transaction;onEdit:(t:Tra
     <div className="transaction-copy"><strong>{entry.id.startsWith('iphone-')&&!entry.recipient&&!entry.sender?'รอตรวจชื่อคู่รายการ':transactionDisplayName(entry)}</strong><span>{emailLedgerCategory(entry)}{entry.type==='expense'&&entry.sender?` · จาก ${entry.sender}`:''}{entry.type==='income'&&entry.sender&&entry.recipient?` · ถึง ${entry.recipient}`:''}{entry.id.startsWith('email-')?' · มีคำชี้แจงและหลักฐาน':entry.note?` · ${entry.note}`:''} <i>·</i> {METHODS[entry.method]}</span></div>
     <div className="transaction-end"><b className={entry.type==='income'?'positive':'negative'}>{entry.type==='income'?'+':'−'}฿{baht(entry.amountSatang)}</b><span>{dateText(entry.date)}{entry.time?` · ${entry.time} น.`:""}</span></div>
     </button>
-    <div className="transaction-actions"><button aria-label={`แก้ไข ${entry.note||entry.category}`} title="แก้ไข" className="icon-btn" onClick={()=>onEdit(entry)}><Pencil size={17}/></button><button aria-label={`ลบ ${entry.note||entry.category}`} title="ลบ" className="icon-btn danger" onClick={()=>onDelete(entry)}><Trash2 size={17}/></button></div>
-    <div className="mobile-row-actions" ref={actionsRef}><button className="icon-btn mobile-row-more" title="จัดการรายการ" aria-label={`จัดการ ${entry.note||entry.category}`} aria-expanded={actionsOpen} onClick={()=>setActionsOpen(!actionsOpen)}><MoreHorizontal size={21}/></button>
+    {!readOnly&&<div className="transaction-actions"><button aria-label={`แก้ไข ${entry.note||entry.category}`} title="แก้ไข" className="icon-btn" onClick={()=>onEdit(entry)}><Pencil size={17}/></button><button aria-label={`ลบ ${entry.note||entry.category}`} title="ลบ" className="icon-btn danger" onClick={()=>onDelete(entry)}><Trash2 size={17}/></button></div>}
+    {!readOnly&&<div className="mobile-row-actions" ref={actionsRef}><button className="icon-btn mobile-row-more" title="จัดการรายการ" aria-label={`จัดการ ${entry.note||entry.category}`} aria-expanded={actionsOpen} onClick={()=>setActionsOpen(!actionsOpen)}><MoreHorizontal size={21}/></button>
       {actionsOpen&&<div className="mobile-row-menu" role="group" aria-label="ตัวเลือกรายการ">
         <button onClick={()=>{setActionsOpen(false);onEdit(entry);}}><Pencil size={17}/> แก้ไข</button>
         <button className="danger" onClick={()=>{setActionsOpen(false);onDelete(entry);}}><Trash2 size={17}/> ลบรายการ</button>
       </div>}
-    </div>
+    </div>}
   </div>
   {entry.receipt&&<details className="receipt-details">
     <summary>ดูรายละเอียดใบเสร็จ{entry.receipt.items.length?' · '+entry.receipt.items.length+' รายการสินค้า':''}</summary>
@@ -121,9 +122,9 @@ function TransactionRow({entry,onEdit,onDelete}:{entry:Transaction;onEdit:(t:Tra
   {detail&&<TransactionDetail value={entry} onClose={()=>setDetail(false)}/>}
   </div>;
 }
-function TxList({items,onEdit,onDelete,limit,groupByDay=false}:{items:Transaction[];onEdit:(t:Transaction)=>void;onDelete:(t:Transaction)=>void;limit?:number;groupByDay?:boolean}){
+function TxList({items,onEdit,onDelete,limit,groupByDay=false,readOnly=false}:{items:Transaction[];onEdit:(t:Transaction)=>void;onDelete:(t:Transaction)=>void;limit?:number;groupByDay?:boolean;readOnly?:boolean}){
   const visible=limit?items.slice(0,limit):items;
-  if(!groupByDay)return <div className="tx-list">{visible.map(x=><TransactionRow key={x.id} entry={x} onEdit={onEdit} onDelete={onDelete}/>)}</div>;
+  if(!groupByDay)return <div className="tx-list">{visible.map(x=><TransactionRow key={x.id} entry={x} onEdit={onEdit} onDelete={onDelete} readOnly={readOnly}/>)}</div>;
   const today=todayLocal();
   const yesterday=new Date(today+'T12:00:00');yesterday.setDate(yesterday.getDate()-1);
   return <div className="tx-list tx-list-grouped">{groupTransactionsByDay(visible).map(group=>{
@@ -132,7 +133,7 @@ function TxList({items,onEdit,onDelete,limit,groupByDay=false}:{items:Transactio
     const net=group.items.reduce((total,item)=>total+(item.type==='income'?item.amountSatang:-item.amountSatang),0);
     return <section className="transaction-day-group" key={group.date} aria-label={'รายการวันที่ '+formatted}>
       <div className="transaction-day-heading"><strong>{label===formatted?formatted:`${label} · ${formatted}`}</strong><span className={net>=0?'positive':'negative'}>{net>=0?'+':'−'}฿{baht(Math.abs(net))}</span></div>
-      {group.items.map(entry=><TransactionRow key={entry.id} entry={entry} onEdit={onEdit} onDelete={onDelete}/>)}
+      {group.items.map(entry=><TransactionRow key={entry.id} entry={entry} onEdit={onEdit} onDelete={onDelete} readOnly={readOnly}/>)}
     </section>;
   })}</div>;
 }
@@ -230,7 +231,7 @@ function EntryModal({initial,existing,startWithScanner,close,submit,submitImport
   {error&&<p className="error-message" role="alert">{error}</p>}
   <div className="modal-footer"><button type="button" className="btn btn-ghost" disabled={pending} onClick={close}>ยกเลิก</button><button type="submit" className="btn btn-primary" disabled={pending}><Check size={17}/>{pending?'กำลังบันทึก...':'บันทึกรายการ'}</button></div></>}</form></section></div>;
 }
-export default function App(){
+function LiveApp(){
   const [items,setItems]=useState<Transaction[]>([]);const [settings,setSettings]=useState<Settings>(DEFAULT_SETTINGS);
   const [reportTab,setReportTab]=useState<'overview'|'categories'|'trends'|'budget'>('overview');
   const [view,setView]=useState<Page>('home');const [month,setMonth]=useState(monthLocal());const [modalOpen,setModalOpen]=useState(false);const [scanOnOpen,setScanOnOpen]=useState(false);const [editing,setEditing]=useState<Transaction|null>(null);
@@ -563,4 +564,81 @@ export default function App(){
       busy={resetBusy} error={resetError} onBackup={exportJson} onConfirm={()=>{void eraseDeviceData();}}
       onClose={()=>{if(!resetBusy)setResetDialogOpen(false);}}/>}
   </div>;
+}
+
+/** The preview is a read-only showcase. Never mount LiveApp or access IndexedDB/API here. */
+function PreviewDemo(){
+  const rows=useMemo(()=>previewTransactions(),[]);
+  const [view,setView]=useState<Page>('home');
+  const [month,setMonth]=useState(monthLocal());
+  const [search,setSearch]=useState('');
+  const [filter,setFilter]=useState<Filter>('all');
+  const [bucket,setBucket]=useState<AccountantBucketKey|null>(null);
+  const [notice,setNotice]=useState('');
+  const selected=useMemo(()=>monthly(rows,month),[rows,month]);
+  const filtered=useMemo(()=>selected.filter(t=>(filter==='all'||t.type===filter)&&(!bucket||accountantBucketFor(t)===bucket)&&matchesTransactionSearch(t,search)),[selected,filter,bucket,search]);
+  const sums=useMemo(()=>summarize(selected),[selected]);
+  const categories=useMemo(()=>expenseByCategory(selected),[selected]);
+  const reset=()=>{setSearch('');setFilter('all');setBucket(null);};
+  const showList=()=>{reset();setView('transactions');};
+  const demoOnly=()=>setNotice('โหมดตัวอย่าง: ปิดการเพิ่ม แก้ไข และบันทึกข้อมูล เพื่อปกป้องข้อมูลจริง');
+  const changeMonth=(diff:number)=>{const [y,m]=month.split('-').map(Number);setMonth(monthLocal(new Date(y,m-1+diff,1)));};
+  useEffect(()=>{document.title='ข้อมูลตัวอย่าง — เงินวันนี้';},[]);
+  useEffect(()=>{if(!notice)return;const timeout=window.setTimeout(()=>setNotice(''),4000);return()=>window.clearTimeout(timeout);},[notice]);
+  return <div className="app-shell preview-demo-app">
+    <a href="#main-content" className="skip-link">ข้ามไปยังเนื้อหาหลัก</a>
+    <aside className="sidebar"><Logo/><nav aria-label="เมนูหลัก">{navItems.map(({key,label,icon:Icon})=>
+      <button key={key} type="button" className={`nav-item ${view===key?'active':''}`} aria-current={view===key?'page':undefined} onClick={()=>setView(key)}><Icon size={19}/><span>{label}</span>{view===key&&<span className="nav-active-indicator"/>}</button>
+    )}</nav><div className="sidebar-spacer"/></aside>
+    <div className="app-body">
+      <header className={`topbar ${view==='home'?'topbar-home home-v2-topbar':''}`}>{view==='home'
+        ?<HomeTopbar pendingCount={0} onNotifications={()=>setNotice('ไม่มีรายการรอตรวจในข้อมูลตัวอย่าง')} onSettings={()=>setView('settings')} onUpload={demoOnly}/>
+        :<><div className="topbar-left"><div className="ref-topbar-copy"><h1>{pageLabels[view]}</h1></div></div><div className="topbar-actions"><button type="button" className="btn btn-primary top-add" onClick={demoOnly}><ScanLine size={18}/> อัปโหลดสลิป</button></div></>}
+      </header>
+      <main id="main-content" className="main-content" tabIndex={-1}>
+        <div className="preview-demo-banner" role="status">
+          <strong>DEMO · ข้อมูลตัวอย่างเท่านั้น</strong>
+          <span>ยอดเงินและชื่อในหน้านี้เป็นข้อมูลสมมติ · ดูและค้นหาได้ แต่จะไม่บันทึกหรือซิงก์ข้อมูลใด ๆ</span>
+        </div>
+        {view!=='home'&&view!=='settings'&&<div className="view-topline view-topline-compact"><div className="month-picker">
+          <button type="button" aria-label="เดือนก่อนหน้า" onClick={()=>changeMonth(-1)}><ChevronLeft size={18}/></button>
+          <span>{monthText(month)}</span>
+          <button type="button" aria-label="เดือนถัดไป" onClick={()=>changeMonth(1)}><ChevronRight size={18}/></button>
+        </div></div>}
+        {view==='home'&&<HomeScreen month={month} monthLabel={monthText(month)} recent={selected} onMonthChange={setMonth} onTransactions={showList} onUpload={demoOnly}/>}
+        {view==='transactions'&&<>
+          <details className="transaction-month-summary"><summary>สรุปยอดรายรับ–รายจ่าย {monthText(month)}</summary><div className="transaction-financial-summary">
+            <div className="transaction-summary-income"><span>รายรับ <ArrowDownLeft size={18}/></span><strong>฿{baht(sums.income)}</strong></div>
+            <div className="transaction-summary-expense"><span>รายจ่าย <ArrowUpRight size={18}/></span><strong>฿{baht(sums.expense)}</strong></div>
+          </div></details>
+          <section className="surface transaction-page">
+            <div className="list-tools"><div className="search-box"><Search size={19}/><input type="search" aria-label="ค้นหารายการ" placeholder="ค้นหาชื่อร้าน หมวดหมู่ หรือรหัสอ้างอิง" value={search} onChange={e=>setSearch(e.target.value)}/>{search&&<button type="button" className="search-clear" aria-label="ล้างคำค้นหา" onClick={()=>setSearch('')}><X size={16}/></button>}</div>
+              <div className="filter-tabs" aria-label="กรองประเภทรายการ">{([['all','ทั้งหมด'],['income','รายรับ'],['expense','รายจ่าย']] as const).map(([key,label])=><button type="button" key={key} className={filter===key?'selected':''} aria-pressed={filter===key} onClick={()=>setFilter(key)}>{label}</button>)}</div>
+            </div>
+            <div className="list-count">{bucket?'กลุ่ม '+ACCOUNTANT_BUCKET_LABELS[bucket]+' · ':''}{filtered.length} รายการ{filtered.length!==selected.length?` จาก ${selected.length}`:''}{(search||filter!=='all'||bucket)&&<button type="button" className="filter-reset" onClick={reset}>ล้างตัวกรอง</button>}</div>
+            {filtered.length?<TxList items={filtered} onEdit={demoOnly} onDelete={demoOnly} groupByDay readOnly/>:
+            <Empty title={selected.length?'ไม่พบรายการตามเงื่อนไข':'ยังไม่มีรายการในเดือนนี้'} description={selected.length?'ลองล้างตัวกรองหรือคำค้นหา':'เลือกเดือนอื่นเพื่อดูข้อมูลตัวอย่าง'} add={selected.length?reset:undefined} actionLabel="ล้างตัวกรอง"/>}
+          </section>
+        </>}
+        {view==='reports'&&<>
+          <AccountingSecretary items={rows} month={month} localPending={0} iphonePending={0} onTransactions={question=>{reset();if(question==='today')setMonth(monthLocal());if(question==='category'){setFilter('expense');setSearch(categories[0]?.name||'');}setView('transactions');}} onReviewLocal={demoOnly} onReviewIphone={demoOnly}/>
+          <AccountantReview items={selected} localPending={0} iphonePending={0} onTransactions={showList} onBucket={next=>{reset();setBucket(next);setFilter('expense');setView('transactions');}} onLocalReview={demoOnly} onIphoneReview={demoOnly} onExport={demoOnly}/>
+          <div className="stat-triplet reference-report-summary">
+            <MoneyCard title="รายรับรวม" value={sums.income} icon="income"/><MoneyCard title="รายจ่ายรวม" value={sums.expense} icon="expense"/><MoneyCard title="เงินสุทธิ (รายรับ − รายจ่าย)" value={sums.net} icon="net"/>
+          </div>
+          <section className="surface ref-report-spending"><div className="section-header"><h3>สัดส่วนรายจ่าย</h3><span className="ref-section-note">{monthText(month)}</span></div>
+            {categories.length?<div className="home-spending-breakdown"><div className="spending-donut" role="img" aria-label={'สัดส่วนรายจ่าย ฿'+baht(sums.expense)} style={{background:spendingGradient(categories.map(c=>c.total),sums.expense)}}><div className="spending-donut-hole"><span>รายจ่ายรวม</span><strong>฿{baht(sums.expense)}</strong></div></div><div className="spending-legend">{categories.map((c,i)=><div className="spending-legend-row" key={c.name}><span className="spending-legend-dot" style={{background:SPENDING_COLORS[Math.min(i,4)]}}/><span>{c.name}</span><strong>{percent(c.total,sums.expense)}%</strong></div>)}</div></div>:<p className="home-category-empty">ยังไม่มีข้อมูลรายจ่ายในเดือนนี้</p>}
+          </section>
+        </>}
+        {view==='settings'&&<section className="surface settings-card preview-demo-settings"><h2>โหมดข้อมูลตัวอย่าง</h2><p>หน้านี้ใช้สำหรับรีวิว UI เท่านั้น ไม่สามารถปรับการตั้งค่าจริง อัปโหลดสลิป หรือลบรายการได้ ข้อมูลตัวอย่างอยู่ในหน่วยความจำ และจะเริ่มต้นใหม่เมื่อรีเฟรชหน้า</p><button type="button" className="btn btn-primary" onClick={()=>setView('home')}>กลับไปปฏิทิน</button></section>}
+      </main>
+    </div>
+    {view==='home'&&<button type="button" aria-label="อัปโหลดสลิป (ไม่พร้อมใช้ใน Demo)" className="mobile-fab" onClick={demoOnly}><ScanLine size={25}/></button>}
+    <nav className="mobile-bottom-nav" aria-label="เมนูมือถือ">{navItems.map(({key,label,icon:Icon})=><button key={key} type="button" className={view===key?'active':''} aria-current={view===key?'page':undefined} onClick={()=>setView(key)}><Icon size={21}/><span>{label}</span></button>)}</nav>
+    {notice&&<div className="toast" role="status">{notice}</div>}
+  </div>;
+}
+
+export default function App(){
+  return __MONEY_PREVIEW_DEMO__?<PreviewDemo/>:<LiveApp/>;
 }

@@ -269,3 +269,15 @@ button:focus-visible,.mt-calendar-day:focus-visible,
   .mt-home-screen .mt-home-upload,
   .mt-calendar-day,.mt-calendar-controls button {transition:none!important;}
 }
+
+/* Vercel Preview-only read-only demo: keep its label visible on every tab. */
+.preview-demo-banner {
+  display:flex;flex-direction:column;gap:3px;margin:0 0 15px;
+  padding:12px 14px;border:1px solid var(--cute-line,#dce9df);
+  border-radius:14px;background:var(--cute-mint-soft,#eff8f1);
+  color:var(--cute-ink,#101f1b);font-size:12px;line-height:1.6;
+}
+.preview-demo-banner strong {font-size:13px;font-weight:800;}
+.preview-demo-banner span {color:#41594b;}
+.preview-demo-settings h2 {margin-top:0;font-size:18px;}
+.preview-demo-settings p {font-size:14px;line-height:1.75;}
