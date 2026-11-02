@@ -193,6 +193,9 @@ body:has(.mt-home-screen),
   border-radius:var(--cute-radius);
   box-shadow:0 4px 16px rgba(34,75,45,.045);
 }
+.transaction-page.surface {
+  background:transparent;border:0;box-shadow:none;padding:0;
+}
 .transaction-page .transaction-row {
   background:transparent;border:0;border-radius:0;padding-inline:0;
 }
