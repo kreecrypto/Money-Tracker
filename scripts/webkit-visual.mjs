@@ -158,6 +158,14 @@ try{
     await page.screenshot({path:`${directory}/${label}-report-overview.png`,fullPage:true});
     await page.locator('.ref-report-tabs button').nth(2).click();
     const trendsOnly=await page.locator('#report-trends').isVisible()&&await page.locator('#report-budget').count()===0;
+    await page.locator('.ref-report-tabs button').nth(1).click();
+    const categorySummary=page.locator('.report-category-breakdown summary').first();
+    const reportCategoryPresent=await categorySummary.isVisible();
+    await categorySummary.click();
+    const reportExpenseRows=await page.locator('.report-category-breakdown[open] .report-category-expense-row').count();
+    const reportExpenseTotal=await page.locator('.report-category-breakdown[open] .report-category-expense-total').innerText();
+    const reportBreakdown=reportCategoryPresent&&reportExpenseRows>0&&reportExpenseTotal.includes('฿');
+    await page.screenshot({path:`${directory}/${label}-report-category-details.png`,fullPage:true);
     const noReportsFab=await page.locator('.mobile-fab').isHidden();
     await page.screenshot({path:`${directory}/${label}-report-trends.png`,fullPage:true});
     await page.locator('.mobile-bottom-nav button').nth(3).click();
@@ -202,7 +210,7 @@ try{
       })
     );
     await page.locator('.modal-heading button').click();
-    findings.push({label,home,calendarCanNavigate,calendarBoth,calendarFiguresVisible,calendarFiguresNumeric,calendarSelected,calendarDetail,calendarPreviousMonth,calendarMonthRestored,monthOptions,arrowNavigatesMonth,menuUnclipped,monthCloses,detailsOpen,detailsClose,transactions,list,ledgerMonthCorrect,ledgerSenderSearch,ledgerDetailOpen,ledgerDetailClosed,ledgerFocusRestored,ledgerMoneySingleLine,brandLoaded,scanner,slipArtLoaded,compactUploadButtons,scannerColors,readableScanner,reportOverview,trendsOnly,noReportsFab,settings,settingsDirectory,settingsAnchors,noSettingsFab,largeSetting,largeHome,savedReadingMode,largeScanner,errors});
+    findings.push({label,home,calendarCanNavigate,calendarBoth,calendarFiguresVisible,calendarFiguresNumeric,calendarSelected,calendarDetail,calendarPreviousMonth,calendarMonthRestored,monthOptions,arrowNavigatesMonth,menuUnclipped,monthCloses,detailsOpen,detailsClose,transactions,list,ledgerMonthCorrect,ledgerSenderSearch,ledgerDetailOpen,ledgerDetailClosed,ledgerFocusRestored,ledgerMoneySingleLine,brandLoaded,scanner,slipArtLoaded,compactUploadButtons,scannerColors,readableScanner,reportOverview,trendsOnly,reportBreakdown,noReportsFab,settings,settingsDirectory,settingsAnchors,noSettingsFab,largeSetting,largeHome,savedReadingMode,largeScanner,errors});
     await context.close();
   }
   // Exercise the *same* compile-time Preview flag as Vercel, using a disposable WebKit context.
@@ -242,6 +250,11 @@ try{
   const demoTrend=await demoPage.locator('#report-trends .bars-chart').isVisible();
   await demoPage.locator('.ref-report-tabs button').nth(1).click();
   const demoCategories=await demoPage.locator('.report-panels').isVisible();
+  const demoCategoryRows=await demoPage.locator('.report-category-breakdown').count();
+  await demoPage.locator('.report-category-breakdown summary').first().click();
+  const demoCategoryOpen=await demoPage.locator('.report-category-breakdown[open] .report-category-expense-row').count()>0;
+  const demoCategoryNotes=await demoPage.locator('.report-category-breakdown[open] .report-category-expense-copy').first().innerText();
+  const demoCategoryDetails=demoCategoryRows>=4&&demoCategoryOpen&&demoCategoryNotes.length>0;
   await demoPage.locator('.ref-report-tabs button').nth(3).click();
   const demoBudget=await demoPage.locator('#report-budget').isVisible();
   await demoPage.locator('.mobile-bottom-nav button').nth(3).click();
@@ -257,17 +270,17 @@ try{
   });
 
   await demoPage.screenshot({path:`${directory}/preview-demo-safari390.png`,fullPage:true});
-  const demoEvidence={demoHomeRows,demoAllRows,demoSenderRows,demoSearchFocus,demoDetails,demoDetailsClosed,demoReadOnly,demoReports,demoReportsTabs,demoTrend,demoCategories,demoBudget,demoSettings,demoSettingsLinks,demoReading,demoNoDangerousButtons,demoLargeText,demoNoFinanceStorage,demoErrors};
+  const demoEvidence={demoHomeRows,demoAllRows,demoSenderRows,demoSearchFocus,demoDetails,demoDetailsClosed,demoReadOnly,demoReports,demoReportsTabs,demoTrend,demoCategories,demoCategoryDetails,demoBudget,demoSettings,demoSettingsLinks,demoReading,demoNoDangerousButtons,demoLargeText,demoNoFinanceStorage,demoErrors};
   findings.push({label:'preview-demo-safari390',...demoEvidence});
   await demoContext.close();
-  if(demoHomeRows<2||demoAllRows<5||demoSenderRows!==1||!demoSearchFocus||!demoDetails||!demoDetailsClosed||!demoReadOnly||!demoReports||!demoReportsTabs||!demoTrend||!demoCategories||!demoBudget||!demoSettings||!demoSettingsLinks||!demoReading||!demoNoDangerousButtons||!demoLargeText||!demoNoFinanceStorage||demoErrors.length)
+  if(demoHomeRows<2||demoAllRows<5||demoSenderRows!==1||!demoSearchFocus||!demoDetails||!demoDetailsClosed||!demoReadOnly||!demoReports||!demoReportsTabs||!demoTrend||!demoCategories||!demoCategoryDetails||!demoBudget||!demoSettings||!demoSettingsLinks||!demoReading||!demoNoDangerousButtons||!demoLargeText||!demoNoFinanceStorage||demoErrors.length)
     throw new Error('WEBKIT_PREVIEW_DEMO_FAIL '+JSON.stringify(demoEvidence));
   console.log('WEBKIT_PREVIEW_DEMO_PASS',JSON.stringify(demoEvidence));
   fs.writeFileSync(`${directory}/webkit-report.json`,JSON.stringify(findings,null,2));
   console.log('WEBKIT_SAFARI_VISUAL_RESULTS',JSON.stringify(findings));
   const failed=findings.filter(f=>f.label!=='preview-demo-safari390').filter(f=>f.home.overflow>1||!f.calendarCanNavigate||!f.ledgerMoneySingleLine||!f.home.order||!f.home.onlyCalendarAndLedger||f.home.calendarDays<28||f.home.actionCount!==0||!f.calendarBoth||!f.calendarFiguresVisible||!f.calendarFiguresNumeric||!f.calendarSelected||!f.calendarDetail||!f.calendarPreviousMonth||!f.calendarMonthRestored||f.home.navCount!==4||
     f.home.pageGrid!==4||f.home.homeGrid!==4||
-    !f.home.navVisible||f.home.icons.some(icon=>icon.width<20||icon.height<20)||f.monthOptions!==13||!f.arrowNavigatesMonth||!f.menuUnclipped||!f.monthCloses||!f.detailsOpen||!f.detailsClose||f.transactions!==2||!f.list||!f.ledgerMonthCorrect||!f.ledgerSenderSearch||!f.ledgerDetailOpen||!f.ledgerDetailClosed||!f.ledgerFocusRestored||!f.brandLoaded||!f.slipArtLoaded||!f.reportOverview||!f.settingsDirectory||!f.settingsAnchors||!f.scanner||!f.compactUploadButtons||!f.readableScanner||!f.trendsOnly||!f.noReportsFab||!f.settings||!f.noSettingsFab||!f.largeSetting.active||!f.largeSetting.selected||f.largeSetting.fontSize<16||f.largeHome.overflow>1||f.largeHome.textSize<16||!f.largeHome.navigation||!f.savedReadingMode||!f.largeScanner||f.errors.length);
+    !f.home.navVisible||f.home.icons.some(icon=>icon.width<20||icon.height<20)||f.monthOptions!==13||!f.arrowNavigatesMonth||!f.menuUnclipped||!f.monthCloses||!f.detailsOpen||!f.detailsClose||f.transactions!==2||!f.list||!f.ledgerMonthCorrect||!f.ledgerSenderSearch||!f.ledgerDetailOpen||!f.ledgerDetailClosed||!f.ledgerFocusRestored||!f.brandLoaded||!f.slipArtLoaded||!f.reportOverview||!f.reportBreakdown||!f.settingsDirectory||!f.settingsAnchors||!f.scanner||!f.compactUploadButtons||!f.readableScanner||!f.trendsOnly||!f.noReportsFab||!f.settings||!f.noSettingsFab||!f.largeSetting.active||!f.largeSetting.selected||f.largeSetting.fontSize<16||f.largeHome.overflow>1||f.largeHome.textSize<16||!f.largeHome.navigation||!f.savedReadingMode||!f.largeScanner||f.errors.length);
   if(failed.length){console.error('WEBKIT_SAFARI_VISUAL_FAIL',JSON.stringify(failed));process.exitCode=1;}
   else console.log('WEBKIT_SAFARI_VISUAL_PASS: 4 phone sizes, essential home, icons, tabbar, scan, transactions, settings');
 }catch(error){
