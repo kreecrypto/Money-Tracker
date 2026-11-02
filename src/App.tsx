@@ -232,6 +232,43 @@ function EntryModal({initial,existing,startWithScanner,close,submit,submitImport
   {error&&<p className="error-message" role="alert">{error}</p>}
   <div className="modal-footer"><button type="button" className="btn btn-ghost" disabled={pending} onClick={close}>ยกเลิก</button><button type="submit" className="btn btn-primary" disabled={pending}><Check size={17}/>{pending?'กำลังบันทึก...':'บันทึกรายการ'}</button></div></>}</form></section></div>;
 }
+/** Exact same reporting panels for real and synthetic records; no side effects here. */
+function ReportPanels({items,month,settings,onSettings,onExport}:{
+  items:readonly Transaction[];month:string;settings:Settings;onSettings:()=>void;onExport:()=>void;
+}){
+  const selected=useMemo(()=>monthly([...items],month),[items,month]);
+  const sums=useMemo(()=>summarize(selected),[selected]);
+  const allSums=useMemo(()=>summarize([...items]),[items]);
+  const byCategory=useMemo(()=>expenseByCategory(selected),[selected]);
+  const usedBudget=percent(sums.expense,settings.monthlyBudgetSatang);
+  const history=useMemo(()=>{const [year,m]=month.split('-').map(Number);return lastMonths(6,new Date(year,m-1,1)).map(period=>({...period,...summarize(monthly([...items],period.key))}));},[items,month]);
+  const maxBar=Math.max(1,...history.map(row=>Math.max(row.income,row.expense)));
+  return <>
+        <div className="ref-report-tabs" role="group" aria-label="เลือกมุมมองรายงาน">{([['overview','ภาพรวม'],['categories','หมวดหมู่'],['trends','แนวโน้ม'],['budget','งบประมาณ']] as const).map(([key,label])=><button type="button" key={key} aria-pressed={reportTab===key} className={reportTab===key?'active':''} onClick={()=>setReportTab(key)}>{label}</button>)}</div>
+        {reportTab==='overview'&&<><div className="stat-triplet reference-report-summary"><MoneyCard title="รายรับรวม" value={sums.income} icon="income"/><MoneyCard title="รายจ่ายรวม" value={sums.expense} icon="expense"/><MoneyCard title="เงินสุทธิ (รายรับ − รายจ่าย)" value={sums.net} icon="net"/></div></>}
+        {(reportTab==='overview'||reportTab==='categories')&&<section id="report-spending" className="surface ref-report-spending" aria-label="สัดส่วนรายจ่าย"><div className="section-header"><h3>สัดส่วนรายจ่าย</h3><span className="ref-section-note">{monthText(month)}</span></div>{byCategory.length>0?<div className="home-spending-breakdown"><div className="spending-donut" role="img" aria-label={'สัดส่วนรายจ่าย ฿'+baht(sums.expense)} style={{background:spendingGradient(byCategory.map(x=>x.total),sums.expense)}}><div className="spending-donut-hole"><span>รายจ่ายรวม</span><strong>฿{baht(sums.expense)}</strong></div></div><div id="report-categories" className="spending-legend">{byCategory.slice(0,4).map((category,index)=><div key={category.name} className="spending-legend-row"><span className="spending-legend-dot" style={{background:SPENDING_COLORS[index]}}/><span>{category.name}</span><strong>{percent(category.total,sums.expense)}%</strong></div>)}{byCategory.length>4&&<div className="spending-legend-row"><span className="spending-legend-dot" style={{background:SPENDING_COLORS[4]}}/><span>อื่น ๆ</span><strong>{percent(byCategory.slice(4).reduce((s,x)=>s+x.total,0),sums.expense)}%</strong></div>}</div></div>:<p className="home-category-empty" id="report-categories">ยังไม่มีข้อมูลรายจ่ายในเดือนนี้</p>}</section>}
+        {(reportTab==='overview'||reportTab==='budget')&&<section id="report-budget" className="surface ref-report-budget"><div className="section-header"><h3>งบประมาณรายเดือน</h3><button type="button" className="text-action" onClick={onSettings}>{settings.monthlyBudgetSatang?'แก้ไขงบ':'ตั้งงบ'} <ArrowRight size={15}/></button></div><div className="ref-report-budget-line"><span>ใช้ไป ฿{baht(sums.expense)}</span><strong>{settings.monthlyBudgetSatang?'จาก ฿'+baht(settings.monthlyBudgetSatang):'ยังไม่ตั้งงบ'}</strong></div>{settings.monthlyBudgetSatang>0?<><div className="ref-report-budget-track" role="progressbar" aria-label="ความคืบหน้างบประมาณรวม" aria-valuemin={0} aria-valuemax={100} aria-valuenow={Math.min(usedBudget,100)}><div style={{width:Math.min(usedBudget,100)+'%'}}/></div><p className="ref-budget-footnote">ใช้ไป {usedBudget}% ของงบเดือนนี้</p></>:<p className="ref-budget-footnote">แตะตั้งงบเพื่อเริ่มติดตามการใช้จ่ายในแต่ละเดือน</p>}</section>}
+        
+        {reportTab==='overview'&&<section className="surface reference-overview-trends" aria-label="แนวโน้มการเงิน">
+          <div className="section-header"><h3>แนวโน้มรายรับ–รายจ่าย</h3><button type="button" className="text-action" onClick={()=>setReportTab('trends')}>ดูแนวโน้ม <ArrowRight size={16}/></button></div>
+          {history.some(h=>h.income>0||h.expense>0)?<div className="reference-mini-bars" aria-label="ตัวอย่างรายรับรายจ่ายย้อนหลัง 6 เดือน">
+            {history.map(h=><div className="reference-mini-bar-group" key={h.key} title={h.label+' รายรับ ฿'+baht(h.income)+' รายจ่าย ฿'+baht(h.expense)}>
+              <div className="reference-mini-bar-pair"><span className="income" style={{height:`${h.income?Math.max(4,h.income/maxBar*100):0}%`}}/><span className="expense" style={{height:`${h.expense?Math.max(4,h.expense/maxBar*100):0}%`}}/></div><small>{h.label}</small>
+            </div>)}
+          </div>:<p className="reference-empty-chart">ยังไม่มีข้อมูลสำหรับแสดงแนวโน้ม</p>}
+          <div className="reference-chart-legend"><span><i className="income"/>รายรับ</span><span><i className="expense"/>รายจ่าย</span></div>
+        </section>}
+        {reportTab==='trends'&&<section id="report-trends" className="two-column"><div className="surface chart-surface"><div className="section-header"><div><span className="card-overline">รายรับและรายจ่าย</span><h3>แนวโน้ม 6 เดือนถึงเดือนที่เลือก</h3></div><div className="chart-legend"><span><i className="legend-income"/>รายรับ</span><span><i className="legend-expense"/>รายจ่าย</span></div></div>{history.some(h=>h.income>0||h.expense>0)?<div className="bars-chart" role="img" aria-label="แผนภูมิแท่งรายรับและรายจ่ายย้อนหลัง 6 เดือน"><div className="bars-grid"><div/><div/><div/><div/></div><span className="trend-axis-max" aria-hidden="true">฿{baht(maxBar)}</span>{history.map(h=><div className="bar-slot" key={h.key}><div className="bar-pair"><div className="bar income-bar" title={`รายรับ ${h.label}: ฿${baht(h.income)}`} style={{height:`${h.income?Math.max(3,(h.income/maxBar)*100):0}%`}}/><div className="bar expense-bar" title={`รายจ่าย ${h.label}: ฿${baht(h.expense)}`} style={{height:`${h.expense?Math.max(3,(h.expense/maxBar)*100):0}%`}}/></div><span>{h.label}</span></div>)}</div>:<div className="report-trend-empty">ยังไม่มีข้อมูลรายรับหรือรายจ่ายในช่วง 6 เดือนนี้</div>}
+            {history.some(h=>h.income>0||h.expense>0)&&<details className="report-trend-breakdown"><summary>ดูยอดรายรับและรายจ่ายรายเดือน</summary><div className="report-trend-table-scroll"><table className="report-trend-table">
+              <caption>ข้อมูลรายรับและรายจ่ายย้อนหลัง 6 เดือน</caption>
+              <thead><tr><th scope="col">เดือน</th><th scope="col">รายรับ (บาท)</th><th scope="col">รายจ่าย (บาท)</th></tr></thead>
+              <tbody>{history.map(h=><tr key={h.key}><th scope="row">{h.label}</th><td>{baht(h.income)}</td><td>{baht(h.expense)}</td></tr>)}</tbody>
+            </table></div></details>}</div>
+          <div className="surface category-surface"><div className="section-header"><div><span className="card-overline">วิเคราะห์ค่าใช้จ่าย</span><h3>ใช้จ่ายไปกับอะไรบ้าง</h3></div></div>{byCategory.length? <div className="category-list">{byCategory.slice(0,5).map((c,i)=><div className="category-item" key={c.name}><div className="category-icon" aria-hidden="true"><CategoryGlyph category={c.name} type="expense"/></div><div className="category-line"><div><strong>{c.name}</strong><span>฿{baht(c.total)}</span></div><div className="track"><div style={{width:`${percent(c.total,sums.expense)}%`,background:['#2e8a78','#e7a969','#8a9bdd','#c39ac9','#93bfa0'][i%5]}}/></div></div></div>)}</div>:<Empty icon="🧾" title="ยังไม่มีข้อมูลรายจ่าย" description="เพิ่มรายการรายจ่ายเพื่อดูสัดส่วนการใช้เงิน"/>}</div></section>}
+        {reportTab==='categories'&&<section className="two-column report-panels"><div className="surface report-table"><div className="section-header"><div><span className="card-overline">สรุปตามหมวดหมู่</span><h3>รายจ่ายตามหมวดหมู่</h3></div><TrendingDown size={20} color="#9aa5a9"/></div>{byCategory.length?byCategory.map((x,i)=><div className="report-category" key={x.name}><span className="category-index">{String(i+1).padStart(2,'0')}</span><span className="report-cat-emoji" aria-hidden="true"><CategoryGlyph category={x.name} type="expense"/></span><div><strong>{x.name}</strong><span>{percent(x.total,sums.expense)}% ของรายจ่าย</span></div><b>฿{baht(x.total)}</b></div>):<Empty icon="📊" title="รอข้อมูลเพื่อสร้างรายงาน" description="รายงานจะแสดงเมื่อคุณบันทึกรายจ่าย"/>}</div><div className="surface report-summary"><div className="section-header"><div><h3>สรุปการเงิน</h3></div></div><div className="report-stat"><span>{sums.net<0?'รายจ่ายมากกว่ารายรับ':'อัตราเก็บเงินจากรายรับ'}</span><strong>{sums.income?`${Math.round(sums.net/sums.income*100)}%`:'—'}</strong></div><div className="report-stat"><span>จำนวนรายการ</span><strong>{selected.length.toLocaleString('th-TH')} รายการ</strong></div><div className="report-stat"><span>ค่าใช้จ่ายเฉลี่ยต่อวันที่ผ่านมา</span><strong>฿{baht(sums.expense/(month===monthLocal()?Number(todayLocal().slice(8)):new Date(Number(month.slice(0,4)),Number(month.slice(5)),0).getDate()))}</strong></div><div className="report-stat"><span>ยอดสุทธิสะสม</span><strong className={allSums.net>=0?'positive':'negative'}>฿{baht(allSums.net)}</strong></div><button className="btn btn-secondary full" onClick={onExport}><FileSpreadsheet size={17}/> ดาวน์โหลดรายการทั้งหมด (CSV)</button></div></section>}
+  </>;
+}
+
 function LiveApp(){
   const [items,setItems]=useState<Transaction[]>([]);const [settings,setSettings]=useState<Settings>(DEFAULT_SETTINGS);
   const [reportTab,setReportTab]=useState<'overview'|'categories'|'trends'|'budget'>('overview');
@@ -312,12 +349,8 @@ function LiveApp(){
   useEffect(()=>{if(!toast)return;const id=window.setTimeout(()=>setToast(''),3500);return()=>window.clearTimeout(id);},[toast]);
   const selected=useMemo(()=>monthly(items,month),[items,month]);
   const sums=useMemo(()=>summarize(selected),[selected]);
-  const allSums=useMemo(()=>summarize(items),[items]);
   const byCategory=useMemo(()=>expenseByCategory(selected),[selected]);
-  const usedBudget=percent(sums.expense,settings.monthlyBudgetSatang);
   const filtered=useMemo(()=>selected.filter(x=>(filter==='all'||x.type===filter) && (!reviewBucket||accountantBucketFor(x)===reviewBucket) && matchesTransactionSearch(x,search)),[selected,filter,search,reviewBucket]);
-  const history=useMemo(()=>{const [y,m]=month.split('-').map(Number);return lastMonths(6,new Date(y,m-1,1)).map(period=>({...period,...summarize(monthly(items,period.key))}));},[items,month]);
-  const maxBar=Math.max(1,...history.map(x=>Math.max(x.income,x.expense)));
   const openReview=()=>{setInboxTab(true);setSlipInboxTab(false);setView('transactions');};
   const openPendingSlips=()=>{setInboxTab(false);setSlipInboxTab(true);setView('transactions');};
   const openAdd=()=>{setScanOnOpen(true);setEditing(null);setModalOpen(true)};
@@ -488,28 +521,7 @@ function LiveApp(){
           onTransactions={()=>{setReviewBucket(null);setSearch('');setFilter('all');setInboxTab(false);setSlipInboxTab(false);setView('transactions');}}
           onBucket={bucket=>{setReviewBucket(bucket);setSearch('');setFilter('expense');setInboxTab(false);setSlipInboxTab(false);setView('transactions');}}
           onLocalReview={openPendingSlips} onIphoneReview={openReview} onExport={exportCsv}/>
-        <div className="ref-report-tabs" role="group" aria-label="เลือกมุมมองรายงาน">{([['overview','ภาพรวม'],['categories','หมวดหมู่'],['trends','แนวโน้ม'],['budget','งบประมาณ']] as const).map(([key,label])=><button type="button" key={key} aria-pressed={reportTab===key} className={reportTab===key?'active':''} onClick={()=>setReportTab(key)}>{label}</button>)}</div>
-        {reportTab==='overview'&&<><div className="stat-triplet reference-report-summary"><MoneyCard title="รายรับรวม" value={sums.income} icon="income"/><MoneyCard title="รายจ่ายรวม" value={sums.expense} icon="expense"/><MoneyCard title="เงินสุทธิ (รายรับ − รายจ่าย)" value={sums.net} icon="net"/></div></>}
-        {(reportTab==='overview'||reportTab==='categories')&&<section id="report-spending" className="surface ref-report-spending" aria-label="สัดส่วนรายจ่าย"><div className="section-header"><h3>สัดส่วนรายจ่าย</h3><span className="ref-section-note">{monthText(month)}</span></div>{byCategory.length>0?<div className="home-spending-breakdown"><div className="spending-donut" role="img" aria-label={'สัดส่วนรายจ่าย ฿'+baht(sums.expense)} style={{background:spendingGradient(byCategory.map(x=>x.total),sums.expense)}}><div className="spending-donut-hole"><span>รายจ่ายรวม</span><strong>฿{baht(sums.expense)}</strong></div></div><div id="report-categories" className="spending-legend">{byCategory.slice(0,4).map((category,index)=><div key={category.name} className="spending-legend-row"><span className="spending-legend-dot" style={{background:SPENDING_COLORS[index]}}/><span>{category.name}</span><strong>{percent(category.total,sums.expense)}%</strong></div>)}{byCategory.length>4&&<div className="spending-legend-row"><span className="spending-legend-dot" style={{background:SPENDING_COLORS[4]}}/><span>อื่น ๆ</span><strong>{percent(byCategory.slice(4).reduce((s,x)=>s+x.total,0),sums.expense)}%</strong></div>}</div></div>:<p className="home-category-empty" id="report-categories">ยังไม่มีข้อมูลรายจ่ายในเดือนนี้</p>}</section>}
-        {(reportTab==='overview'||reportTab==='budget')&&<section id="report-budget" className="surface ref-report-budget"><div className="section-header"><h3>งบประมาณรายเดือน</h3><button type="button" className="text-action" onClick={()=>setView('settings')}>{settings.monthlyBudgetSatang?'แก้ไขงบ':'ตั้งงบ'} <ArrowRight size={15}/></button></div><div className="ref-report-budget-line"><span>ใช้ไป ฿{baht(sums.expense)}</span><strong>{settings.monthlyBudgetSatang?'จาก ฿'+baht(settings.monthlyBudgetSatang):'ยังไม่ตั้งงบ'}</strong></div>{settings.monthlyBudgetSatang>0?<><div className="ref-report-budget-track" role="progressbar" aria-label="ความคืบหน้างบประมาณรวม" aria-valuemin={0} aria-valuemax={100} aria-valuenow={Math.min(usedBudget,100)}><div style={{width:Math.min(usedBudget,100)+'%'}}/></div><p className="ref-budget-footnote">ใช้ไป {usedBudget}% ของงบเดือนนี้</p></>:<p className="ref-budget-footnote">แตะตั้งงบเพื่อเริ่มติดตามการใช้จ่ายในแต่ละเดือน</p>}</section>}
-        
-        {reportTab==='overview'&&<section className="surface reference-overview-trends" aria-label="แนวโน้มการเงิน">
-          <div className="section-header"><h3>แนวโน้มรายรับ–รายจ่าย</h3><button type="button" className="text-action" onClick={()=>setReportTab('trends')}>ดูแนวโน้ม <ArrowRight size={16}/></button></div>
-          {history.some(h=>h.income>0||h.expense>0)?<div className="reference-mini-bars" aria-label="ตัวอย่างรายรับรายจ่ายย้อนหลัง 6 เดือน">
-            {history.map(h=><div className="reference-mini-bar-group" key={h.key} title={h.label+' รายรับ ฿'+baht(h.income)+' รายจ่าย ฿'+baht(h.expense)}>
-              <div className="reference-mini-bar-pair"><span className="income" style={{height:`${h.income?Math.max(4,h.income/maxBar*100):0}%`}}/><span className="expense" style={{height:`${h.expense?Math.max(4,h.expense/maxBar*100):0}%`}}/></div><small>{h.label}</small>
-            </div>)}
-          </div>:<p className="reference-empty-chart">ยังไม่มีข้อมูลสำหรับแสดงแนวโน้ม</p>}
-          <div className="reference-chart-legend"><span><i className="income"/>รายรับ</span><span><i className="expense"/>รายจ่าย</span></div>
-        </section>}
-        {reportTab==='trends'&&<section id="report-trends" className="two-column"><div className="surface chart-surface"><div className="section-header"><div><span className="card-overline">รายรับและรายจ่าย</span><h3>แนวโน้ม 6 เดือนถึงเดือนที่เลือก</h3></div><div className="chart-legend"><span><i className="legend-income"/>รายรับ</span><span><i className="legend-expense"/>รายจ่าย</span></div></div>{history.some(h=>h.income>0||h.expense>0)?<div className="bars-chart" role="img" aria-label="แผนภูมิแท่งรายรับและรายจ่ายย้อนหลัง 6 เดือน"><div className="bars-grid"><div/><div/><div/><div/></div><span className="trend-axis-max" aria-hidden="true">฿{baht(maxBar)}</span>{history.map(h=><div className="bar-slot" key={h.key}><div className="bar-pair"><div className="bar income-bar" title={`รายรับ ${h.label}: ฿${baht(h.income)}`} style={{height:`${h.income?Math.max(3,(h.income/maxBar)*100):0}%`}}/><div className="bar expense-bar" title={`รายจ่าย ${h.label}: ฿${baht(h.expense)}`} style={{height:`${h.expense?Math.max(3,(h.expense/maxBar)*100):0}%`}}/></div><span>{h.label}</span></div>)}</div>:<div className="report-trend-empty">ยังไม่มีข้อมูลรายรับหรือรายจ่ายในช่วง 6 เดือนนี้</div>}
-            {history.some(h=>h.income>0||h.expense>0)&&<details className="report-trend-breakdown"><summary>ดูยอดรายรับและรายจ่ายรายเดือน</summary><div className="report-trend-table-scroll"><table className="report-trend-table">
-              <caption>ข้อมูลรายรับและรายจ่ายย้อนหลัง 6 เดือน</caption>
-              <thead><tr><th scope="col">เดือน</th><th scope="col">รายรับ (บาท)</th><th scope="col">รายจ่าย (บาท)</th></tr></thead>
-              <tbody>{history.map(h=><tr key={h.key}><th scope="row">{h.label}</th><td>{baht(h.income)}</td><td>{baht(h.expense)}</td></tr>)}</tbody>
-            </table></div></details>}</div>
-          <div className="surface category-surface"><div className="section-header"><div><span className="card-overline">วิเคราะห์ค่าใช้จ่าย</span><h3>ใช้จ่ายไปกับอะไรบ้าง</h3></div></div>{byCategory.length? <div className="category-list">{byCategory.slice(0,5).map((c,i)=><div className="category-item" key={c.name}><div className="category-icon" aria-hidden="true"><CategoryGlyph category={c.name} type="expense"/></div><div className="category-line"><div><strong>{c.name}</strong><span>฿{baht(c.total)}</span></div><div className="track"><div style={{width:`${percent(c.total,sums.expense)}%`,background:['#2e8a78','#e7a969','#8a9bdd','#c39ac9','#93bfa0'][i%5]}}/></div></div></div>)}</div>:<Empty icon="🧾" title="ยังไม่มีข้อมูลรายจ่าย" description="เพิ่มรายการรายจ่ายเพื่อดูสัดส่วนการใช้เงิน"/>}</div></section>}
-        {reportTab==='categories'&&<section className="two-column report-panels"><div className="surface report-table"><div className="section-header"><div><span className="card-overline">สรุปตามหมวดหมู่</span><h3>รายจ่ายตามหมวดหมู่</h3></div><TrendingDown size={20} color="#9aa5a9"/></div>{byCategory.length?byCategory.map((x,i)=><div className="report-category" key={x.name}><span className="category-index">{String(i+1).padStart(2,'0')}</span><span className="report-cat-emoji" aria-hidden="true"><CategoryGlyph category={x.name} type="expense"/></span><div><strong>{x.name}</strong><span>{percent(x.total,sums.expense)}% ของรายจ่าย</span></div><b>฿{baht(x.total)}</b></div>):<Empty icon="📊" title="รอข้อมูลเพื่อสร้างรายงาน" description="รายงานจะแสดงเมื่อคุณบันทึกรายจ่าย"/>}</div><div className="surface report-summary"><div className="section-header"><div><h3>สรุปการเงิน</h3></div></div><div className="report-stat"><span>{sums.net<0?'รายจ่ายมากกว่ารายรับ':'อัตราเก็บเงินจากรายรับ'}</span><strong>{sums.income?`${Math.round(sums.net/sums.income*100)}%`:'—'}</strong></div><div className="report-stat"><span>จำนวนรายการ</span><strong>{selected.length.toLocaleString('th-TH')} รายการ</strong></div><div className="report-stat"><span>ค่าใช้จ่ายเฉลี่ยต่อวันที่ผ่านมา</span><strong>฿{baht(sums.expense/(month===monthLocal()?Number(todayLocal().slice(8)):new Date(Number(month.slice(0,4)),Number(month.slice(5)),0).getDate()))}</strong></div><div className="report-stat"><span>ยอดสุทธิสะสม</span><strong className={allSums.net>=0?'positive':'negative'}>฿{baht(allSums.net)}</strong></div><button className="btn btn-secondary full" onClick={exportCsv}><FileSpreadsheet size={17}/> ดาวน์โหลดรายการทั้งหมด (CSV)</button></div></section>}</>}
+        <ReportPanels items={items} month={month} settings={settings} onSettings={()=>setView('settings')} onExport={exportCsv}/></>}
       {view==='settings'&&<><ReferenceSettingsIndex ownerNames={settings.ownerNames||[]} budgetSatang={settings.monthlyBudgetSatang}/><div className="settings-grid"><ReadingPreferenceControl/>
     <section id="settings-owner" className="surface settings-card ocr-owner-card">
       <div className="settings-icon blue"><ScanLine size={23}/></div>
@@ -565,6 +577,52 @@ function LiveApp(){
       busy={resetBusy} error={resetError} onBackup={exportJson} onConfirm={()=>{void eraseDeviceData();}}
       onClose={()=>{if(!resetBusy)setResetDialogOpen(false);}}/>}
   </div>;
+}
+
+const DEMO_SETTINGS:Settings={monthlyBudgetSatang:3000000,ownerNames:[]};
+
+/** Render the production Settings structure without any storage, importing or sync controls. */
+function PreviewSettings(){
+  const blocked='ใช้ไม่ได้ในโหมดข้อมูลตัวอย่าง';
+  return <><ReferenceSettingsIndex ownerNames={[]} budgetSatang={DEMO_SETTINGS.monthlyBudgetSatang}/>
+    <div className="settings-grid">
+      <ReadingPreferenceControl preview/>
+      <section id="settings-owner" className="surface settings-card ocr-owner-card"><div className="settings-icon blue"><ScanLine size={23}/></div>
+        <h3>ชื่อของฉันบนสลิป</h3><p>เพิ่มชื่อที่ปรากฏบนสลิป เพื่อแยกรายรับและรายจ่ายให้แม่นยำขึ้น</p>
+        <label className="field-label" htmlFor="demo-owner">ชื่อผู้ถือบัญชีตามสลิป</label>
+        <textarea id="demo-owner" className="ocr-owner-input" rows={3} placeholder="ชื่อของคุณ" disabled/>
+        <small className="hint">หนึ่งชื่อต่อบรรทัด ไม่ต้องระบุเลขบัญชี</small>
+        <button className="btn btn-primary" disabled title={blocked}><Check size={17}/> บันทึกชื่อของฉัน</button>
+      </section>
+      <section id="settings-budget" className="surface settings-card"><div className="settings-icon green"><Wallet size={23}/></div>
+        <h3>งบประมาณรายเดือน</h3><label className="field-label" htmlFor="demo-budget">งบประมาณ (บาท/เดือน)</label>
+        <div className="budget-field"><span>฿</span><input id="demo-budget" type="text" value="30000" disabled/></div>
+        <small className="hint">งบประมาณจำลอง 30,000 บาท · ไม่บันทึกข้อมูล</small>
+        <button className="btn btn-primary" disabled title={blocked}><Check size={17}/> บันทึกงบประมาณ</button>
+      </section>
+      <section id="settings-data" className="surface settings-card"><div className="settings-icon peach"><Download size={23}/></div>
+        <h3>จัดการข้อมูล</h3><p>สำรองข้อมูลก่อนเปลี่ยนเครื่องหรือล้างข้อมูล</p>
+        <div className="settings-actions">
+          <button className="btn btn-secondary" disabled title={blocked}><Download size={17}/> สำรองข้อมูล JSON</button>
+          <button className="btn btn-secondary" disabled title={blocked}><FileSpreadsheet size={17}/> ส่งออก CSV</button>
+          <button className="btn btn-ghost bordered" disabled title={blocked}><Upload size={17}/> นำเข้าไฟล์ JSON</button>
+        </div>
+        <div className="data-reset-options">
+          <div className="data-repair-option"><div><strong>ซ่อมการซิงก์ iPhone</strong><p>ตรวจรายการที่เคยบันทึกใน Cloud อีกครั้ง โดยไม่ลบรายการหรือรหัสเชื่อมต่อในเครื่อง</p></div><button className="btn btn-secondary" disabled title={blocked}>ตรวจและนำเข้ารายการอีกครั้ง</button></div>
+          <div className="data-clear-option"><div><strong>ลบข้อมูลในเครื่อง</strong><p>ลบรายการ สลิปรอตรวจ และการตั้งค่าบนอุปกรณ์นี้ ไม่ลบรายการบนระบบซิงก์</p></div><button className="btn btn-ghost bordered data-delete-btn" disabled title={blocked}><Trash2 size={17}/> ลบข้อมูลในเครื่อง</button></div>
+        </div>
+      </section>
+      <section id="settings-email-ledger" className="surface settings-card"><div className="settings-icon green"><FileSpreadsheet size={23}/></div><h3>นำเข้าคำชี้แจงจากอีเมล</h3><p>ใช้ไฟล์ CSV จากอีเมลเพื่อประกอบข้อมูลรายการที่บันทึกไว้</p><button className="btn btn-secondary" disabled title={blocked}>เลือกไฟล์ CSV</button></section>
+      <section id="settings-privacy" className="surface settings-card privacy-settings"><div className="settings-icon blue"><ShieldCheck size={24}/></div>
+        <h3>ข้อมูลและความเป็นส่วนตัว</h3><p>ในแอปจริง รายการที่เพิ่มจะเก็บบนอุปกรณ์นี้ ส่วนรายการ iPhone จะซิงก์ตามการตั้งค่า</p>
+        <div className="info-banner"><CloudOff size={18}/><span>ข้อมูลตัวอย่างไม่ถูกบันทึกหรือซิงก์</span></div>
+      </section>
+      <details id="settings-connections" className="settings-connections"><summary>การเชื่อมต่อเพิ่มเติม</summary><div className="settings-connections-content"><p>เชื่อมต่อ iPhone และ LINE ได้ในแอปจริงเท่านั้น · ปิดใช้งานใน Demo</p></div></details>
+      <section id="settings-about" className="surface settings-card privacy-settings"><div className="settings-icon lavender"><Menu size={24}/></div>
+        <h3>เกี่ยวกับแอป</h3><div className="app-meta"><span>เวอร์ชัน</span><strong>{APP_DISPLAY_VERSION}</strong></div>
+        <details className="app-technical-details"><summary>ข้อมูลเวอร์ชันเพิ่มเติม</summary><div className="app-meta"><span>Build</span><strong>{APP_BUILD_SHA}</strong></div><div className="app-meta"><span>อัปเดตเมื่อ</span><strong>{new Intl.DateTimeFormat('th-TH',{dateStyle:'medium',timeStyle:'short',timeZone:'Asia/Bangkok'}).format(new Date(APP_BUILT_AT))}</strong></div></details>
+      </section>
+    </div></>;
 }
 
 /** The preview is a read-only showcase. Never mount LiveApp or access IndexedDB/API here. */
@@ -624,14 +682,9 @@ function PreviewDemo(){
         {view==='reports'&&<>
           <AccountingSecretary items={rows} month={month} localPending={0} iphonePending={0} onTransactions={question=>{reset();if(question==='today')setMonth(monthLocal());if(question==='category'){setFilter('expense');setSearch(categories[0]?.name||'');}setView('transactions');}} onReviewLocal={demoOnly} onReviewIphone={demoOnly}/>
           <AccountantReview items={selected} localPending={0} iphonePending={0} onTransactions={showList} onBucket={next=>{reset();setBucket(next);setFilter('expense');setView('transactions');}} onLocalReview={demoOnly} onIphoneReview={demoOnly} onExport={demoOnly}/>
-          <div className="stat-triplet reference-report-summary">
-            <MoneyCard title="รายรับรวม" value={sums.income} icon="income"/><MoneyCard title="รายจ่ายรวม" value={sums.expense} icon="expense"/><MoneyCard title="เงินสุทธิ (รายรับ − รายจ่าย)" value={sums.net} icon="net"/>
-          </div>
-          <section className="surface ref-report-spending"><div className="section-header"><h3>สัดส่วนรายจ่าย</h3><span className="ref-section-note">{monthText(month)}</span></div>
-            {categories.length?<div className="home-spending-breakdown"><div className="spending-donut" role="img" aria-label={'สัดส่วนรายจ่าย ฿'+baht(sums.expense)} style={{background:spendingGradient(categories.map(c=>c.total),sums.expense)}}><div className="spending-donut-hole"><span>รายจ่ายรวม</span><strong>฿{baht(sums.expense)}</strong></div></div><div className="spending-legend">{categories.map((c,i)=><div className="spending-legend-row" key={c.name}><span className="spending-legend-dot" style={{background:SPENDING_COLORS[Math.min(i,4)]}}/><span>{c.name}</span><strong>{percent(c.total,sums.expense)}%</strong></div>)}</div></div>:<p className="home-category-empty">ยังไม่มีข้อมูลรายจ่ายในเดือนนี้</p>}
-          </section>
+          <ReportPanels items={rows} month={month} settings={DEMO_SETTINGS} onSettings={()=>setView('settings')} onExport={demoOnly}/>
         </>}
-        {view==='settings'&&<section className="surface settings-card preview-demo-settings"><h2>โหมดข้อมูลตัวอย่าง</h2><p>หน้านี้ใช้สำหรับรีวิว UI เท่านั้น ไม่สามารถปรับการตั้งค่าจริง อัปโหลดสลิป หรือลบรายการได้ ข้อมูลตัวอย่างอยู่ในหน่วยความจำ และจะเริ่มต้นใหม่เมื่อรีเฟรชหน้า</p><button type="button" className="btn btn-primary" onClick={()=>setView('home')}>กลับไปปฏิทิน</button></section>}
+        {view==='settings'&&<PreviewSettings/>}
       </main>
     </div>
     {view==='home'&&<button type="button" aria-label="อัปโหลดสลิป (ไม่พร้อมใช้ใน Demo)" className="mobile-fab" onClick={demoOnly}><ScanLine size={25}/></button>}

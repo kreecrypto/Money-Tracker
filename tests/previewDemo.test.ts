@@ -31,3 +31,27 @@ describe('Preview-only mock transactions',()=>{
     }
   });
 });
+
+describe('P1 review: calendar, amounts and demo parity',()=>{
+  it('provides a visible small-screen calendar scroll affordance without shrinking 44px cells',()=>{
+    const calendar=readFileSync(join(process.cwd(),'src/FinanceCalendar.tsx'),'utf8');
+    const css=readFileSync(join(process.cwd(),'src/finance-calendar.css'),'utf8');
+    expect(calendar).toContain('mt-calendar-scroll-actions');
+    expect(calendar).toContain('moveCalendar(1)');
+    expect(css).toContain('grid-template-columns:repeat(7,minmax(44px,1fr))');
+    expect(css).toContain('.mt-calendar-scroll-actions button{flex:none;width:44px;height:44px');
+  });
+  it('never breaks signed amounts in the transaction ledger',()=>{
+    const css=readFileSync(join(process.cwd(),'src/responsive-grids.css'),'utf8');
+    expect(css).toMatch(/\.transaction-page \.transaction-end b \{[^}]*white-space:nowrap/);
+    expect(css).not.toMatch(/\.transaction-page \.transaction-end b \{[^}]*overflow-wrap:anywhere/);
+  });
+  it('shares the real Reports panels, and preserves all seven Settings anchor IDs in read-only Demo',()=>{
+    const app=readFileSync(join(process.cwd(),'src/App.tsx'),'utf8');
+    expect((app.match(/<ReportPanels items=/g)||[]).length).toBe(2);
+    expect(app).toContain('function PreviewSettings()');
+    expect(app).toContain('ReadingPreferenceControl preview');
+    for(const id of ['settings-owner','settings-budget','settings-reading','settings-data','settings-privacy','settings-connections','settings-about'])
+      expect(app.includes(`id="${id}"`)||id==='settings-reading').toBe(true);
+  });
+});
