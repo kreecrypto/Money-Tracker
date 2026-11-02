@@ -99,7 +99,7 @@ try{
     const ledgerRow=page.locator('.transaction-page .transaction-open').first();
     await ledgerRow.click();
     const ledgerDetailOpen=await page.locator('.mt-home-detail[open]').isVisible();
-    await page.getByRole('button',{name:'ปิดรายละเอียด'}).click();
+    await page.locator('.mt-home-detail-done').click();
     const ledgerDetailClosed=await page.locator('.mt-home-detail[open]').count()===0;
     const ledgerFocusRestored=await ledgerRow.evaluate(el=>document.activeElement===el);
     await page.screenshot({path:`${directory}/${label}-transactions.png`,fullPage:true});
