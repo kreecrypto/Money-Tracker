@@ -46,6 +46,7 @@ describe('conservative local category suggestions',()=>{
     expect(suggestCategory(tx({note:'หมวดย่อย: โอนให้บุคคล/วัตถุประสงค์ไม่ระบุ'}))).toBeNull();
     expect(suggestCategory(tx({note:'ชำระบิล',recipient:'Shopee'}))).toBeNull();
     expect(suggestCategory(tx({note:'หมวดย่อย: ไม่ทราบวัตถุประสงค์',recipient:'นายสมชาย'}))).toBeNull();
+    expect(suggestCategory(tx({note:'หมวดย่อย: ไม่ทราบสินค้า',recipient:'Netflix'}))).toBeNull();
   });
   it('never guesses from the amount, date, or note about a merchant alone',()=>{
     expect(suggestCategory(tx({amountSatang:12345,note:'โอนเงินเรียบร้อย'}))).toBeNull();
