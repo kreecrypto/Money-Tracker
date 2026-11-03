@@ -272,7 +272,7 @@ try{
   const demoEvidence={demoHomeRows,demoAllRows,demoSenderRows,demoSearchFocus,demoDetails,demoDetailsClosed,demoReadOnly,demoReports,demoReportsTabs,demoTrend,demoCategories,demoCategoryDetails,demoBudget,demoSettings,demoSettingsLinks,demoReading,demoNoDangerousButtons,demoLargeText,demoNoFinanceStorage,demoErrors};
   findings.push({label:'preview-demo-safari390',...demoEvidence});
   await demoContext.close();
-  if(demoHomeRows<2||demoAllRows<5||demoSenderRows!==1||!demoSearchFocus||!demoDetails||!demoDetailsClosed||!demoReadOnly||!demoReports||!demoReportsTabs||!demoTrend||!demoCategories||!demoBudget||!demoSettings||!demoSettingsLinks||!demoReading||!demoNoDangerousButtons||!demoLargeText||!demoNoFinanceStorage||demoErrors.length)
+  if(demoHomeRows<2||demoAllRows<5||demoSenderRows!==1||!demoSearchFocus||!demoDetails||!demoDetailsClosed||!demoReadOnly||!demoReports||!demoReportsTabs||!demoTrend||!demoCategories||!demoCategoryDetails||!demoBudget||!demoSettings||!demoSettingsLinks||!demoReading||!demoNoDangerousButtons||!demoLargeText||!demoNoFinanceStorage||demoErrors.length)
     throw new Error('WEBKIT_PREVIEW_DEMO_FAIL '+JSON.stringify(demoEvidence));
   console.log('WEBKIT_PREVIEW_DEMO_PASS',JSON.stringify(demoEvidence));
   fs.writeFileSync(`${directory}/webkit-report.json`,JSON.stringify(findings,null,2));
