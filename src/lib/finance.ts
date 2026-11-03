@@ -58,7 +58,12 @@ export function transactionDisplayName(
   t: Pick<Transaction,'type'|'sender'|'recipient'|'note'|'category'>
 ): string {
   const primary=t.type==='income'?t.sender?.trim():t.recipient?.trim();
-  return primary||t.recipient?.trim()||t.sender?.trim()||t.note?.trim()||t.category;
+  const note=t.note?.trim()||'';
+  const subtype=/^หมวดย่อย: ([^\n]+)(?:\n|$)/u.exec(note);
+  const displayNote=subtype
+    ?[subtype[1],note.slice(subtype[0].length).trim()].filter(Boolean).join(' · ')
+    :note;
+  return primary||t.recipient?.trim()||t.sender?.trim()||displayNote||t.category;
 }
 export function matchesTransactionSearch(entry:Transaction,search:string):boolean {
   const term=search.trim().toLocaleLowerCase('th-TH');

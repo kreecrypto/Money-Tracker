@@ -10,6 +10,7 @@ import HomeScreen,{HomeTopbar,TransactionDetail} from './HomeScreen';
 import AccountingSecretary from './AccountingSecretary';
 import AccountantReview from './AccountantReview';
 import CategoryReview from './CategoryReview';
+import {QUICK_EXPENSES,readQuickExpense,writeQuickExpense} from './lib/expenseQuickCategories';
 import {accountantBucketFor,ACCOUNTANT_BUCKET_LABELS,type AccountantBucketKey} from './lib/accountantAudit';
 import EmailLedgerImport from './EmailLedgerImport';
 import {emailLedgerCategory,emailLedgerEvidence,emailLedgerExplanation} from './lib/emailLedger';
@@ -139,6 +140,7 @@ function TxList({items,onEdit,onDelete,limit,groupByDay=false,readOnly=false}:{i
   })}</div>;
 }
 function EntryModal({initial,existing,startWithScanner,close,submit,submitImported,undoImported,notifyBatch,queuePending,resolvePending,ownerNames,viewSaved}:{initial:Transaction|null;existing:Transaction[];startWithScanner:boolean;close:()=>void;submit:(t:Transaction)=>Promise<void>;submitImported:(t:Transaction)=>Promise<void>;undoImported:(ids:string[])=>Promise<void>;notifyBatch:(summary:SlipBatchSummary)=>void;queuePending:(slip:SlipFields,name:string,reason:string)=>Promise<{id:string;duplicate:boolean}>;resolvePending:(id:string)=>Promise<void>;ownerNames:readonly string[];viewSaved:(date:string)=>void}){
+  const initialDetail=initial?.type==='expense'?readQuickExpense(initial.category,initial.note):{quick:'',note:initial?.note||''};
   const [type,setType]=useState<EntryType>(initial?.type||'expense');
   const [amount,setAmount]=useState(initial?String(initial.amountSatang/100):'');
   const [date,setDate]=useState(initial?.date||todayLocal());
@@ -147,7 +149,8 @@ function EntryModal({initial,existing,startWithScanner,close,submit,submitImport
   const [sender,setSender]=useState(initial?.sender||'');
   const [category,setCategory]=useState(initial?.category||EXPENSE_CATEGORIES[0]);
   const [method,setMethod]=useState<Method>(initial?.method||'cash');
-  const [note,setNote]=useState(initial?.note||'');
+  const [note,setNote]=useState(initialDetail.note);
+  const [quickExpense,setQuickExpense]=useState(initialDetail.quick);
   const [pending,setPending]=useState(false);
   const [batchBusy,setBatchBusy]=useState(false);
   const [scannerOpen,setScannerOpen]=useState(startWithScanner&&!initial);
@@ -187,9 +190,11 @@ function EntryModal({initial,existing,startWithScanner,close,submit,submitImport
     if(similar.length&&!duplicateAcknowledged){setError('พบรายการคล้ายกัน กรุณายืนยันก่อนบันทึกซ้ำ');return;}
     const sats=toSatang(amount);if(!sats){setError('กรุณากรอกจำนวนเงินมากกว่า 0 และทศนิยมไม่เกิน 2 ตำแหน่ง');return;}
     if(!/^\d{4}-\d\d-\d\d$/.test(date)){setError('กรุณาเลือกวันที่');return;}
-    setPending(true);setError('');try{await submit({id:initial?.id||uuid(),type,amountSatang:sats,date,time:time||undefined,recipient:recipient.trim()||undefined,sender:sender.trim()||undefined,category,note:note.trim().slice(0,500),method,...(initial?.receipt&&sats===initial.amountSatang?{receipt:initial.receipt}:{}),createdAt:initial?.createdAt||Date.now()});close();}catch(err){setError(err instanceof Error?err.message:'บันทึกไม่สำเร็จ');setPending(false);}
+    const savedNote=type==='expense'?writeQuickExpense(quickExpense,note):note.trim();
+    if(savedNote.length>500){setError('รายละเอียดรวมประเภทย่อยยาวเกิน 500 ตัวอักษร กรุณาย่อข้อความก่อนบันทึก');return;}
+    setPending(true);setError('');try{await submit({id:initial?.id||uuid(),type,amountSatang:sats,date,time:time||undefined,recipient:recipient.trim()||undefined,sender:sender.trim()||undefined,category,note:savedNote,method,...(initial?.receipt&&sats===initial.amountSatang?{receipt:initial.receipt}:{}),createdAt:initial?.createdAt||Date.now()});close();}catch(err){setError(err instanceof Error?err.message:'บันทึกไม่สำเร็จ');setPending(false);}
   };
-  const switchType=(newType:EntryType)=>{setType(newType);setCategory(newType==='expense'?EXPENSE_CATEGORIES[0]:INCOME_CATEGORIES[0]);setError('');};
+  const switchType=(newType:EntryType)=>{setType(newType);setCategory(newType==='expense'?EXPENSE_CATEGORIES[0]:INCOME_CATEGORIES[0]);setQuickExpense('');setError('');};
   const autoImportSlip=async(data:SlipFields):Promise<SlipBatchOutcome>=>{
     // Re-query IndexedDB: another tab or inbox sync might have added the same payment.
     const latest=await loadTransactions();
@@ -227,7 +232,13 @@ function EntryModal({initial,existing,startWithScanner,close,submit,submitImport
       {initial?.recipient&&<p className="hint">ผู้รับเงินที่บันทึกจากสลิป: {initial.recipient}</p>}</>
     :<><label className="field-label" htmlFor="recipient">ชื่อผู้รับเงิน / ร้านค้า (ถ้ามี)</label>
       <input id="recipient" maxLength={160} placeholder="เช่น ชื่อร้านค้าหรือผู้รับโอน" value={recipient} onChange={e=>setRecipient(e.target.value)}/></>}
-  <div className="field-grid"><div><label className="field-label" htmlFor="category">หมวดหมู่</label><select id="category" value={category} onChange={e=>setCategory(e.target.value)}>{categories.map(c=><option key={c} value={c}>{c}</option>)}</select></div><div><label className="field-label" htmlFor="method">ช่องทางชำระเงิน / รับเงิน</label><select id="method" value={method} onChange={e=>setMethod(e.target.value as Method)}>{Object.entries(METHODS).map(([key,label])=><option key={key} value={key}>{label}</option>)}</select></div></div>
+  {type==='expense'&&<div className="expense-quick-picker" role="group" aria-label="เลือกประเภทรายจ่ายที่ใช้บ่อย">
+    <span className="expense-quick-heading">รายจ่ายที่ใช้บ่อย <small>แตะเพื่อเลือกหมวดและประเภทย่อย</small></span>
+    <div className="expense-quick-list">{QUICK_EXPENSES.map(item=><button key={item.label} type="button" className="expense-quick-option" aria-pressed={category===item.category&&quickExpense===item.label} onClick={()=>{setCategory(item.category);setQuickExpense(current=>current===item.label?'':item.label);}}>
+      <span className="expense-quick-emoji" aria-hidden="true">{item.icon}</span><span>{item.label}</span>
+    </button>)}</div>
+  </div>}
+  <div className="field-grid"><div><label className="field-label" htmlFor="category">หมวดหมู่หลัก</label><select id="category" value={category} onChange={e=>{setCategory(e.target.value);setQuickExpense('');}}>{categories.map(c=><option key={c} value={c}>{c}</option>)}</select></div><div><label className="field-label" htmlFor="method">ช่องทางชำระเงิน / รับเงิน</label><select id="method" value={method} onChange={e=>setMethod(e.target.value as Method)}>{Object.entries(METHODS).map(([key,label])=><option key={key} value={key}>{label}</option>)}</select></div></div>
   <label className="field-label" htmlFor="note">รายละเอียด <span className="subtle">(ไม่บังคับ)</span></label><input id="note" maxLength={500} placeholder="เช่น กาแฟตอนเช้า" value={note} onChange={e=>setNote(e.target.value)}/>
   {error&&<p className="error-message" role="alert">{error}</p>}
   <div className="modal-footer"><button type="button" className="btn btn-ghost" disabled={pending} onClick={close}>ยกเลิก</button><button type="submit" className="btn btn-primary" disabled={pending}><Check size={17}/>{pending?'กำลังบันทึก...':'บันทึกรายการ'}</button></div></>}</form></section></div>;
