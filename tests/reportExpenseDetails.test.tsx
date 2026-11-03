@@ -1,7 +1,7 @@
 import {describe,it,expect} from 'vitest';
 import {renderToStaticMarkup} from 'react-dom/server';
 import {createElement} from 'react';
-import ReportExpenseDetails from '../src/ReportExpenseDetails';
+import ReportExpenseDetails,{matchingExpenseCategories} from '../src/ReportExpenseDetails';
 import {expenseByCategory,summarize,type Transaction} from '../src/lib/finance';
 
 const tx=(id:string,type:Transaction['type'],category:string,amountSatang:number,note:string,receipt?:Transaction['receipt']):Transaction=>({
@@ -30,6 +30,30 @@ describe('Report expenses by category',()=>{
     expect((html.match(/class="report-category-expense-row"/g)||[]).length).toBe(4);
     expect((html.match(/class="report-category-subgroup"/g)||[]).length).toBe(4);
     expect(html).toContain('฿69.00');
+  });
+  it('searches saved Thai payees and explicit subtypes without counting incoming money',()=>{
+    const categories=expenseByCategory(items);
+    const all=matchingExpenseCategories(items,categories,'');
+    expect(all.reduce((sum,match)=>sum+match.total,0)).toBe(summarize(items).expense);
+    const byName=matchingExpenseCategories(items,categories,'อาหารและเครื่องดื่ม');
+    expect(byName).toHaveLength(1);
+    expect(byName[0].partial).toBe(false);
+    expect(byName[0].total).toBe(25400);
+    const bySubtype=matchingExpenseCategories(items,categories,'กาแฟ');
+    expect(bySubtype).toHaveLength(1);
+    expect(bySubtype[0].partial).toBe(true);
+    expect(bySubtype[0].entries.map(item=>item.id)).toEqual(['b']);
+    expect(bySubtype[0].total).toBe(6900);
+    expect(matchingExpenseCategories(items,categories,'ทดสอบไม่ควรนับเป็นค่าใช้จ่าย')).toEqual([]);
+    expect(matchingExpenseCategories(items,categories,'ไม่มีรายการนี้')).toEqual([]);
+  });
+  it('offers a labelled search without changing the source transaction rows',()=>{
+    const categories=expenseByCategory(items);
+    const html=renderToStaticMarkup(createElement(ReportExpenseDetails,{items,categories}));
+    expect(html).toContain('aria-label="ค้นหาหมวดหรือรายการเงินออก"');
+    expect(html).toContain('report-category-progress');
+    expect(html).toContain('4 รายการเงินออก');
+    expect(html).not.toContain('ข้อมูลตัวอย่าง');
   });
   it('shows no invented expenses when data is empty',()=>{
     const html=renderToStaticMarkup(createElement(ReportExpenseDetails,{items:[],categories:[]}));
