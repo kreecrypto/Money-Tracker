@@ -107,3 +107,9 @@
 @media(prefers-reduced-motion:reduce){
   .accountant-queue>summary>svg,.accountant-report-disclosure>summary>svg{transition:none}
 }
+
+
+/* Secondary question tool should not create a nested card inside Reports. */
+.report-secretary-disclosure{margin:12px 0 20px}
+.report-secretary-disclosure .accounting-secretary{border:0;box-shadow:none;padding:0;background:transparent}
+.report-cashout-note{margin:12px 0 0;color:#506659;font-size:13px;line-height:1.6}
