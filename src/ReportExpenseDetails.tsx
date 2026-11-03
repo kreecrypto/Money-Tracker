@@ -36,8 +36,8 @@ export default function ReportExpenseDetails({items,categories}:{items:readonly 
   const expenseCount=items.filter(item=>item.type==='expense').length;
   return <div className="report-category-list">
     {categories.length>0&&<div className="report-expense-tools">
-      <label className="report-expense-search"><Search size={19} aria-hidden="true"/><span className="sr-only">ค้นหาหมวดหรือรายการเงินออก</span>
-        <input ref={searchRef} type="search" placeholder="ค้นหาหมวด ร้านค้า หรือรายการ" autoComplete="off"
+      <label className="report-expense-search"><Search size={19} aria-hidden="true"/>
+        <input ref={searchRef} type="search" aria-label="ค้นหาหมวดหรือรายการเงินออก" placeholder="ค้นหาหมวด ร้านค้า หรือรายการ" autoComplete="off"
           value={query} onChange={event=>setQuery(event.target.value)}/>
         {query&&<button type="button" aria-label="ล้างคำค้นหา" onClick={()=>{setQuery('');searchRef.current?.focus();}}><X size={18}/></button>}
       </label>
