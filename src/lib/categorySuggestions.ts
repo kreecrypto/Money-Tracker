@@ -25,7 +25,9 @@ export function suggestCategory(item:Transaction):CategorySuggestion|null {
     ['บันเทิง',/^(?:บันเทิง|ดูหนัง|สตรีมมิง)/iu],
     ['การศึกษา',/^(?:การศึกษา|ค่าเทอม|ค่าเรียน)/iu],
   ];
-  if(explicit&&!/ไม่ระบุ|ไม่ทราบ|โอนให้บุคคล|โอนระหว่างบัญชี|โอนบัญชีตัวเอง/u.test(explicit)){
+  // Unknown purpose stays unresolved even when a merchant name resembles another category.
+  if(/ไม่ระบุ|ไม่ทราบ|โอนให้บุคคล|โอนระหว่างบัญชี|โอนบัญชีตัวเอง/u.test(explicit))return null;
+  if(explicit){
     for(const [category,pattern] of groups)
       if(pattern.test(explicit))return {category,reason:'หมวดย่อยระบุว่า '+explicit};
   }
