@@ -26,12 +26,19 @@ export function csvRows(text:string):string[][] {
   return rows;
 }
 function mapCategory(label:string):Transaction['category'] {
-  if(/อาหาร|กาแฟ|เครื่องดื่ม/.test(label))return 'อาหารและเครื่องดื่ม';
+  if(/ไม่ทราบ|ไม่ระบุ/.test(label))return 'อื่น ๆ';
+  if(/อาหาร|กาแฟ|เครื่องดื่ม|ขนม/.test(label))return 'อาหารและเครื่องดื่ม';
+  if(/ประกันภัย|เบี้ยประกัน|พ\.ร\.บ\./.test(label))return 'ประกันภัย';
+  if(/โทรศัพท์|อินเทอร์เน็ต|บริการสื่อสาร|AIS|เอไอเอส/.test(label))return 'โทรศัพท์และอินเทอร์เน็ต';
+  if(/เติมน้ำมัน|ค่าน้ำมัน|ซ่อมรถ|ค่าจอดรถ/.test(label))return 'รถยนต์และยานพาหนะ';
+  if(/ของใช้ประจำวัน|น้ำยาทำความสะอาด|ทิชชู/.test(label))return 'ของใช้ประจำวัน';
+  if(/ค่าไฟ|ค่าน้ำ|ค่าเช่า|สาธารณูปโภค/.test(label))return 'บ้านและค่าน้ำไฟ';
   if(/บันเทิง|เกม/.test(label))return 'บันเทิง';
-  if(/เดินทาง|ทางด่วน|ยานพาหนะ|ประกันภัย/.test(label))return 'เดินทาง';
-  if(/โทรศัพท์|อินเทอร์เน็ต|สาธารณูปโภค/.test(label))return 'บ้านและค่าน้ำไฟ';
-  if(/ผ่อน|หนี้/.test(label))return 'ผ่อนชำระ/หนี้';
-  return 'อื่น ๆ'; // wallet top-up remains an expense, with original subcategory in the note
+  if(/ค่าธรรมเนียม|ดอกเบี้ย|ค่าปรับ/.test(label))return 'ค่าธรรมเนียมและดอกเบี้ย';
+  if(/บริจาค|ของขวัญ|เลี้ยงสังสรรค์/.test(label))return 'ครอบครัวและสังคม';
+  if(/เดินทาง|ทางด่วน|รถไฟฟ้า|ค่าโดยสาร/.test(label))return 'เดินทาง';
+  if(/ชำระบัตรเครดิต|ชำระหนี้|ผ่อน|หนี้/.test(label))return 'ผ่อนชำระ/หนี้';
+  return 'อื่น ๆ'; // Wallet top-ups remain cash-out and retain their original subtype in the note.
 }
 function validDate(date:string):boolean {
   if(!/^\d{4}-(0[1-9]|1[0-2])-(0[1-9]|[12]\d|3[01])$/.test(date))return false;
