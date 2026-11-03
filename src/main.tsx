@@ -14,6 +14,7 @@ import './universal-minimal.css';
 import './reference-screen-integration.css';
 import './responsive-grids.css';
 import './cute-kawaii-preview.css';
+import './report-expense-details.css';
 installReadingSize();
 const stopViewportObserver = installMobileViewportObserver();
 if (import.meta.hot) import.meta.hot.dispose(stopViewportObserver);
