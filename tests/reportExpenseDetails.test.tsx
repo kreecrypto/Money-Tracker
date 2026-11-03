@@ -29,7 +29,7 @@ describe('Report expenses by category',()=>{
     expect(html).not.toContain('ทดสอบไม่ควรนับเป็นค่าใช้จ่าย');
     expect((html.match(/class="report-category-expense-row"/g)||[]).length).toBe(4);
     expect((html.match(/class="report-category-subgroup"/g)||[]).length).toBe(4);
-    expect(html).toContain('6,900');
+    expect(html).toContain('฿69.00');
   });
   it('shows no invented expenses when data is empty',()=>{
     const html=renderToStaticMarkup(createElement(ReportExpenseDetails,{items:[],categories:[]}));
