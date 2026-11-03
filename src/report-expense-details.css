@@ -1,0 +1,39 @@
+/* Itemized category disclosure in Reports. Reuse existing brand, borders and readable type. */
+.report-category-instruction{margin:10px 0 0;font-size:13px;color:#586a60;line-height:1.6}
+.report-category-list{margin-top:12px;min-width:0}
+.report-category-breakdown{border-bottom:1px solid #e5efeb;min-width:0}
+.report-category-breakdown:last-of-type{border-bottom:0}
+.report-category-breakdown>.report-category{display:flex;align-items:center;gap:10px;min-height:58px;margin:0;padding:12px 0;border:0;list-style:none;cursor:pointer}
+.report-category-breakdown>.report-category::-webkit-details-marker{display:none}
+.report-category-breakdown>.report-category:focus-visible{outline:3px solid #08783f;outline-offset:2px;border-radius:8px}
+.report-category-breakdown .report-category-name{flex:1;min-width:0;display:flex;flex-direction:column;gap:4px}
+.report-category-breakdown .report-category-name strong{font-size:14px;line-height:1.5;overflow-wrap:anywhere}
+.report-category-breakdown .report-category-name span{font-size:12px;line-height:1.5;color:#586a60}
+.report-category-breakdown .report-category>b{flex:none;white-space:nowrap;font-size:14px;font-variant-numeric:tabular-nums}
+.report-category-disclosure{flex:none;color:#476558;transition:transform .15s ease}
+.report-category-breakdown[open] .report-category-disclosure{transform:rotate(90deg)}
+.report-category-entries{padding:0 0 12px;min-width:0}
+.report-category-expense-row{display:flex;align-items:flex-start;justify-content:space-between;gap:10px;padding:13px 0;border-top:1px solid #e5efeb;min-width:0}
+.report-category-expense-copy{display:flex;flex:1;flex-direction:column;min-width:0;gap:3px;overflow-wrap:anywhere}
+.report-category-expense-copy>strong{font-size:14px;line-height:1.5;font-weight:700;color:#172d22}
+.report-category-expense-copy>span,.report-category-expense-copy>small{font-size:12px;line-height:1.55;color:#586a60}
+.report-category-expense-copy>.report-category-clarification{color:#765531}
+.report-category-expense-amount{flex:none;white-space:nowrap;color:#c8334e;font-size:14px;line-height:1.5;font-variant-numeric:tabular-nums}
+.report-category-receipt{margin-top:5px;padding:7px 9px;background:#f4faf6;border-radius:8px;font-size:12px;color:#435c4c;line-height:1.5}
+.report-category-receipt ul{margin:3px 0 0;padding-inline-start:18px}
+.report-category-expense-total{display:flex;align-items:center;justify-content:space-between;gap:12px;border-top:1px solid #cfdfd5;padding-top:11px;color:#234e36;font-size:13px}
+.report-category-expense-total strong{font-size:14px;white-space:nowrap;font-variant-numeric:tabular-nums}
+.report-category-footnote{margin:14px 0 0;font-size:12px;line-height:1.65;color:#586a60}
+@media(max-width:360px){.report-category-breakdown>.report-category{gap:6px}.report-category-breakdown .report-category-name strong,.report-category-breakdown .report-category>b{font-size:13px}}
+@media(prefers-reduced-motion:reduce){.report-category-disclosure{transition:none}}
+
+
+.report-category-subgroup+.report-category-subgroup{border-top:1px solid #cfdfd5}
+.report-subcategory-heading{display:flex;align-items:baseline;justify-content:space-between;gap:8px;flex-wrap:wrap;padding:10px 0 6px;color:#234e36}
+.report-subcategory-heading strong{font-size:14px;line-height:1.5}
+.report-subcategory-heading span{font-size:12px;line-height:1.5;font-variant-numeric:tabular-nums;color:#4a6557}
+@media(max-width:430px){
+  .report-category-expense-amount{white-space:normal;overflow-wrap:anywhere;text-align:right}
+  .report-category-breakdown .report-category>b{white-space:normal;overflow-wrap:anywhere;text-align:right}
+  .report-category-footnote,.report-category-expense-copy>span,.report-category-expense-copy>small{font-size:12px}
+}

@@ -328,9 +328,9 @@ button svg, .money-category-icon svg { stroke-linecap: round; stroke-linejoin: r
   .ref-report-spending .home-spending-breakdown { gap:11px!important; padding:8px 0!important; }
   .ref-report-spending .spending-donut { width:min(46%,157px); }
   .ref-report-spending .spending-legend { gap:8px!important; }
-  .ref-report-spending .spending-legend-row { font-size:11px!important; gap:5px!important; }
-  .ref-report-spending .spending-donut-hole strong { font-size:clamp(12px,3.8vw,17px); }
-  .ref-report-spending .spending-donut-hole span { font-size:10px; }
+  .ref-report-spending .spending-legend-row { font-size:12px!important; gap:5px!important; }
+  .ref-report-spending .spending-donut-hole strong { font-size:clamp(14px,3.8vw,17px); overflow-wrap:anywhere; }
+  .ref-report-spending .spending-donut-hole span { font-size:12px; }
   .mobile-bottom-nav {
     background:rgba(255,255,255,.97)!important;
     border-top:1px solid var(--ref-border)!important;
@@ -376,7 +376,7 @@ button svg, .money-category-icon svg { stroke-linecap: round; stroke-linejoin: r
   .ref-hero-month span { font-size:10px; }
   .ref-hero-month button { min-width:24px; }
   .ref-home-shortcuts button strong { font-size:10px!important; }
-  .ref-report-tabs button { font-size:11px; padding-inline:2px; }
+  .ref-report-tabs button { font-size:12px; padding-inline:2px; }
 }
 @media (min-width:661px) {
   .ref-hero-card .ref-hero-header { margin-bottom:10px; }
