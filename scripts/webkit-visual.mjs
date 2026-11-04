@@ -99,9 +99,10 @@ try{
     await keyboardStart.focus();
     await page.keyboard.press('ArrowRight');
     const keyboardRight=page.locator(`.mt-calendar-day[data-date="${today.slice(0,8)}09"]`);
-    const dayArrowFocus=await keyboardRight.evaluate(el=>
-      document.activeElement===el&&el.getAttribute('aria-pressed')==='true'&&el.getAttribute('tabindex')==='0'&&el.matches(':focus-visible')
-    );
+    const dayArrowFocus=await keyboardRight.evaluate(el=>({
+      active:document.activeElement===el,pressed:el.getAttribute('aria-pressed'),
+      tabIndex:el.getAttribute('tabindex'),focusVisible:el.matches(':focus-visible')
+    }));
     const selectedDayDetail=await page.locator('.mt-home-day-detail h2').textContent();
     const dayArrowUpdatesDetail=selectedDayDetail?.includes(new Intl.DateTimeFormat('th-TH',{day:'numeric',month:'long',year:'numeric'}).format(new Date(today.slice(0,8)+'09T12:00:00')));
     await page.keyboard.press('ArrowDown');
@@ -109,7 +110,8 @@ try{
     await page.keyboard.press('ArrowLeft');
     await page.keyboard.press('ArrowUp');
     const keyboardReturn=await keyboardStart.evaluate(el=>document.activeElement===el&&el.getAttribute('aria-pressed')==='true');
-    const calendarDayKeyboard=dayArrowFocus&&dayArrowUpdatesDetail&&keyboardDown&&keyboardReturn;
+    const calendarDayKeyboard=dayArrowFocus.active&&dayArrowFocus.pressed==='true'&&dayArrowFocus.tabIndex==='0'&&dayArrowFocus.focusVisible&&dayArrowUpdatesDetail&&keyboardDown&&keyboardReturn;
+    console.log('CALENDAR_KEYBOARD_CHECK',JSON.stringify({label,dayArrowFocus,dayArrowUpdatesDetail,keyboardDown,keyboardReturn}));
     // The calendar heading has the only month-changing control on Home.
     const calendarMonthBefore=await page.locator('.mt-calendar-month-label').textContent();
     await page.locator('.mt-home-month-picker').click();
