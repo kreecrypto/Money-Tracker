@@ -61,7 +61,7 @@ describe('Home UI audit regressions',()=>{
     expect(calendar).toContain('−{compactCalendarBaht(cell.expenseSatang)}');
     expect(calendarCss).toContain('.mt-calendar-day{min-height:74px');
     expect(calendarCss).toContain('.mt-calendar-day-amounts{display:flex');
-    expect(calendarCss).toContain('grid-template-columns:repeat(7,minmax(44px,1fr))');
+    expect(calendarCss).toContain('grid-template-columns:repeat(7,minmax(52px,1fr))');
     expect(mobileCss).toContain('.slip-attention input,.slip-attention select{font-size:16px}');
   });
 });
