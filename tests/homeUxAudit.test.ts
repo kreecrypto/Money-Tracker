@@ -41,6 +41,18 @@ describe('Home UI audit regressions',()=>{
     expect(calendar).toContain('baht(cell.incomeSatang)');
     expect(calendar).toContain('baht(cell.expenseSatang)');
   });
+  it('supports distinct Today, arrow movement, visible scroll and honest empty detail',()=>{
+    expect(calendar).toContain("aria-current={cell.date===today?'date':undefined}");
+    expect(calendar).toContain('aria-controls="mt-home-selected-day-detail"');
+    expect(calendar).toContain('onKeyDown={event=>');
+    expect(calendar).toContain('keyboardCalendarDate(grid,cell.date,event.key)');
+    expect(calendar).toContain('scrollEdge.overflow&&');
+    expect(home).toContain('onToday={()=>');
+    expect(home).toContain("selectedDate.startsWith(month+'-')?selectedDate:month+'-01'");
+    expect(home).toContain('className="mt-home-empty" role="status"');
+    expect(calendarCss).toContain('.mt-calendar-day.is-today');
+    expect(calendarCss).not.toContain('text-overflow:clip');
+  });
   it('keeps numeric income and expense visible in phone calendar cells',()=>{
     expect(calendar).not.toContain('mt-calendar-day-indicators');
     expect(calendar).toContain('mt-calendar-day-amounts');
