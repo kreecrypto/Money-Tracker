@@ -10,6 +10,18 @@ const server=spawn('npm',['run','dev','--','--host','127.0.0.1','--port','4173',
 let demoServer;
 let browser;
 const findings=[];
+const longCalendarAmountsReadable=async(page,date)=>page.locator(`.mt-calendar-day[data-date="${date}"] .mt-calendar-day-amounts`).evaluate(el=>{
+  const spans=Array.from(el.querySelectorAll('span'));
+  if(spans.length!==2)return false;
+  const originals=spans.map(span=>span.textContent);
+  try{
+    spans[0].textContent='+999.99';
+    spans[1].textContent='−999.99';
+    return spans.every(span=>span.scrollWidth<=span.clientWidth+1);
+  }finally{
+    spans.forEach((span,index)=>{span.textContent=originals[index];});
+  }
+});
 try{
   let ready=false;
   for(let i=0;i<110;i++){
@@ -79,6 +91,25 @@ try{
     const calendarSelected=await todayCell.getAttribute('aria-pressed')==='true';
     const calendarDetailText=await page.locator('.mt-home-day-detail').innerText();
     const calendarDetail=calendarDetailText.includes('32,400.00')&&calendarDetailText.includes('7,750.00');
+    const calendarTodayMarked=await todayCell.getAttribute('aria-current')==='date';
+    const longCalendarMoneyReadable=await longCalendarAmountsReadable(page,today);
+    // Exercise date-keyboard focus and selection, not just month-menu arrow keys.
+    const keyboardStart=page.locator(`.mt-calendar-day[data-date="${today.slice(0,8)}08"]`);
+    await keyboardStart.click();
+    await keyboardStart.focus();
+    await page.keyboard.press('ArrowRight');
+    const keyboardRight=page.locator(`.mt-calendar-day[data-date="${today.slice(0,8)}09"]`);
+    const dayArrowFocus=await keyboardRight.evaluate(el=>
+      document.activeElement===el&&el.getAttribute('aria-pressed')==='true'&&el.getAttribute('tabindex')==='0'&&el.matches(':focus-visible')
+    );
+    const selectedDayDetail=await page.locator('.mt-home-day-detail h2').textContent();
+    const dayArrowUpdatesDetail=selectedDayDetail?.includes(new Intl.DateTimeFormat('th-TH',{day:'numeric',month:'long',year:'numeric'}).format(new Date(today.slice(0,8)+'09T12:00:00')));
+    await page.keyboard.press('ArrowDown');
+    const keyboardDown=await page.locator(`.mt-calendar-day[data-date="${today.slice(0,8)}16"]`).evaluate(el=>document.activeElement===el&&el.getAttribute('aria-pressed')==='true');
+    await page.keyboard.press('ArrowLeft');
+    await page.keyboard.press('ArrowUp');
+    const keyboardReturn=await keyboardStart.evaluate(el=>document.activeElement===el&&el.getAttribute('aria-pressed')==='true');
+    const calendarDayKeyboard=dayArrowFocus&&dayArrowUpdatesDetail&&keyboardDown&&keyboardReturn;
     // The calendar heading has the only month-changing control on Home.
     const calendarMonthBefore=await page.locator('.mt-calendar-month-label').textContent();
     await page.locator('.mt-home-month-picker').click();
@@ -87,6 +118,16 @@ try{
     await page.locator('.mt-home-month-picker').click();
     await page.locator('.mt-home-month-popover [role="option"]').nth(7).click();
     const calendarMonthRestored=(await page.locator('.mt-calendar-month-label').textContent())===calendarMonthBefore;
+    await page.locator('.mt-home-month-picker').click();
+    await page.locator('.mt-home-month-popover [role="option"]').nth(5).click();
+    const firstDaySelectedInOtherMonth=(await page.locator('.mt-calendar-day[aria-pressed="true"]').getAttribute('data-date'))?.endsWith('-01');
+    const returnToday=page.getByRole('button',{name:'กลับไปวันนี้'});
+    const todayReturnEnabled=await returnToday.isEnabled();
+    await returnToday.click();
+    const calendarTodayReturn=!!firstDaySelectedInOtherMonth&&todayReturnEnabled
+      &&(await page.locator('.mt-calendar-month-label').textContent())===calendarMonthBefore
+      &&(await todayCell.getAttribute('aria-pressed'))==='true'
+      &&(await returnToday.isDisabled());
 
     // The V2 prototype month menu must not be clipped by the green card.
     await page.locator('.mt-home-month-picker').click();
@@ -188,6 +229,7 @@ try{
         textSize:main?parseFloat(getComputedStyle(main).fontSize):0,
         navigation:nav.length===4&&nav.every(el=>el.getBoundingClientRect().height>=44)};
     });
+    const largeCalendarMoneyReadable=await longCalendarAmountsReadable(page,today);
     await page.screenshot({path:`${directory}/${label}-home-large-text.png`,fullPage:true});
     await page.reload({waitUntil:'networkidle'});
     const savedReadingMode=await page.evaluate(()=>
@@ -202,7 +244,7 @@ try{
       })
     );
     await page.locator('.modal-heading button').click();
-    findings.push({label,home,calendarCanNavigate,calendarBoth,calendarFiguresVisible,calendarFiguresNumeric,calendarSelected,calendarDetail,calendarPreviousMonth,calendarMonthRestored,monthOptions,arrowNavigatesMonth,menuUnclipped,monthCloses,detailsOpen,detailsClose,transactions,list,ledgerMonthCorrect,ledgerSenderSearch,ledgerDetailOpen,ledgerDetailClosed,ledgerFocusRestored,ledgerMoneySingleLine,brandLoaded,scanner,slipArtLoaded,compactUploadButtons,scannerColors,readableScanner,reportOverview,trendsOnly,noReportsFab,settings,settingsDirectory,settingsAnchors,noSettingsFab,largeSetting,largeHome,savedReadingMode,largeScanner,errors});
+    findings.push({label,home,calendarCanNavigate,calendarBoth,calendarFiguresVisible,calendarFiguresNumeric,calendarSelected,calendarDetail,calendarTodayMarked,longCalendarMoneyReadable,calendarDayKeyboard,calendarPreviousMonth,calendarMonthRestored,calendarTodayReturn,monthOptions,arrowNavigatesMonth,menuUnclipped,monthCloses,detailsOpen,detailsClose,transactions,list,ledgerMonthCorrect,ledgerSenderSearch,ledgerDetailOpen,ledgerDetailClosed,ledgerFocusRestored,ledgerMoneySingleLine,brandLoaded,scanner,slipArtLoaded,compactUploadButtons,scannerColors,readableScanner,reportOverview,trendsOnly,noReportsFab,settings,settingsDirectory,settingsAnchors,noSettingsFab,largeSetting,largeHome,largeCalendarMoneyReadable,savedReadingMode,largeScanner,errors});
     await context.close();
   }
   // Exercise the *same* compile-time Preview flag as Vercel, using a disposable WebKit context.
@@ -265,7 +307,7 @@ try{
   console.log('WEBKIT_PREVIEW_DEMO_PASS',JSON.stringify(demoEvidence));
   fs.writeFileSync(`${directory}/webkit-report.json`,JSON.stringify(findings,null,2));
   console.log('WEBKIT_SAFARI_VISUAL_RESULTS',JSON.stringify(findings));
-  const failed=findings.filter(f=>f.label!=='preview-demo-safari390').filter(f=>f.home.overflow>1||!f.calendarCanNavigate||!f.ledgerMoneySingleLine||!f.home.order||!f.home.onlyCalendarAndLedger||f.home.calendarDays<28||f.home.actionCount!==0||!f.calendarBoth||!f.calendarFiguresVisible||!f.calendarFiguresNumeric||!f.calendarSelected||!f.calendarDetail||!f.calendarPreviousMonth||!f.calendarMonthRestored||f.home.navCount!==4||
+  const failed=findings.filter(f=>f.label!=='preview-demo-safari390').filter(f=>f.home.overflow>1||!f.calendarCanNavigate||!f.ledgerMoneySingleLine||!f.home.order||!f.home.onlyCalendarAndLedger||f.home.calendarDays<28||f.home.actionCount!==0||!f.calendarBoth||!f.calendarFiguresVisible||!f.calendarFiguresNumeric||!f.calendarSelected||!f.calendarDetail||!f.calendarTodayMarked||!f.longCalendarMoneyReadable||!f.largeCalendarMoneyReadable||!f.calendarDayKeyboard||!f.calendarPreviousMonth||!f.calendarMonthRestored||!f.calendarTodayReturn||f.home.navCount!==4||
     f.home.pageGrid!==4||f.home.homeGrid!==4||
     !f.home.navVisible||f.home.icons.some(icon=>icon.width<20||icon.height<20)||f.monthOptions!==13||!f.arrowNavigatesMonth||!f.menuUnclipped||!f.monthCloses||!f.detailsOpen||!f.detailsClose||f.transactions!==2||!f.list||!f.ledgerMonthCorrect||!f.ledgerSenderSearch||!f.ledgerDetailOpen||!f.ledgerDetailClosed||!f.ledgerFocusRestored||!f.brandLoaded||!f.slipArtLoaded||!f.reportOverview||!f.settingsDirectory||!f.settingsAnchors||!f.scanner||!f.compactUploadButtons||!f.readableScanner||!f.trendsOnly||!f.noReportsFab||!f.settings||!f.noSettingsFab||!f.largeSetting.active||!f.largeSetting.selected||f.largeSetting.fontSize<16||f.largeHome.overflow>1||f.largeHome.textSize<16||!f.largeHome.navigation||!f.savedReadingMode||!f.largeScanner||f.errors.length);
   if(failed.length){console.error('WEBKIT_SAFARI_VISUAL_FAIL',JSON.stringify(failed));process.exitCode=1;}
