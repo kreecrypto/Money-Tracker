@@ -1,5 +1,5 @@
 import {describe,expect,it} from 'vitest';
-import {calendarMonthGrid,compactCalendarBaht} from '../src/lib/calendar';
+import {calendarMonthGrid,compactCalendarBaht,keyboardCalendarDate} from '../src/lib/calendar';
 import type {Transaction} from '../src/lib/finance';
 
 const tx=(id:string,date:string,type:'income'|'expense',amountSatang:number):Transaction=>({
@@ -28,6 +28,15 @@ describe('calendar-first finance view',()=>{
     expect(october[4].date).toBe('2026-10-01');
     expect(calendarMonthGrid('2028-02',[]).filter(x=>x.inCurrentMonth)).toHaveLength(29);
     expect(calendarMonthGrid('2028-02',[]).length%7).toBe(0);
+  });
+  it('moves by arrow keys within the selected month, not into disabled outside dates',()=>{
+    const days=calendarMonthGrid('2026-11',[]);
+    expect(keyboardCalendarDate(days,'2026-11-04','ArrowRight')).toBe('2026-11-05');
+    expect(keyboardCalendarDate(days,'2026-11-04','ArrowDown')).toBe('2026-11-11');
+    expect(keyboardCalendarDate(days,'2026-11-04','ArrowUp')).toBeNull();
+    expect(keyboardCalendarDate(days,'2026-11-01','ArrowLeft')).toBeNull();
+    expect(keyboardCalendarDate(days,'2026-11-30','ArrowRight')).toBeNull();
+    expect(keyboardCalendarDate(days,'2026-11-04','Enter')).toBeNull();
   });
   it('keeps compact labels separate from full-precision satang totals',()=>{
     expect(compactCalendarBaht(125000)).toBe('1.3k');

@@ -112,3 +112,9 @@ Flat by default. Use thin green-tinted borders and white backgrounds instead of 
 
 ### Document maintenance
 Update this file in the same pull request as any approved design-system change. This document is a contract, not proof that a browser/device QA pass has occurred.
+
+## Calendar P1–P2 UX follow-up (2026-11-04)
+- Home retains signed compact income/expense amounts in calendar cells and exact values below; days without transactions have no misleading status dot. Avoid silently clipping amount text.
+- Today uses an underline and `aria-current="date"`, while Selected uses a green border/background and `aria-pressed`. The Today button returns from another month/date in one action.
+- Arrow keys move one day or one week inside the displayed month, with one selected-date Tab stop. When changing month, choose its first day rather than a data-dependent transaction.
+- Horizontal calendar scroll helpers appear only when the grid actually overflows. Check 320/375/390/430px day hit areas (≥44px), large Thai text, Screen Reader reading of exact amounts and no body overflow; prioritize selected-day heading and signed totals.
