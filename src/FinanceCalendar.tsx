@@ -47,15 +47,16 @@ export default function FinanceCalendar({month,transactions,selectedDate,onSelec
     <div className="mt-calendar-grid" role="group" aria-label={'ปฏิทิน '+monthName(month)}>
       {weekdays.map(day=><span key={day} className="mt-calendar-weekday" aria-hidden="true">{day}</span>)}
       {grid.map(cell=>{
+        const isToday=cell.inCurrentMonth&&cell.date===today;
         const hasIncome=cell.incomeSatang>0;
         const hasExpense=cell.expenseSatang>0;
-        const description=(cell.date===today?'วันนี้ ':'')+longDate(cell.date)+(cell.count?
+        const description=(isToday?'วันนี้ ':'')+longDate(cell.date)+(cell.count?
           ' รายรับ '+baht(cell.incomeSatang)+' บาท รายจ่าย '+baht(cell.expenseSatang)+' บาท '+cell.count+' รายการ'
           :' ไม่มีรายการ');
         return <button key={cell.date} type="button" data-date={cell.date}
-          className={'mt-calendar-day'+(cell.date===selectedDate?' is-selected':'')+(cell.date===today?' is-today':'')+(!cell.inCurrentMonth?' is-outside':'')}
+          className={'mt-calendar-day'+(cell.date===selectedDate?' is-selected':'')+(isToday?' is-today':'')+(!cell.inCurrentMonth?' is-outside':'')}
           disabled={!cell.inCurrentMonth} tabIndex={cell.inCurrentMonth?(cell.date===selectedDate?0:-1):undefined}
-          aria-pressed={cell.inCurrentMonth?cell.date===selectedDate:undefined} aria-current={cell.date===today?'date':undefined}
+          aria-pressed={cell.inCurrentMonth?cell.date===selectedDate:undefined} aria-current={isToday?'date':undefined}
           aria-controls="mt-home-selected-day-detail" aria-label={description} title={description}
           onClick={()=>onSelect(cell.date)} onKeyDown={event=>{
             if(!['ArrowLeft','ArrowRight','ArrowUp','ArrowDown'].includes(event.key))return;
