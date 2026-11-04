@@ -16,7 +16,7 @@
 .mt-calendar-day.is-outside{color:#aab8b0;background:#fbfcfb;opacity:.75;cursor:default}
 .mt-calendar-day.is-selected{background:#e8f7ed;border:2px solid #148a54;padding:5px 0 3px}
 .mt-calendar-day.is-today .mt-calendar-day-number{text-decoration:underline;text-decoration-thickness:2px;text-underline-offset:3px;text-decoration-color:#12583a}
-.mt-calendar-day:focus-visible,.mt-calendar-controls button:focus-visible,.mt-calendar-today:focus-visible{outline:3px solid #0b7545;outline-offset:2px;z-index:1}
+.mt-calendar-day:focus,.mt-calendar-day:focus-visible,.mt-calendar-controls button:focus-visible,.mt-calendar-today:focus-visible{outline:3px solid #0b7545;outline-offset:2px;z-index:1}
 .mt-calendar-legend{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin:12px 3px 1px;font-size:12px;color:#465d50}
 .mt-calendar-legend>span{display:inline-flex;align-items:center;gap:5px;white-space:nowrap}
 .mt-calendar-legend i{display:inline-block;width:8px;height:8px;border-radius:50%}
