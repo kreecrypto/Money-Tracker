@@ -36,6 +36,16 @@ export function calendarMonthGrid(month:string, transactions:readonly Transactio
   });
 }
 
+/** Navigate within the displayed month; outside-month dates stay disabled. */
+export function keyboardCalendarDate(grid:readonly CalendarDay[],date:string,key:string):string|null{
+  const offsets:Record<string,number>={ArrowLeft:-1,ArrowRight:1,ArrowUp:-7,ArrowDown:7};
+  const offset=offsets[key];
+  const index=grid.findIndex(cell=>cell.date===date);
+  if(offset===undefined||index<0)return null;
+  const target=grid[index+offset];
+  return target?.inCurrentMonth?target.date:null;
+}
+
 /** Compact cell labels; accessible names and day details always use full exact amounts. */
 export function compactCalendarBaht(satang:number):string{
   const baht=Math.abs(satang)/100;
