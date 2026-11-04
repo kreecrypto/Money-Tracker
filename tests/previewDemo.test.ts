@@ -33,12 +33,12 @@ describe('Preview-only mock transactions',()=>{
 });
 
 describe('P1 review: calendar, amounts and demo parity',()=>{
-  it('provides a visible small-screen calendar scroll affordance without shrinking 44px cells',()=>{
+  it('provides a visible small-screen calendar scroll affordance with 52px-readable day cells',()=>{
     const calendar=readFileSync(join(process.cwd(),'src/FinanceCalendar.tsx'),'utf8');
     const css=readFileSync(join(process.cwd(),'src/finance-calendar.css'),'utf8');
     expect(calendar).toContain('mt-calendar-scroll-actions');
     expect(calendar).toContain('moveCalendar(1)');
-    expect(css).toContain('grid-template-columns:repeat(7,minmax(44px,1fr))');
+    expect(css).toContain('grid-template-columns:repeat(7,minmax(52px,1fr))');
     expect(css).toContain('.mt-calendar-scroll-actions button{flex:none;width:44px;height:44px');
   });
   it('never breaks signed amounts in the transaction ledger',()=>{
