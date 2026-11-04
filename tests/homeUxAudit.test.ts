@@ -42,7 +42,8 @@ describe('Home UI audit regressions',()=>{
     expect(calendar).toContain('baht(cell.expenseSatang)');
   });
   it('supports distinct Today, arrow movement, visible scroll and honest empty detail',()=>{
-    expect(calendar).toContain("aria-current={cell.date===today?'date':undefined}");
+    expect(calendar).toContain("aria-current={isToday?'date':undefined}");
+    expect(calendar).toContain("cell.inCurrentMonth&&cell.date===today");
     expect(calendar).toContain('aria-controls="mt-home-selected-day-detail"');
     expect(calendar).toContain('onKeyDown={event=>');
     expect(calendar).toContain('keyboardCalendarDate(grid,cell.date,event.key)');
