@@ -55,11 +55,11 @@
   .mt-calendar-legend small{font-size:12px}
 }
 
-/* A 7-day row cannot fit 44px targets at 320px without contained horizontal scrolling. */
+/* Keep 52px day cells at narrow widths so signed sub-1k figures remain legible without clipping. */
 .mt-calendar-scroll{min-width:0;max-width:100%;overflow-x:auto;overscroll-behavior-x:contain;-webkit-overflow-scrolling:touch}
 .mt-calendar-scroll:focus-visible{outline:3px solid #0b7545;outline-offset:2px}
 @media(max-width:400px){
-  .mt-calendar-grid{min-width:326px;grid-template-columns:repeat(7,minmax(44px,1fr))}
+  .mt-calendar-grid{min-width:392px;grid-template-columns:repeat(7,minmax(52px,1fr))}
 }
 
 /* Overflow controls render only when the 7-column calendar actually scrolls. */
