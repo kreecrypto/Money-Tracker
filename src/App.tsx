@@ -614,12 +614,12 @@ function LiveApp(){
   </div>;
 }
 
-const DEMO_SETTINGS:Settings={monthlyBudgetSatang:3000000,ownerNames:[]};
+const DEMO_SETTINGS:Settings={monthlyBudgetSatang:3000000,dailyBudgetSatang:0,ownerNames:[]};
 
 /** Render the production Settings structure without any storage, importing or sync controls. */
 function PreviewSettings(){
   const blocked='ใช้ไม่ได้ในโหมดข้อมูลตัวอย่าง';
-  return <><ReferenceSettingsIndex ownerNames={[]} budgetSatang={DEMO_SETTINGS.monthlyBudgetSatang}/>
+  return <><ReferenceSettingsIndex ownerNames={[]} budgetSatang={DEMO_SETTINGS.monthlyBudgetSatang} dailyBudgetSatang={DEMO_SETTINGS.dailyBudgetSatang??0}/>
     <div className="settings-grid">
       <ReadingPreferenceControl preview/>
       <section id="settings-owner" className="surface settings-card ocr-owner-card"><div className="settings-icon blue"><ScanLine size={23}/></div>
@@ -628,6 +628,14 @@ function PreviewSettings(){
         <textarea id="demo-owner" className="ocr-owner-input" rows={3} placeholder="ชื่อของคุณ" disabled/>
         <small className="hint">หนึ่งชื่อต่อบรรทัด ไม่ต้องระบุเลขบัญชี</small>
         <button className="btn btn-primary" disabled title={blocked}><Check size={17}/> บันทึกชื่อของฉัน</button>
+      </section>
+      <section id="settings-daily-budget" className="surface settings-card">
+        <div className="settings-icon green"><Wallet size={23}/></div>
+        <h3>งบใช้จ่ายรายวัน</h3>
+        <label className="field-label" htmlFor="demo-daily-budget">งบรายวัน (บาท/วัน)</label>
+        <div className="budget-field"><span>฿</span><input id="demo-daily-budget" type="text" value="" placeholder="เช่น 300" disabled/></div>
+        <small className="hint">การตั้งงบถูกปิดในโหมดข้อมูลตัวอย่าง</small>
+        <button className="btn btn-primary" disabled title={blocked}><Check size={17}/> บันทึกงบรายวัน</button>
       </section>
       <section id="settings-budget" className="surface settings-card"><div className="settings-icon green"><Wallet size={23}/></div>
         <h3>งบประมาณรายเดือน</h3><label className="field-label" htmlFor="demo-budget">งบประมาณ (บาท/เดือน)</label>
@@ -699,7 +707,7 @@ function PreviewDemo(){
           <span>{monthText(month)}</span>
           <button type="button" aria-label="เดือนถัดไป" onClick={()=>changeMonth(1)}><ChevronRight size={18}/></button>
         </div></div>}
-        {view==='home'&&<HomeScreen month={month} monthLabel={monthText(month)} recent={selected} onMonthChange={setMonth} onTransactions={showList} onUpload={demoOnly}/>}
+        {view==='home'&&<HomeScreen month={month} monthLabel={monthText(month)} recent={selected} dailyBudgetSatang={DEMO_SETTINGS.dailyBudgetSatang??0} onDailyBudgetSettings={()=>setView('settings')} onMonthChange={setMonth} onTransactions={showList} onUpload={demoOnly}/>}
         {view==='transactions'&&<>
           <details className="transaction-month-summary"><summary>สรุปยอดรายรับ–รายจ่าย {monthText(month)}</summary><div className="transaction-financial-summary">
             <div className="transaction-summary-income"><span>รายรับ <ArrowDownLeft size={18}/></span><strong>฿{baht(sums.income)}</strong></div>
