@@ -1,11 +1,19 @@
 import {describe,it,expect} from 'vitest';
-import {toSatang,summarize,monthly,expenseByCategory,lastMonths,isValidTransaction,transactionDisplayName,type Transaction} from '../src/lib/finance';
+import {toSatang,summarize,monthly,expenseByCategory,lastMonths,isValidTransaction,transactionDisplayName,dailyBudgetStatus,type Transaction} from '../src/lib/finance';
 import {toCsv,createBackup,parseBackup} from '../src/lib/backup';
 const e:Transaction={id:'a',type:'expense',amountSatang:12550,category:'อาหารและเครื่องดื่ม',note:'ข้าว',date:'2026-10-10',method:'cash',createdAt:1};
 const i:Transaction={...e,id:'b',type:'income',category:'เงินเดือน',amountSatang:2500000};
 describe('finance math',()=>{
  it('parses satang exactly',()=>{expect(toSatang('1,234.50')).toBe(123450);expect(toSatang('0.01')).toBe(1);expect(toSatang('1.999')).toBe(null);expect(toSatang('0')).toBe(null);expect(toSatang('-3')).toBe(null);});
  it('sums income and expenses',()=>expect(summarize([e,i])).toEqual({income:2500000,expense:12550,net:2487450}));
+ it('tracks saved daily expenses independently of income and without rollover',()=>{
+   expect(dailyBudgetStatus(0,30000)).toMatchObject({remainingSatang:30000,usedPercent:0,level:'ok'});
+   expect(dailyBudgetStatus(summarize([e,i]).expense,30000)).toMatchObject({remainingSatang:17450,level:'ok'});
+   expect(dailyBudgetStatus(24000,30000)).toMatchObject({remainingSatang:6000,usedPercent:80,level:'near'});
+   expect(dailyBudgetStatus(30000,30000)).toMatchObject({remainingSatang:0,usedPercent:100,level:'reached'});
+   expect(dailyBudgetStatus(35000,30000)).toMatchObject({remainingSatang:-5000,level:'reached'});
+   expect(dailyBudgetStatus(12000,0)).toBe(null);
+ });
  it('filters by month',()=>expect(monthly([e,{...i,date:'2026-09-10'}],'2026-10')).toHaveLength(1));
  it('sorts categories',()=>expect(expenseByCategory([e,{...e,id:'c',category:'เดินทาง',amountSatang:30000}])[0].name).toBe('เดินทาง'));
  it('handles year rollover',()=>expect(lastMonths(3,new Date(2026,0,5)).map(x=>x.key)).toEqual(['2025-11','2025-12','2026-01']));
@@ -20,6 +28,11 @@ describe('finance math',()=>{
 });
 describe('backup',()=>{
  it('roundtrips',()=>expect(parseBackup(createBackup([e],{monthlyBudgetSatang:20000})).transactions).toEqual([e]));
+ it('restores daily limit and remains compatible with old backups',()=>{
+   expect(parseBackup(createBackup([e],{monthlyBudgetSatang:20000,dailyBudgetSatang:30000})).settings.dailyBudgetSatang).toBe(30000);
+   expect(parseBackup(createBackup([e],{monthlyBudgetSatang:20000})).settings.dailyBudgetSatang).toBe(0);
+   expect(()=>parseBackup(createBackup([e],{monthlyBudgetSatang:20000,dailyBudgetSatang:-10}))).toThrow('งบรายวัน');
+ });
  it('roundtrips four extracted K PLUS fields without changing legacy backups',()=>{
    const receipt={...e,id:'receipt-1',date:'2026-10-12',time:'13:15',amountSatang:294800,recipient:'SYNPHAET BANGNA CO.,LTD.',method:'bank' as const};
    const restored=parseBackup(createBackup([receipt,e],{monthlyBudgetSatang:20000})).transactions;
