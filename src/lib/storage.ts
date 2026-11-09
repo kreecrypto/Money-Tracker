@@ -79,17 +79,20 @@ export async function clearLocalData():Promise<void>{
 export async function deleteTransaction(id:string){const db=await getDB();const tx=db.transaction(STORE,'readwrite');await request(tx.objectStore(STORE).delete(id));await completed(tx);}
 export async function loadSettings():Promise<Settings>{
   const db=await getDB();const tx=db.transaction(SETTINGS,'readonly');const store=tx.objectStore(SETTINGS);
-  const [row,names]=await Promise.all([
+  const [row,names,daily]=await Promise.all([
     request<{key:string;value:number}|undefined>(store.get('monthlyBudgetSatang')),
     request<{key:string;value:unknown}|undefined>(store.get('ownerNames')),
+    request<{key:string;value:number}|undefined>(store.get('dailyBudgetSatang')),
   ]);
   return {
     monthlyBudgetSatang:Number.isSafeInteger(row?.value)&&row!.value>=0?row!.value:DEFAULT_SETTINGS.monthlyBudgetSatang,
+    dailyBudgetSatang:Number.isSafeInteger(daily?.value)&&daily!.value>=0?daily!.value:0,
     ownerNames:sanitizeOwnerNames(names?.value),
   };
 }
 export async function saveSettings(settings:Settings){const db=await getDB(); const tx=db.transaction(SETTINGS,'readwrite'); tx.objectStore(SETTINGS).put({key:'monthlyBudgetSatang',value:settings.monthlyBudgetSatang});
   tx.objectStore(SETTINGS).put({key:'ownerNames',value:sanitizeOwnerNames(settings.ownerNames)});
+  tx.objectStore(SETTINGS).put({key:'dailyBudgetSatang',value:settings.dailyBudgetSatang??0});
   await completed(tx);}
 function completed(tx:IDBTransaction){return new Promise<void>((resolve,reject)=>{tx.oncomplete=()=>resolve();tx.onerror=()=>reject(tx.error);tx.onabort=()=>reject(tx.error||new Error('บันทึกไม่สำเร็จ'));});}
 export async function replaceAll(transactions:Transaction[],settings:Settings){
@@ -97,6 +100,7 @@ export async function replaceAll(transactions:Transaction[],settings:Settings){
   const store=tx.objectStore(STORE);store.clear(); transactions.forEach(t=>store.put(t));
   tx.objectStore(SETTINGS).put({key:'monthlyBudgetSatang',value:settings.monthlyBudgetSatang});
   tx.objectStore(SETTINGS).put({key:'ownerNames',value:sanitizeOwnerNames(settings.ownerNames)});
+  tx.objectStore(SETTINGS).put({key:'dailyBudgetSatang',value:settings.dailyBudgetSatang??0});
   await completed(tx);
 }
 
