@@ -68,3 +68,19 @@
   .mt-calendar-scroll-actions button{flex:none;width:44px;height:44px;border:1px solid #d7e8dd;border-radius:10px;background:#eff8f1;color:#12583a;font-size:18px}
   .mt-calendar-scroll-actions button:disabled{opacity:.35}
   .mt-calendar-scroll-actions button:focus-visible{outline:3px solid #0b7545;outline-offset:2px}
+
+/* Selected-date daily limit: inline with the saved ledger, never an account balance. */
+.mt-home-daily-budget{border-top:1px solid #e5eee8;padding:14px 0 3px;margin:0 0 14px;min-width:0}
+.mt-home-daily-budget-head{display:flex;align-items:center;justify-content:space-between;gap:12px}
+.mt-home-daily-budget-head strong{font-size:15px;color:#173a2a}
+.mt-home-daily-budget-head button{min-height:44px;padding:0 10px;border:0;border-radius:9px;background:#ebf8f0;color:#086b3f;font-size:13px;font-weight:700}
+.mt-home-daily-budget-numbers{display:flex;align-items:baseline;justify-content:space-between;gap:8px;flex-wrap:wrap;margin:8px 0}
+.mt-home-daily-budget-numbers>span{font-size:13px;color:#415c4d}
+.mt-home-daily-budget-numbers strong{font-size:20px;font-variant-numeric:tabular-nums;color:#0c7040;overflow-wrap:anywhere}
+.mt-home-daily-budget-numbers strong.is-over{color:#c52943}
+.mt-home-daily-budget-numbers small{font-size:12px;color:#50665a;overflow-wrap:anywhere}
+.mt-home-daily-budget-track{height:8px;overflow:hidden;background:#e5eee8;border-radius:99px}
+.mt-home-daily-budget-track>span{display:block;height:100%;background:#168851;border-radius:inherit}
+.mt-home-daily-budget-track>span.is-warning{background:#ba6241}
+.mt-home-daily-budget-note{margin:7px 0 0;font-size:12px;line-height:1.6;color:#415c4d}
+.mt-home-daily-budget-head button:focus-visible{outline:3px solid #13784b;outline-offset:2px}
