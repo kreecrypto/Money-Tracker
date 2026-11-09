@@ -9,13 +9,15 @@ import {baht, METHODS, transactionDisplayName, type Transaction} from './lib/fin
 import {emailLedgerEvidence,emailLedgerExplanation,emailLedgerCategory} from './lib/emailLedger';
 import sproutBrand from './assets/brand-sprout.svg';
 import FinanceCalendar from './FinanceCalendar';
-import {summarize,todayLocal} from './lib/finance';
+import {dailyBudgetStatus,summarize,todayLocal} from './lib/finance';
 import './finance-calendar.css';
 
 type Props={
   month:string;
   monthLabel:string;
   recent:Transaction[];
+  dailyBudgetSatang:number;
+  onDailyBudgetSettings:()=>void;
   onMonthChange:(month:string)=>void;
   onUpload:()=>void;
   onTransactions:()=>void;
@@ -162,7 +164,7 @@ export function TransactionDetail({value,onClose}:{
 }
 
 export default function HomeScreen({
-  month,monthLabel,recent,
+  month,monthLabel,recent,dailyBudgetSatang,onDailyBudgetSettings,
   onMonthChange,onTransactions
 }:Props){
   const [detail,setDetail]=useState<Transaction|null>(null);
@@ -171,6 +173,7 @@ export default function HomeScreen({
   const activeDate=selectedDate.startsWith(month+'-')?selectedDate:month+'-01';
   const daily=useMemo(()=>recent.filter(item=>item.date===activeDate).sort((a,b)=>(b.time||'').localeCompare(a.time||'')||b.createdAt-a.createdAt),[recent,activeDate]);
   const daySums=useMemo(()=>summarize(daily),[daily]);
+  const budget=dailyBudgetStatus(daySums.expense,dailyBudgetSatang);
   const dayLabel=new Intl.DateTimeFormat('th-TH',{day:'numeric',month:'long',year:'numeric'}).format(new Date(activeDate+'T12:00:00'));
 
   useEffect(()=>{if(!detail)detailTriggerRef.current?.focus();},[detail]);
@@ -182,6 +185,22 @@ export default function HomeScreen({
       <div className="mt-home-day-summary">
         <div><span>รายรับ</span><strong className="is-income">+฿{baht(daySums.income)}</strong></div>
         <div><span>รายจ่าย</span><strong className="is-expense">−฿{baht(daySums.expense)}</strong></div>
+      </div>
+      <div className="mt-home-daily-budget" aria-label="งบใช้จ่ายรายวัน">
+        <div className="mt-home-daily-budget-head">
+          <strong>งบใช้จ่ายรายวัน</strong>
+          <button type="button" onClick={onDailyBudgetSettings}>{budget?'แก้ไขงบ':'ตั้งงบ'}</button>
+        </div>
+        {budget?<div>
+          <div className="mt-home-daily-budget-numbers">
+            <span>{budget.remainingSatang<0?'ใช้เกินงบ':'ใช้ได้อีก'} <strong className={budget.remainingSatang<0?'is-over':''}>฿{baht(Math.abs(budget.remainingSatang))}</strong></span>
+            <small>รายจ่ายที่บันทึก ฿{baht(daySums.expense)} / ฿{baht(dailyBudgetSatang)}</small>
+          </div>
+          <div className="mt-home-daily-budget-track" role="progressbar" aria-label="สัดส่วนการใช้งบรายวัน" aria-valuemin={0} aria-valuemax={100} aria-valuenow={Math.min(100,budget.usedPercent)}>
+            <span className={budget.level!=='ok'?'is-warning':''} style={{width:Math.min(100,budget.usedPercent)+'%'}}/>
+          </div>
+          <p className="mt-home-daily-budget-note" role="status">{budget.level==='reached'?(budget.remainingSatang<0?'เกินงบรายวันแล้ว':'ใช้ครบงบรายวันแล้ว'):budget.level==='near'?'ใกล้ครบงบรายวัน (80% ขึ้นไป)':'ใช้ไป '+budget.usedPercent+'% ของงบรายวัน'}</p>
+        </div>:<p className="mt-home-daily-budget-note">ยังไม่ได้ตั้งวงเงินรายวัน</p>}
       </div>
       {daily.length?<div className="mt-home-transaction-list">
         {daily.map(tx=><button key={tx.id} type="button" className="mt-home-transaction" onClick={event=>{detailTriggerRef.current=event.currentTarget;setDetail(tx);}}>
