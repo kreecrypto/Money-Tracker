@@ -2,7 +2,7 @@ import {toSatang,type EntryType,type Method,type ReceiptDetails} from './finance
 import {readReceiptDetails} from './receiptIntelligence.js';
 import {parseSpecialReceipt,type ReceiptSource} from './receiptFormats.js';
 import {parseKPlusSlip,parseKPlusTopUp,isKPlusPromoNoise} from './kplus.js';
-import {classifyByAccountNames,extractSlipParties,sanitizeOwnerNames} from './slipIdentity.js';
+import {classifyByAccountNames,extractSlipParties,sanitizeOwnerNames,normalizeAccountName} from './slipIdentity.js';
 
 /** OCR parsing is intentionally conservative: uncertain values stay empty for human review. */
 export type SlipFields = {
@@ -305,8 +305,14 @@ export function parseSlipText(rawText:string,layoutLines:string[]=[],ownerNames:
   const layoutParties=layoutLines.length
     ?extractSlipParties(layoutLines.map(line=>normalizeSlipOcrText(line).trim()).filter(Boolean),paymentRecipient)
     :null;
-  const sender=labelledParties.sender??layoutParties?.sender??null;
-  const parsedRecipient=special?special.recipient:(walletTopUp?.recipient||kplus?.recipient||labelledParties.recipient||layoutParties?.recipient||parseRecipient(lines));
+  // OCR text and visual word rows must not silently disagree on who paid or received.
+  const partyConflict=(textName:string|null,visualName:string|null)=>
+    !!textName&&!!visualName&&normalizeAccountName(textName)!==normalizeAccountName(visualName);
+  const senderConflict=partyConflict(labelledParties.sender,layoutParties?.sender??null);
+  const recipientConflict=partyConflict(labelledParties.recipient,layoutParties?.recipient??null);
+  const sender=senderConflict?null:(labelledParties.sender??layoutParties?.sender??null);
+  const parsedRecipient=recipientConflict?null:
+    (special?special.recipient:(walletTopUp?.recipient||kplus?.recipient||labelledParties.recipient||layoutParties?.recipient||parseRecipient(lines)));
   // Never let a promotional K PLUS watermark satisfy the mandatory payee field.
   const recipient=!special&&parsedRecipient&&isKPlusPromoNoise(parsedRecipient)?null:parsedRecipient;
   const inferred=inferSlipDirection(rawText);
@@ -333,6 +339,8 @@ export function parseSlipText(rawText:string,layoutLines:string[]=[],ownerNames:
       ...(recipient?{storeName:recipient}:{}),
     }:undefined;
   const warnings:string[]=[];
+  if(senderConflict)warnings.push('OCR อ่านชื่อผู้โอนขัดแย้งกันระหว่างข้อความและตำแหน่งบนภาพ กรุณาตรวจจากสลิป');
+  if(recipientConflict)warnings.push('OCR อ่านชื่อผู้รับขัดแย้งกันระหว่างข้อความและตำแหน่งบนภาพ กรุณาตรวจจากสลิป');
   if(amountResult?.ambiguous)warnings.push('พบยอดเงินที่ขัดแย้งกันในสลิปเดียวกัน กรุณาตรวจยอดก่อนบันทึก');
   if(walletTopUp)warnings.push('การเติมเงิน e-Wallet นับเป็นรายจ่ายจากธนาคารแล้ว โปรดอย่าบันทึกการใช้ Wallet ซ้ำ');
   if(!lines.length)warnings.push('ไม่พบตัวอักษรในรูปภาพ ลองถ่ายใหม่ให้ชัดขึ้น');
