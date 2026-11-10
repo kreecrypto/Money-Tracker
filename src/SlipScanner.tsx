@@ -1,7 +1,7 @@
 import {useEffect,useRef,useState,type ChangeEvent} from 'react';
 import {Camera,CheckCircle2,ScanLine,ShieldCheck,Upload,Square,Undo2,AlertTriangle,Check,LoaderCircle,ClipboardPaste,CalendarDays,Clock3,Wallet,UserRound,Tag} from 'lucide-react';
 import slipArt from './assets/slip-ready.svg';
-import {parseSlipText,mergeSlipOcrReadings,needsSlipOcrRecovery,describeMissingSlipAmount,type SlipFields} from './lib/slip';
+import {parseSlipText,recoverKPlusFocusedAmount,mergeSlipOcrReadings,needsSlipOcrRecovery,describeMissingSlipAmount,type SlipFields} from './lib/slip';
 import {isKPlusPaymentForOcrRecovery,parseKPlusRecipientRegion} from './lib/kplus';
 import {prepareSlipRecoveryImage,prepareSlipOcrFile,findKPlusAmountCrop,prepareKPlusAmountCrop,findKPlusRecipientCrop,prepareKPlusRecipientCrop} from './lib/slipImage';
 import {isLowOcrConfidence,requiresLowConfidenceReview} from './lib/ocrConfidence';
@@ -211,14 +211,13 @@ export default function SlipScanner({onApply,onComplete,onBusyChange,onUndoBatch
                         worker.recognize(crop,{}, {text:true,blocks:true}),
                         OCR_PASS_TIMEOUT_MS,'อ่านจำนวนเงินเฉพาะจุด '
                       );
-                      const parsed=parseSlipText(focused.data.text,receiptLayoutLines(focused.data.blocks));
-                      // Require a confidently legible, explicitly labelled
-                      // amount inside the bounded crop. No fee/reference guesses.
-                      const hasPaidLabel=/(?:จำนวน(?:\s*เงิน)?|ยอด(?:เงิน|โอน|ชำระ|จ่าย))\s*[:：]?/iu.test(focused.data.text);
-                      const hasConflict=parsed.warnings.some(w=>w.includes('ขัดแย้ง'));
-                      if(parsed.amountSatang!==null&&hasPaidLabel&&!hasConflict&&
-                        !isLowOcrConfidence(focused.data.confidence)){
-                        reading={...reading,amountSatang:parsed.amountSatang,
+                      const focusedAmount=recoverKPlusFocusedAmount(
+                        focused.data.text,receiptLayoutLines(focused.data.blocks)
+                      );
+                      // Trust a labelled amount confirmed by text OR spatial
+                      // word rows; never promote an unlabelled/fee/reference value.
+                      if(focusedAmount!==null&&!isLowOcrConfidence(focused.data.confidence)){
+                        reading={...reading,amountSatang:focusedAmount,
                           warnings:reading.warnings.filter(w=>!w.includes('อ่านจำนวนเงินไม่ได้'))};
                       }
                     }
