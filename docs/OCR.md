@@ -73,3 +73,9 @@ Run npm test, npm run typecheck, and npm run build. The synthetic fixtures verif
 - OCR startup has a 90-second deadline and each recognition pass has a 65-second deadline. A stuck recognition shows a Thai error and stops the remaining batch rather than reusing a potentially broken worker.
 - The stop action terminates the browser OCR worker rather than waiting for the current page to finish. No bank photo or OCR transcript is sent to the server.
 - These changes do not prove image accuracy on real iPhone Photos or HEIC. Reproduce using one original screenshot at a time, record whether the failure is loading, recognizing, retry, saving or pending review, and compare the parsed amount/date/time/merchant to the image. Redact identities and bank account numbers before sharing any evidence.
+
+## Text-vs-layout party disagreement safety (2026-11-10, draft PR)
+
+Tesseract supplies both a plain-text transcript and word-position rows. For bank-like slips, when those two readings explicitly identify **different senders or different recipients**, the parser now leaves the disputed field empty and adds a Thai conflict warning. The existing `prepareAutoSlip` validation routes this slip to **Pending** instead of silently recording a possibly incorrect counterparty or money direction. Equivalent owner names are compared with the existing exact name normalizer (e.g. Thai honorifics and spacing do not create false conflicts). When spatial party rows are missing, existing behavior is unchanged.
+
+The public synthetic tests are in `tests/ocrPartyLayoutConflict.test.ts`. Passing them does **not** establish real-image accuracy: private image-golden QA and physical iPhone Safari/PWA review remain mandatory before merging or deploying financial OCR changes. Coordinate the shared `src/lib/slip.ts` file with draft PRs #81 and #83.
