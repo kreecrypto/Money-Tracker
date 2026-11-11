@@ -41,3 +41,41 @@ describe('OCR text vs spatial party consistency',()=>{
     expect(prepareAutoSlip(parsed,[],'no-layout',1).status).toBe('ready');
   });
 });
+
+
+/** Fictional K PLUS unlabelled recipient blocks in both OCR representations. */
+const kPlusRows=(payee:string|null)=>[
+  'โอนเงินสำเร็จ',
+  'วันที่ 14 ต.ค. 69 13:45 น.',
+  'นาย ตัวอย่าง ผู้ส่ง',
+  'ธ.กสิกรไทย',
+  'xxx-x-x0000-x',
+  ...(payee?[payee,'รหัสพร้อมเพย์','xxx-xxx-1234']:[]),
+  'จำนวน: 90.00 บาท',
+  'เลขที่รายการ: TESTREF20261014001',
+];
+
+describe('K PLUS unlabelled payee text-vs-layout safety',()=>{
+  it('routes conflicting K PLUS payees to Pending instead of auto-saving a wrong recipient',()=>{
+    const parsed=parseSlipText(kPlusRows('ร้านกาแฟตัวอย่าง').join('\n'),
+      kPlusRows('ร้านอาหารตัวอย่าง'));
+    expect(parsed.recipient).toBeNull();
+    expect(parsed.warnings.some(w=>w.includes('ชื่อผู้รับขัดแย้ง'))).toBe(true);
+    expect(prepareAutoSlip(parsed,[],'kplus-disagreement',1).status).toBe('incomplete');
+  });
+
+  it('keeps equivalent K PLUS recipient names ready with cosmetic spacing differences',()=>{
+    const parsed=parseSlipText(kPlusRows('ร้านกาแฟ ตัวอย่าง').join('\n'),
+      kPlusRows('ร้านกาแฟตัวอย่าง'));
+    expect(parsed.recipient).toBe('ร้านกาแฟ ตัวอย่าง');
+    expect(parsed.warnings.some(w=>w.includes('ขัดแย้ง'))).toBe(false);
+    expect(prepareAutoSlip(parsed,[],'kplus-agreement',1).status).toBe('ready');
+  });
+
+  it('retains visual K PLUS payee recovery when text contains no readable payee',()=>{
+    const parsed=parseSlipText(kPlusRows(null).join('\n'),
+      kPlusRows('ร้านกาแฟตัวอย่าง'));
+    expect(parsed.recipient).toBe('ร้านกาแฟตัวอย่าง');
+    expect(prepareAutoSlip(parsed,[],'kplus-visual-only',1).status).toBe('ready');
+  });
+});

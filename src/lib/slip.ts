@@ -273,8 +273,12 @@ export function parseSlipText(rawText:string,layoutLines:string[]=[],ownerNames:
   const textKplus=special?null:parseKPlusSlip(lines);
   // Tesseract's plain-text stream can interleave the bank watermark and QR;
   // its word geometry may still reconstruct the sender-to-beneficiary order.
-  const layoutKplus=special||textKplus?.recipient||!layoutLines.length?null:
+  const layoutKplus=special||!layoutLines.length?null:
     parseKPlusSlip(layoutLines.map(line=>normalizeSlipOcrText(line).trim()).filter(Boolean));
+  // An unlabelled K PLUS payee must agree across transcript and word geometry.
+  // Previously text-side success skipped spatial K PLUS parsing entirely.
+  const kplusPayeeConflict=!!textKplus?.recipient&&!!layoutKplus?.recipient&&
+    normalizeAccountName(textKplus.recipient)!==normalizeAccountName(layoutKplus.recipient);
   const kplus=textKplus?.recipient?textKplus:(layoutKplus?.recipient?layoutKplus:textKplus);
   const walletTopUp=special?null:parseKPlusTopUp(lines);
   // A confirmed bill or wallet payment requires the actual tender/paid amount,
@@ -309,7 +313,8 @@ export function parseSlipText(rawText:string,layoutLines:string[]=[],ownerNames:
   const partyConflict=(textName:string|null,visualName:string|null)=>
     !!textName&&!!visualName&&normalizeAccountName(textName)!==normalizeAccountName(visualName);
   const senderConflict=partyConflict(labelledParties.sender,layoutParties?.sender??null);
-  const recipientConflict=partyConflict(labelledParties.recipient,layoutParties?.recipient??null);
+  const recipientConflict=kplusPayeeConflict||
+    partyConflict(labelledParties.recipient,layoutParties?.recipient??null);
   const sender=senderConflict?null:(labelledParties.sender??layoutParties?.sender??null);
   const parsedRecipient=recipientConflict?null:
     (special?special.recipient:(walletTopUp?.recipient||kplus?.recipient||labelledParties.recipient||layoutParties?.recipient||parseRecipient(lines)));
