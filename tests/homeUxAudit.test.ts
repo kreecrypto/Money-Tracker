@@ -41,13 +41,14 @@ describe('Home UI audit regressions',()=>{
     expect(calendar).toContain('baht(cell.incomeSatang)');
     expect(calendar).toContain('baht(cell.expenseSatang)');
   });
-  it('supports distinct Today, arrow movement, visible scroll and honest empty detail',()=>{
+  it('supports distinct Today, arrow movement, the full-width calendar and honest empty detail',()=>{
     expect(calendar).toContain("aria-current={isToday?'date':undefined}");
     expect(calendar).toContain("cell.inCurrentMonth&&cell.date===today");
     expect(calendar).toContain('aria-controls="mt-home-selected-day-detail"');
     expect(calendar).toContain('onKeyDown={event=>');
     expect(calendar).toContain('keyboardCalendarDate(grid,cell.date,event.key)');
-    expect(calendar).toContain('scrollEdge.overflow&&');
+    expect(calendar).toContain('className="mt-calendar-viewport"');
+    expect(calendar).not.toContain('mt-calendar-scroll-actions');
     expect(home).toContain('onToday={()=>');
     expect(home).toContain("selectedDate.startsWith(month+'-')?selectedDate:month+'-01'");
     expect(home).toContain('className="mt-home-empty" role="status"');
@@ -61,7 +62,9 @@ describe('Home UI audit regressions',()=>{
     expect(calendar).toContain('−{compactCalendarBaht(cell.expenseSatang)}');
     expect(calendarCss).toContain('.mt-calendar-day{min-height:74px');
     expect(calendarCss).toContain('.mt-calendar-day-amounts{display:flex');
-    expect(calendarCss).toContain('grid-template-columns:repeat(7,minmax(52px,1fr))');
+    expect(calendarCss).toContain('grid-template-columns:repeat(7,minmax(0,1fr));gap:2px');
+    expect(calendarCss).not.toContain('minmax(52px,1fr)');
+    expect(calendarCss).toContain('.mt-calendar-viewport{width:100%;min-width:0}');
     expect(mobileCss).toContain('.slip-attention input,.slip-attention select{font-size:16px}');
   });
 });
