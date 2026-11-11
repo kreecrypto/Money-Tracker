@@ -18,7 +18,7 @@ const monthName=(date:string)=>new Intl.DateTimeFormat('th-TH',{month:'long',yea
 export default function FinanceCalendar({month,transactions,selectedDate,onSelect,onToday,monthControl}:Props){
   const today=todayLocal();
   const grid=useMemo(()=>calendarMonthGrid(month,transactions),[month,transactions]);
-  const scrollRef=useRef<He="mt-finance-calendar" aria-label="ปฏิทินรายรับรายจ่าย">
+  return <section className="mt-finance-calendar" aria-label="ปฏิทินรายรับรายจ่าย">
     <div className="mt-calendar-heading">
       <h2>ปฏิทินรายรับรายจ่าย</h2>
       <div className="mt-calendar-month-label">{monthControl}<button type="button" className="mt-calendar-today" onClick={onToday} disabled={selectedDate===today&&month===today.slice(0,7)} aria-label="กลับไปวันนี้">วันนี้</button></div>
