@@ -293,6 +293,7 @@ function LiveApp(){
   const [ready,setReady]=useState(false);const [loadingError,setLoadingError]=useState('');const [toast,setToast]=useState('');const [search,setSearch]=useState('');const [filter,setFilter]=useState<Filter>('all');
   const [reviewBucket,setReviewBucket]=useState<AccountantBucketKey|null>(null);
   const [budgetEdit,setBudgetEdit]=useState('');const [budgetSaving,setBudgetSaving]=useState(false);
+  const [dailyBudgetEdit,setDailyBudgetEdit]=useState('');const [dailyBudgetSaving,setDailyBudgetSaving]=useState(false);
   const [ownerNamesEdit,setOwnerNamesEdit]=useState('');const [ownerNamesSaving,setOwnerNamesSaving]=useState(false);
   const [lastBackupAt,setLastBackupAt]=useState(()=>{try{return Number(localStorage.getItem('ngoentoday-last-backup')||0);}catch{return 0;}});
   const [pendingRestore,setPendingRestore]=useState<ReturnType<typeof parseBackup>|null>(null);
@@ -307,7 +308,7 @@ function LiveApp(){
     window.scrollTo({top:0,behavior:'auto'});
   },[view]);
   const reloadPending=useCallback(async()=>{setPendingSlips(await loadPendingSlips());},[]);
-  const reload=useCallback(async()=>{const [rows,s,pending]=await Promise.all([loadTransactions(),loadSettings(),loadPendingSlips()]);setItems(rows);setSettings(s);setPendingSlips(pending);setBudgetEdit(s.monthlyBudgetSatang?String(s.monthlyBudgetSatang/100):'');setOwnerNamesEdit((s.ownerNames||[]).join('\n'));},[]);
+  const reload=useCallback(async()=>{const [rows,s,pending]=await Promise.all([loadTransactions(),loadSettings(),loadPendingSlips()]);setItems(rows);setSettings(s);setPendingSlips(pending);setBudgetEdit(s.monthlyBudgetSatang?String(s.monthlyBudgetSatang/100):'');setDailyBudgetEdit(s.dailyBudgetSatang?String(s.dailyBudgetSatang/100):'');setOwnerNamesEdit((s.ownerNames||[]).join('\n'));},[]);
   useEffect(()=>{reload().catch(e=>setLoadingError(e instanceof Error?e.message:'เปิดฐานข้อมูลไม่สำเร็จ')).finally(()=>setReady(true));},[reload]);
   useEffect(()=>{const onVisible=()=>{if(document.visibilityState==='visible')reload().catch(console.error);};document.addEventListener('visibilitychange',onVisible);return()=>document.removeEventListener('visibilitychange',onVisible);},[reload]);
   useEffect(()=>{
@@ -420,6 +421,18 @@ function LiveApp(){
   const onDelete=async(t:Transaction)=>{if(!window.confirm(`ต้องการลบรายการ “${t.note||t.category}” ฿${baht(t.amountSatang)} ใช่หรือไม่?`))return;try{await deleteTransaction(t.id);await reload();setToast('ลบรายการแล้ว');}catch(e){setToast(e instanceof Error?e.message:'ลบรายการไม่สำเร็จ');}};
   const onEdit=(t:Transaction)=>{setScanOnOpen(false);setEditing(t);setModalOpen(true);};
   const changeMonth=(n:number)=>{const [y,m]=month.split('-').map(Number);setMonth(monthLocal(new Date(y,m-1+n,1)));};
+  const saveDailyBudget=async(e:FormEvent)=>{
+    e.preventDefault();
+    const n=dailyBudgetEdit.trim()===''?0:toSatang(dailyBudgetEdit);
+    if(n===null){setToast('กรุณาระบุงบรายวันเป็นจำนวนเงินที่ถูกต้อง');return;}
+    try{
+      setDailyBudgetSaving(true);
+      const next={...settings,dailyBudgetSatang:n};
+      await saveSettings(next);setSettings(next);
+      setToast(n?'บันทึกงบรายวันแล้ว':'ยกเลิกงบรายวันแล้ว');
+    }catch(err){setToast(err instanceof Error?err.message:'บันทึกงบรายวันไม่สำเร็จ');}
+    finally{setDailyBudgetSaving(false);}
+  };
   const saveBudget=async(e:FormEvent)=>{e.preventDefault();const n=budgetEdit.trim()===''?0:toSatang(budgetEdit);if(n===null){setToast('ระบุงบประมาณเป็นจำนวนเงินที่ถูกต้อง');return;}try{setBudgetSaving(true);const next={...settings,monthlyBudgetSatang:n};await saveSettings(next);setSettings(next);setToast('บันทึกงบประมาณแล้ว');}catch(err){setToast(err instanceof Error?err.message:'บันทึกไม่สำเร็จ');}finally{setBudgetSaving(false);}};
   const saveOwnerNames=async(e:FormEvent)=>{e.preventDefault();
     const requested=ownerNamesEdit.split(/\r?\n/u).map(x=>x.trim()).filter(Boolean);
@@ -493,6 +506,7 @@ function LiveApp(){
       {view!=='settings'&&view!=='home'&&(view==='reports'||(!inboxTab&&!slipInboxTab))&&<div className="view-topline view-topline-compact"><div className="month-picker"><button aria-label="เดือนก่อนหน้า" title="เดือนก่อนหน้า" onClick={()=>changeMonth(-1)}><ChevronLeft size={18}/></button><span>{monthText(month)}</span><button aria-label="เดือนถัดไป" title="เดือนถัดไป" onClick={()=>changeMonth(1)}><ChevronRight size={18}/></button></div></div>}
       {view==='home'&&<HomeScreen
         month={month} monthLabel={monthText(month)} recent={selected}
+        dailyBudgetSatang={settings.dailyBudgetSatang??0} onDailyBudgetSettings={()=>setView('settings')}
         onMonthChange={setMonth} onUpload={openAdd}
         onTransactions={()=>{setReviewBucket(null);setSearch('');setFilter('all');setInboxTab(false);setSlipInboxTab(false);setView('transactions');}}
       />}
@@ -533,7 +547,7 @@ function LiveApp(){
           onBucket={bucket=>{setReviewBucket(bucket);setSearch('');setFilter('expense');setInboxTab(false);setSlipInboxTab(false);setView('transactions');}}
           onLocalReview={openPendingSlips} onIphoneReview={openReview} onExport={exportCsv}/>
         <ReportPanels items={items} month={month} settings={settings} onSettings={()=>setView('settings')} onExport={exportCsv}/></>}
-      {view==='settings'&&<><ReferenceSettingsIndex ownerNames={settings.ownerNames||[]} budgetSatang={settings.monthlyBudgetSatang}/><div className="settings-grid"><ReadingPreferenceControl/>
+      {view==='settings'&&<><ReferenceSettingsIndex ownerNames={settings.ownerNames||[]} budgetSatang={settings.monthlyBudgetSatang} dailyBudgetSatang={settings.dailyBudgetSatang??0}/><div className="settings-grid"><ReadingPreferenceControl/>
     <section id="settings-owner" className="surface settings-card ocr-owner-card">
       <div className="settings-icon blue"><ScanLine size={23}/></div>
       <h3>ชื่อของฉันบนสลิป</h3>
@@ -549,7 +563,17 @@ function LiveApp(){
         </button>
       </form>
     </section>
-    <section id="settings-budget" className="surface settings-card"><div className="settings-icon green"><Wallet size={23}/></div><h3>งบประมาณรายเดือน</h3><form onSubmit={saveBudget}><label className="field-label" htmlFor="budget">งบประมาณ (บาท/เดือน)</label><div className="budget-field"><span>฿</span><input id="budget" type="text" inputMode="decimal" value={budgetEdit} onChange={e=>setBudgetEdit(e.target.value)} placeholder="เช่น 15000"/></div><small className="hint">เว้นว่างเพื่อลบวงเงินที่ตั้งไว้</small><button className="btn btn-primary" disabled={budgetSaving} type="submit"><Check size={17}/> {budgetSaving?'กำลังบันทึก':'บันทึกงบประมาณ'}</button></form></section><section id="settings-data" className="surface settings-card"><div className="settings-icon peach"><Download size={23}/></div><h3>จัดการข้อมูล</h3><p>สำรองข้อมูลก่อนเปลี่ยนเครื่องหรือล้างข้อมูล</p><div className="settings-actions"><button className="btn btn-secondary" onClick={exportJson}><Download size={17}/> สำรองข้อมูล JSON</button><button className="btn btn-secondary" onClick={exportCsv}><FileSpreadsheet size={17}/> ส่งออก CSV</button><button className="btn btn-ghost bordered" onClick={()=>importRef.current?.click()}><Upload size={17}/> นำเข้าไฟล์ JSON</button><input ref={importRef} className="visually-hidden" aria-label="เลือกไฟล์สำรองข้อมูล JSON" type="file" accept=".json,application/json" onChange={e=>{const f=e.target.files?.[0];if(f)void importBackup(f);}}/></div>
+    <section id="settings-daily-budget" className="surface settings-card">
+       <div className="settings-icon green"><Wallet size={23}/></div>
+       <h3>งบใช้จ่ายรายวัน</h3>
+       <p>ตั้งวงเงินสำหรับรายจ่ายที่บันทึกในแต่ละวัน ไม่ทบยอดไปวันถัดไป</p>
+       <form onSubmit={saveDailyBudget}>
+         <label className="field-label" htmlFor="daily-budget">งบรายวัน (บาท/วัน)</label>
+         <div className="budget-field"><span>฿</span><input id="daily-budget" type="text" inputMode="decimal" value={dailyBudgetEdit} onChange={e=>setDailyBudgetEdit(e.target.value)} placeholder="เช่น 300"/></div>
+         <small className="hint">เว้นว่างเพื่อลบงบรายวัน · ไม่กระทบงบรายเดือน</small>
+         <button className="btn btn-primary" type="submit" disabled={dailyBudgetSaving}><Check size={17}/>{dailyBudgetSaving?'กำลังบันทึก':'บันทึกงบรายวัน'}</button>
+       </form>
+     </section><section id="settings-budget" className="surface settings-card"><div className="settings-icon green"><Wallet size={23}/></div><h3>งบประมาณรายเดือน</h3><form onSubmit={saveBudget}><label className="field-label" htmlFor="budget">งบประมาณ (บาท/เดือน)</label><div className="budget-field"><span>฿</span><input id="budget" type="text" inputMode="decimal" value={budgetEdit} onChange={e=>setBudgetEdit(e.target.value)} placeholder="เช่น 15000"/></div><small className="hint">เว้นว่างเพื่อลบวงเงินที่ตั้งไว้</small><button className="btn btn-primary" disabled={budgetSaving} type="submit"><Check size={17}/> {budgetSaving?'กำลังบันทึก':'บันทึกงบประมาณ'}</button></form></section><section id="settings-data" className="surface settings-card"><div className="settings-icon peach"><Download size={23}/></div><h3>จัดการข้อมูล</h3><p>สำรองข้อมูลก่อนเปลี่ยนเครื่องหรือล้างข้อมูล</p><div className="settings-actions"><button className="btn btn-secondary" onClick={exportJson}><Download size={17}/> สำรองข้อมูล JSON</button><button className="btn btn-secondary" onClick={exportCsv}><FileSpreadsheet size={17}/> ส่งออก CSV</button><button className="btn btn-ghost bordered" onClick={()=>importRef.current?.click()}><Upload size={17}/> นำเข้าไฟล์ JSON</button><input ref={importRef} className="visually-hidden" aria-label="เลือกไฟล์สำรองข้อมูล JSON" type="file" accept=".json,application/json" onChange={e=>{const f=e.target.files?.[0];if(f)void importBackup(f);}}/></div>
   <div className="data-reset-options">
     <div className="data-repair-option">
       <div><strong>ซ่อมการซิงก์ iPhone</strong><p>ตรวจรายการที่เคยบันทึกใน Cloud อีกครั้ง โดยไม่ลบรายการหรือรหัสเชื่อมต่อในเครื่อง</p></div>
@@ -590,12 +614,12 @@ function LiveApp(){
   </div>;
 }
 
-const DEMO_SETTINGS:Settings={monthlyBudgetSatang:3000000,ownerNames:[]};
+const DEMO_SETTINGS:Settings={monthlyBudgetSatang:3000000,dailyBudgetSatang:0,ownerNames:[]};
 
 /** Render the production Settings structure without any storage, importing or sync controls. */
 function PreviewSettings(){
   const blocked='ใช้ไม่ได้ในโหมดข้อมูลตัวอย่าง';
-  return <><ReferenceSettingsIndex ownerNames={[]} budgetSatang={DEMO_SETTINGS.monthlyBudgetSatang}/>
+  return <><ReferenceSettingsIndex ownerNames={[]} budgetSatang={DEMO_SETTINGS.monthlyBudgetSatang} dailyBudgetSatang={DEMO_SETTINGS.dailyBudgetSatang??0}/>
     <div className="settings-grid">
       <ReadingPreferenceControl preview/>
       <section id="settings-owner" className="surface settings-card ocr-owner-card"><div className="settings-icon blue"><ScanLine size={23}/></div>
@@ -604,6 +628,14 @@ function PreviewSettings(){
         <textarea id="demo-owner" className="ocr-owner-input" rows={3} placeholder="ชื่อของคุณ" disabled/>
         <small className="hint">หนึ่งชื่อต่อบรรทัด ไม่ต้องระบุเลขบัญชี</small>
         <button className="btn btn-primary" disabled title={blocked}><Check size={17}/> บันทึกชื่อของฉัน</button>
+      </section>
+      <section id="settings-daily-budget" className="surface settings-card">
+        <div className="settings-icon green"><Wallet size={23}/></div>
+        <h3>งบใช้จ่ายรายวัน</h3>
+        <label className="field-label" htmlFor="demo-daily-budget">งบรายวัน (บาท/วัน)</label>
+        <div className="budget-field"><span>฿</span><input id="demo-daily-budget" type="text" value="" placeholder="เช่น 300" disabled/></div>
+        <small className="hint">การตั้งงบถูกปิดในโหมดข้อมูลตัวอย่าง</small>
+        <button className="btn btn-primary" disabled title={blocked}><Check size={17}/> บันทึกงบรายวัน</button>
       </section>
       <section id="settings-budget" className="surface settings-card"><div className="settings-icon green"><Wallet size={23}/></div>
         <h3>งบประมาณรายเดือน</h3><label className="field-label" htmlFor="demo-budget">งบประมาณ (บาท/เดือน)</label>
@@ -675,7 +707,7 @@ function PreviewDemo(){
           <span>{monthText(month)}</span>
           <button type="button" aria-label="เดือนถัดไป" onClick={()=>changeMonth(1)}><ChevronRight size={18}/></button>
         </div></div>}
-        {view==='home'&&<HomeScreen month={month} monthLabel={monthText(month)} recent={selected} onMonthChange={setMonth} onTransactions={showList} onUpload={demoOnly}/>}
+        {view==='home'&&<HomeScreen month={month} monthLabel={monthText(month)} recent={selected} dailyBudgetSatang={DEMO_SETTINGS.dailyBudgetSatang??0} onDailyBudgetSettings={()=>setView('settings')} onMonthChange={setMonth} onTransactions={showList} onUpload={demoOnly}/>}
         {view==='transactions'&&<>
           <details className="transaction-month-summary"><summary>สรุปยอดรายรับ–รายจ่าย {monthText(month)}</summary><div className="transaction-financial-summary">
             <div className="transaction-summary-income"><span>รายรับ <ArrowDownLeft size={18}/></span><strong>฿{baht(sums.income)}</strong></div>

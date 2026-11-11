@@ -2,11 +2,12 @@ import {ChevronRight,CloudDownload,ShieldCheck,Type,UserRound,Wallet,Info,Plug} 
 import {baht} from './lib/finance';
 
 type Section={id:string;title:string;detail:string;icon:typeof UserRound};
-export default function ReferenceSettingsIndex({ownerNames,budgetSatang}:{
-  ownerNames:string[];budgetSatang:number;
+export default function ReferenceSettingsIndex({ownerNames,budgetSatang,dailyBudgetSatang}:{
+  ownerNames:string[];budgetSatang:number;dailyBudgetSatang:number;
 }){
   const sections:Section[]=[
     {id:'settings-owner',title:'ชื่อของฉันบนสลิป',detail:ownerNames.length?ownerNames[0]:'เพิ่มชื่อเพื่อแยกเงินเข้า–ออก',icon:UserRound},
+    {id:'settings-daily-budget',title:'งบใช้จ่ายรายวัน',detail:dailyBudgetSatang>0?'฿'+baht(dailyBudgetSatang)+'/วัน':'ยังไม่ตั้งงบ',icon:Wallet},
     {id:'settings-budget',title:'งบประมาณรายเดือน',detail:budgetSatang>0?'฿'+baht(budgetSatang):'ยังไม่ตั้งงบ',icon:Wallet},
     {id:'settings-reading',title:'ขนาดตัวอักษร',detail:'เลือกขนาดที่อ่านสบายตา',icon:Type},
     {id:'settings-data',title:'จัดการข้อมูล',detail:'สำรอง / นำเข้า / ส่งออก',icon:CloudDownload},

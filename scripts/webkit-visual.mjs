@@ -205,7 +205,7 @@ try{
     await page.screenshot({path:`${directory}/${label}-report-trends.png`,fullPage:true});
     await page.locator('.mobile-bottom-nav button').nth(3).click();
     const settings=await page.locator('#settings-about h3').isVisible();
-    const settingsDirectory=await page.locator('.reference-settings-link').count()===7;
+    const settingsDirectory=await page.locator('.reference-settings-link').count()===8;
     const settingsAnchors=await page.locator('.reference-settings-link').evaluateAll(links=>links.every(link=>{
       const target=link.getAttribute('href');
       return target?.startsWith('#')&&!!document.querySelector(target);
@@ -290,7 +290,7 @@ try{
   const demoBudget=await demoPage.locator('#report-budget').isVisible();
   await demoPage.locator('.mobile-bottom-nav button').nth(3).click();
   const demoSettings=await demoPage.locator('.settings-grid > .settings-card').count()>=6;
-  const demoSettingsLinks=await demoPage.locator('.reference-settings-index a').count()===7;
+  const demoSettingsLinks=await demoPage.locator('.reference-settings-index a').count()===8;
   const demoReading=await demoPage.locator('#settings-reading .reading-preference-options button').count()===2;
   const demoNoDangerousButtons=await demoPage.locator('#settings-data button:not([disabled])').count()===0;
   await demoPage.locator('#settings-reading .reading-preference-options button').nth(1).click();

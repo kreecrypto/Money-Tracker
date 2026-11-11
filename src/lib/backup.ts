@@ -12,10 +12,12 @@ export function parseBackup(text:string){
   const s=value.settings as Partial<Settings>|null;
   const budget=s?.monthlyBudgetSatang;
   if(!Number.isSafeInteger(budget)||!Number.isInteger(budget)|| (budget??-1)<0) throw new Error('งบประมาณในไฟล์ไม่ถูกต้อง');
+  if(s?.dailyBudgetSatang!==undefined&&(!Number.isSafeInteger(s.dailyBudgetSatang)||s.dailyBudgetSatang<0))
+    throw new Error('งบรายวันในไฟล์ไม่ถูกต้อง');
   if(s?.ownerNames!==undefined&&(!Array.isArray(s.ownerNames)||s.ownerNames.length>8||
     s.ownerNames.some(name=>typeof name!=='string'||name.length>160)))
     throw new Error('ชื่อบัญชีในไฟล์สำรองไม่ถูกต้อง');
-  return {transactions:value.transactions as Transaction[],settings:{monthlyBudgetSatang:budget!,ownerNames:sanitizeOwnerNames(s?.ownerNames)}};
+  return {transactions:value.transactions as Transaction[],settings:{monthlyBudgetSatang:budget!,dailyBudgetSatang:s?.dailyBudgetSatang??0,ownerNames:sanitizeOwnerNames(s?.ownerNames)}};
 }
 function safeCsvCell(s:string){const safe=/^[\s]*[=+\-@\t\r]/.test(s)?`'${s}`:s; return `"${safe.replaceAll('"','""')}"`;}
 export function toCsv(items:Transaction[]){
