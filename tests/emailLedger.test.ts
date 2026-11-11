@@ -33,6 +33,24 @@ describe('private email ledger import',()=>{
     expect(emailLedgerExplanation(t)).toContain('ซื้อกาแฟ, เครื่องดื่ม');
     expect(emailLedgerExplanation(t)).not.toContain('Gmail:');
   });
+  it('maps supported, explicit spending purposes while leaving unknown goods for review',()=>{
+    for(const [label,category] of [
+      ['ค่า AIS (บริการสื่อสาร)','โทรศัพท์และอินเทอร์เน็ต'],
+      ['ประกันภัยรถยนต์','ประกันภัย'],
+      ['ค่าน้ำมัน','รถยนต์และยานพาหนะ'],
+      ['น้ำยาทำความสะอาด','ของใช้ประจำวัน'],
+      ['ดอกเบี้ยสินเชื่อ','ค่าธรรมเนียมและดอกเบี้ย'],
+      ['HomePro ไม่ทราบสินค้า','อื่น ๆ'],
+      ['ชำระ AEON (ประเภทหนี้ไม่ระบุ)','อื่น ๆ'],
+      ['Shopee ไม่ทราบสินค้า','อื่น ๆ'],
+    ] as const){
+      const row=parseEmailLedgerCsv(makeCsv([entry({5:label})])).confirmed[0];
+      expect(row.category).toBe(category);
+      expect(row.type).toBe('expense');
+      expect(row.amountSatang).toBe(12550);
+      expect(emailLedgerCategory(row)).toBe(label);
+    }
+  });
   it('top-up is tracked as expense using an existing category',()=>{
     const t=parseEmailLedgerCsv(makeCsv([entry({5:'เติมเงิน/Wallet'})])).confirmed[0];
     expect(t.type).toBe('expense');

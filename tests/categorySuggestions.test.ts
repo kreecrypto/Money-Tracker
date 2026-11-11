@@ -16,10 +16,21 @@ describe('conservative local category suggestions',()=>{
   });
   it('recognizes high-signal merchants without guessing generic retailers',()=>{
     expect(suggestCategory(tx({recipient:'GrabFood'}))?.category).toBe('อาหารและเครื่องดื่ม');
-    expect(suggestCategory(tx({recipient:'Shopee Thailand'}))?.category).toBe('ช้อปปิ้ง');
+    expect(suggestCategory(tx({recipient:'Shopee Thailand'}))).toBeNull();
+    expect(suggestCategory(tx({recipient:'Lazada'}))).toBeNull();
+    expect(suggestCategory(tx({recipient:'HomePro'}))).toBeNull();
+    expect(suggestCategory(tx({recipient:'PTT'}))).toBeNull();
     expect(suggestCategory(tx({recipient:'การไฟฟ้านครหลวง'}))?.category).toBe('บ้านและค่าน้ำไฟ');
     expect(suggestCategory(tx({recipient:'Netflix'}))?.category).toBe('บันเทิง');
     expect(suggestCategory(tx({recipient:'7-Eleven'}))).toBeNull();
+  });
+  it('recognizes explicit goods and service subcategories, without guessing generic stores',()=>{
+    expect(suggestCategory(tx({note:'หมวดย่อย: ค่าโทรศัพท์ AIS'}))?.category).toBe('โทรศัพท์และอินเทอร์เน็ต');
+    expect(suggestCategory(tx({note:'หมวดย่อย: เบี้ยประกันรถ'}))?.category).toBe('ประกันภัย');
+    expect(suggestCategory(tx({note:'หมวดย่อย: ค่าน้ำมัน'}))?.category).toBe('รถยนต์และยานพาหนะ');
+    expect(suggestCategory(tx({note:'หมวดย่อย: น้ำยาทำความสะอาด'}))?.category).toBe('ของใช้ประจำวัน');
+    expect(suggestCategory(tx({note:'หมวดย่อย: ดอกเบี้ย'}))?.category).toBe('ค่าธรรมเนียมและดอกเบี้ย');
+    expect(suggestCategory(tx({note:'หมวดย่อย: ซื้อสินค้า',recipient:'Lazada'}))).toBeNull();
   });
   it('never overwrites existing categorized expenses or income',()=>{
     expect(suggestCategory(tx({category:'เดินทาง',recipient:'GrabFood'}))).toBeNull();
@@ -35,6 +46,7 @@ describe('conservative local category suggestions',()=>{
     expect(suggestCategory(tx({note:'หมวดย่อย: โอนให้บุคคล/วัตถุประสงค์ไม่ระบุ'}))).toBeNull();
     expect(suggestCategory(tx({note:'ชำระบิล',recipient:'Shopee'}))).toBeNull();
     expect(suggestCategory(tx({note:'หมวดย่อย: ไม่ทราบวัตถุประสงค์',recipient:'นายสมชาย'}))).toBeNull();
+    expect(suggestCategory(tx({note:'หมวดย่อย: ไม่ทราบสินค้า',recipient:'Netflix'}))).toBeNull();
   });
   it('never guesses from the amount, date, or note about a merchant alone',()=>{
     expect(suggestCategory(tx({amountSatang:12345,note:'โอนเงินเรียบร้อย'}))).toBeNull();
