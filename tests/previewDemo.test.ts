@@ -33,13 +33,16 @@ describe('Preview-only mock transactions',()=>{
 });
 
 describe('P1 review: calendar, amounts and demo parity',()=>{
-  it('provides a visible small-screen calendar scroll affordance with 52px-readable day cells',()=>{
+  it('keeps all seven calendar weekdays visible without horizontal scrolling on narrow screens',()=>{
     const calendar=readFileSync(join(process.cwd(),'src/FinanceCalendar.tsx'),'utf8');
     const css=readFileSync(join(process.cwd(),'src/finance-calendar.css'),'utf8');
-    expect(calendar).toContain('mt-calendar-scroll-actions');
-    expect(calendar).toContain('moveCalendar(1)');
-    expect(css).toContain('grid-template-columns:repeat(7,minmax(52px,1fr))');
-    expect(css).toContain('.mt-calendar-scroll-actions button{flex:none;width:44px;height:44px');
+    expect(calendar).toContain('className="mt-calendar-viewport"');
+    expect(calendar).toContain('className="mt-calendar-grid"');
+    expect(calendar).not.toContain('mt-calendar-scroll-actions');
+    expect(css).toContain('.mt-calendar-viewport{width:100%;min-width:0}');
+    expect(css).toContain('grid-template-columns:repeat(7,minmax(0,1fr))');
+    expect(css).toContain('.mt-calendar-day:focus');
+    expect(calendar).toContain('aria-label={description}');
   });
   it('never breaks signed amounts in the transaction ledger',()=>{
     const css=readFileSync(join(process.cwd(),'src/responsive-grids.css'),'utf8');
