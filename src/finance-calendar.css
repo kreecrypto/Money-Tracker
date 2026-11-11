@@ -55,16 +55,16 @@
   .mt-calendar-legend small{font-size:12px}
 }
 
-/* Keep 52px day cells at narrow widths so signed sub-1k figures remain legible without clipping. */
-.mt-calendar-scroll{min-width:0;max-width:100%;overflow-x:auto;overscroll-behavior-x:contain;-webkit-overflow-scrolling:touch}
-.mt-calendar-scroll:focus-visible{outline:3px solid #0b7545;outline-offset:2px}
+/* Show the entire month at once: seven equal columns, no sideways scrolling. */
+.mt-calendar-viewport{width:100%;min-width:0}
 @media(max-width:400px){
-  .mt-calendar-grid{min-width:392px;grid-template-columns:repeat(7,minmax(52px,1fr))}
+  .mt-finance-calendar{padding-inline:7px}
+  .mt-calendar-grid{width:100%;min-width:0;grid-template-columns:repeat(7,minmax(0,1fr));gap:2px}
+  .mt-calendar-weekday{min-height:26px;font-size:11px}
+  .mt-calendar-day{min-height:61px;padding:5px 0 3px;border-radius:7px}
+  .mt-calendar-day.is-selected{padding:4px 0 2px}
+  .mt-calendar-day-number{font-size:12px;line-height:1.25}
+  .mt-calendar-day-amounts{font-size:clamp(8px,2.5vw,10px);letter-spacing:-.4px;line-height:1.25;gap:1px;min-height:25px}
+  .mt-calendar-day-amounts span{max-width:100%}
+  .mt-calendar-legend{margin-top:8px}
 }
-
-/* Overflow controls render only when the 7-column calendar actually scrolls. */
-.mt-calendar-scroll-actions{display:flex;align-items:center;gap:7px;margin-top:6px}
-  .mt-calendar-scroll-actions span{flex:1;min-width:0;font-size:11px;line-height:1.5;color:#465d50}
-  .mt-calendar-scroll-actions button{flex:none;width:44px;height:44px;border:1px solid #d7e8dd;border-radius:10px;background:#eff8f1;color:#12583a;font-size:18px}
-  .mt-calendar-scroll-actions button:disabled{opacity:.35}
-  .mt-calendar-scroll-actions button:focus-visible{outline:3px solid #0b7545;outline-offset:2px}
