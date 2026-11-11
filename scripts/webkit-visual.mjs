@@ -60,23 +60,25 @@ try{
         navVisible:!!(navigation&&navigation.top>=0&&navigation.bottom<=innerHeight+2),pageGrid,homeGrid,icons};
     });
 
-    // At 320px, retain 44px date targets but make the last weekday discoverable.
-    const calendarAccess=await page.locator('.mt-calendar-scroll').evaluate(el=>({
-      overflows:el.scrollWidth>el.clientWidth+1,
-      initial:el.scrollLeft
-    }));
-    let calendarCanNavigate=true;
-    if(calendarAccess.overflows){
-      const hintVisible=await page.locator('.mt-calendar-scroll-actions').isVisible();
-      const next=page.getByRole('button',{name:'เลื่อนปฏิทินไปทางขวา'});
-      const previous=page.getByRole('button',{name:'เลื่อนปฏิทินไปทางซ้าย'});
-      const ready=await next.isEnabled();
-      await next.click();
-      const advanced=await page.locator('.mt-calendar-scroll').evaluate(el=>el.scrollLeft>1);
-      await previous.click();
-      const restored=await page.locator('.mt-calendar-scroll').evaluate(el=>el.scrollLeft<=1);
-      calendarCanNavigate=hintVisible&&ready&&advanced&&restored;
-    }
+    // Fit-width calendar: verify all seven weekday columns are visible without
+    // sideways scrolling, and that every active date remains reachable by touch.
+    const calendarAccess=await page.locator('.mt-calendar-viewport').evaluate(el=>{
+      const grid=el.querySelector('.mt-calendar-grid');
+      const weekdays=Array.from(grid?.querySelectorAll('.mt-calendar-weekday')||[]);
+      const days=Array.from(grid?.querySelectorAll('.mt-calendar-day:not([disabled])')||[]);
+      const bounds=el.getBoundingClientRect();
+      const viewportFits=el.scrollWidth<=el.clientWidth+1;
+      const columnsFit=weekdays.length===7&&weekdays.every(day=>{
+        const r=day.getBoundingClientRect();
+        return r.left>=bounds.left-1&&r.right<=bounds.right+1;
+      });
+      const daysReachable=days.length>=28&&days.every(day=>{
+        const r=day.getBoundingClientRect();
+        return r.width>=24&&r.left>=bounds.left-1&&r.right<=bounds.right+1;
+      });
+      return {viewportFits,columnsFit,daysReachable,weekdays:weekdays.length};
+    });
+    const calendarCanNavigate=calendarAccess.viewportFits&&calendarAccess.columnsFit&&calendarAccess.daysReachable;
     const brandLoaded=await page.locator('.mt-home-brand-icon img').evaluate(img=>img.complete&&img.naturalWidth>0);
     await page.screenshot({path:`${directory}/${label}-home.png`,fullPage:true});
     // Verify same-day incoming/outgoing and an actual tap, not just calendar visibility.
