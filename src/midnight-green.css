@@ -458,3 +458,13 @@ select:focus-visible,textarea:focus-visible{outline-color:var(--dark-accent)!imp
   color:var(--dark-ink)!important;
 }
 .modal .expense-quick-picker .expense-quick-heading>small{color:var(--dark-muted)!important}
+
+
+/* Destructive-action review: preserve readable counts and irreversible-loss guidance. */
+.local-reset-modal .restore-counts dt,
+.local-reset-modal .local-reset-help{
+  color:var(--dark-muted)!important;
+}
+.local-reset-modal .restore-counts>div{
+  border-color:var(--dark-border)!important;
+}
