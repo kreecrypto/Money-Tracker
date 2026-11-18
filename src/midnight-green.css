@@ -1,0 +1,311 @@
+/* Money Tracker — Midnight Green theme.
+   End-of-cascade visual overrides only: no finance, OCR, sync, or storage changes.
+   The existing four-destination navigation and iPhone spacing remain authoritative. */
+:root {
+  color-scheme: dark;
+  --dark-canvas:#091310;
+  --dark-surface:#14231d;
+  --dark-raised:#1b3028;
+  --dark-soft:#20382e;
+  --dark-border:#315044;
+  --dark-ink:#f1faf4;
+  --dark-muted:#b6cbbf;
+  --dark-accent:#62e4a5;
+  --dark-negative:#ff92a0;
+  --ft-canvas:var(--dark-canvas);
+  --ft-ink:var(--dark-ink);
+  --ft-muted:var(--dark-muted);
+  --ft-green:#08764b;
+  --ft-dark:#0b5037;
+  --ft-mint:var(--dark-soft);
+  --ft-stroke:var(--dark-border);
+  --ft-shadow:none;
+  --mobile-canvas:var(--dark-canvas);
+  --mobile-ink:var(--dark-ink);
+  --mobile-muted:var(--dark-muted);
+  --mobile-line:var(--dark-border);
+  --mobile-surface:var(--dark-surface);
+  --mobile-soft:var(--dark-soft);
+  --mobile-accent:#08764b;
+  --home-text:var(--dark-ink);
+  --home-muted:var(--dark-muted);
+  --home-mint:var(--dark-soft);
+  --ref-canvas:var(--dark-canvas);
+  --ref-text:var(--dark-ink);
+  --ref-muted:var(--dark-muted);
+  --ref-border:var(--dark-border);
+  --ref-soft-green:var(--dark-soft);
+  --refapp-canvas:var(--dark-canvas);
+  --refapp-ink:var(--dark-ink);
+  --refapp-muted:var(--dark-muted);
+  --refapp-line:var(--dark-border);
+  --cute-canvas:var(--dark-canvas);
+  --cute-surface:var(--dark-surface);
+  --cute-ink:var(--dark-ink);
+  --cute-muted:var(--dark-muted);
+  --cute-line:var(--dark-border);
+  --cute-mint:var(--dark-soft);
+  --cute-mint-soft:var(--dark-soft);
+  --cute-peach:#382b26;
+  --cute-pink:#3a2632;
+  --ui-text:var(--dark-ink);
+  --ui-border:var(--dark-border);
+}
+html,body,#root,.app-shell,.app-body,.main-content,
+body:has(.mt-home-screen),.app-body:has(.mt-home-screen),
+.main-content:has(.mt-home-screen) {
+  background:var(--dark-canvas)!important;color:var(--dark-ink);
+}
+body {color:var(--dark-ink);-webkit-font-smoothing:antialiased}
+::selection{background:#185940;color:#fff}
+:focus-visible,button:focus-visible,a:focus-visible,input:focus-visible,
+select:focus-visible,textarea:focus-visible{outline-color:var(--dark-accent)!important;outline-offset:2px}
+:is(input,select,textarea){color-scheme:dark}
+:is(input,textarea)::placeholder{color:#a4bcae;opacity:1}
+/* Shell, branding and persistent navigation */
+.sidebar,.topbar,.topbar:not(.topbar-home),
+.topbar.topbar-home.home-v2-topbar,.topbar.home-v2-topbar,
+.mobile-bottom-nav {
+  background:var(--dark-surface)!important;color:var(--dark-ink)!important;
+  border-color:var(--dark-border)!important;
+  box-shadow:none!important;
+}
+.sidebar .brand,.brand-text,.topbar h1,.topbar .greeting,
+.topbar-home .greeting,.mt-home-brand-name,.mt-home-hello,
+.mt-home-section-heading h2,.mt-home-day-detail-heading,
+.view-topline h2,.section-header h3,.settings-card h3 {
+  color:var(--dark-ink)!important;
+}
+.sidebar .nav-item,.mobile-bottom-nav button,
+.mt-home-header-button,.mt-home-avatar,.icon-btn {
+  color:var(--dark-muted)!important;
+}
+.sidebar .nav-item.active,.mobile-bottom-nav button.active,
+.mobile-bottom-nav button[aria-current="page"] {
+  background:var(--dark-soft)!important;color:var(--dark-accent)!important;
+}
+.sidebar .nav-item:hover,.nav-item:hover,.icon-btn:hover,
+.mt-home-header-button:hover{background:var(--dark-raised)!important}
+.mt-home-avatar,.today-chip,.privacy-card{background:var(--dark-soft)!important;color:var(--dark-ink)!important}
+.mt-home-subtitle,.greeting+.subtle,.today-chip,.card-overline,.eyebrow,
+.section-header small,.view-topline p,.hint,.subtle{color:var(--dark-muted)!important}
+.mobile-fab,.btn-primary,.btn.btn-primary{
+  background:#087d50!important;border-color:#179662!important;color:#fff!important;
+  box-shadow:none!important;
+}
+.btn-primary:hover:not(:disabled),.mobile-fab:hover {background:#096c47!important}
+.btn-secondary,.btn-ghost,.btn.btn-secondary,.btn.btn-ghost{
+  background:var(--dark-soft)!important;color:var(--dark-ink)!important;
+  border-color:var(--dark-border)!important;
+}
+.btn:disabled{opacity:.5}
+.text-action,.mt-home-section-heading button,.mt-home-day-detail-heading button,
+.search-clear,.plain-icon{color:var(--dark-accent)!important}
+/* Reusable surfaces, menus, and native form controls */
+.surface,.settings-card,.metric,.budget-card,.transaction-page,
+.transaction-month-summary,.report-stat,.report-table,.chart-surface,
+.category-surface,.ref-report-spending,.ref-report-budget,
+.reference-overview-trends,.home-spending-card,.accounting-secretary,
+.accountant-review,.reference-settings-index,.month-picker,
+.mt-home-month-popover,.mt-home-detail-inner,.modal,
+.report-trend-breakdown,.report-trend-table-scroll {
+  background:var(--dark-surface)!important;
+  color:var(--dark-ink)!important;
+  border-color:var(--dark-border)!important;
+  box-shadow:none!important;
+}
+:is(.surface,.settings-card,.metric,.budget-card,.transaction-page,.modal) :is(h2,h3,h4),
+.metric-number,.metric-top,.metric-foot,.transaction-page h2,.report-stat strong,
+.report-category strong,.report-category b,.budget-summary-head h3,
+.category-line strong,.category-item strong {
+  color:var(--dark-ink)!important;
+}
+:is(.surface,.settings-card,.transaction-page,.report-stat,.budget-card,.modal) :is(p,small,dt,span,dd,label) {
+  border-color:var(--dark-border);
+}
+.settings-card p,.settings-card small,.settings-card .field-label,
+.transaction-copy span,.transaction-end span,.metric-foot,
+.card-overline,.section-header p,.report-category span,
+.ref-section-note,.spending-legend-row,.report-trend-empty {
+  color:var(--dark-muted)!important;
+}
+:is(.search-box,.month-picker,.field-grid input,.field-grid select,
+.field-grid textarea,.amount-input,.settings-card input,
+.settings-card textarea,.settings-card select,.modal input,.modal select,
+.modal textarea,.slip-attention input,.slip-attention select) {
+  background:var(--dark-raised)!important;color:var(--dark-ink)!important;
+  border-color:var(--dark-border)!important;
+}
+.search-box input,.search-box input:focus{background:transparent!important;color:var(--dark-ink)!important}
+.inbox-view-tabs,.ref-report-tabs,.filter-tabs,.type-switch,
+.reading-preference-options,.expense-quick-picker{background:var(--dark-soft)!important;border-color:var(--dark-border)!important}
+.inbox-view-tabs button,.ref-report-tabs button,.filter-tabs button,
+.transaction-page .filter-tabs button,.reading-preference-options button,
+.type-switch button,.expense-quick-option{
+  background:var(--dark-raised)!important;color:var(--dark-ink)!important;
+  border-color:var(--dark-border)!important;
+}
+.inbox-view-tabs button.active,.ref-report-tabs button.active,
+.transaction-page .filter-tabs button.selected,.reading-preference-options button.active,
+.type-switch .selected {
+  background:#0b754d!important;color:#fff!important;border-color:#2bc88b!important;
+}
+.modal-backdrop{background:#000b!important}
+.modal-heading,.modal-footer{background:var(--dark-surface)!important;border-color:var(--dark-border)!important}
+.modal h2,.modal-heading h2,.modal .field-label,.modal .amount-input input{color:var(--dark-ink)!important}
+.mobile-row-menu,.transaction-actions,.mt-home-month-popover,
+.mt-home-detail{background:var(--dark-surface)!important;color:var(--dark-ink)!important;border-color:var(--dark-border)!important}
+/* Home calendar, date summary and genuine saved transactions */
+.mt-finance-calendar,.mt-home-day-detail,
+.mt-home-screen .mt-home-recent,.mt-home-screen .mt-home-transaction-list,
+.mt-home-screen .mt-home-balance.mt-home-calendar-summary {
+  background:var(--dark-surface)!important;color:var(--dark-ink)!important;
+  border-color:var(--dark-border)!important;box-shadow:none!important;
+}
+.mt-calendar-heading h2,.mt-calendar-controls span,
+.mt-home-calendar-summary .mt-home-total,
+.mt-home-calendar-summary .mt-home-total-label,
+.mt-home-calendar-summary .mt-home-balance-header>span,
+.mt-home-screen .mt-home-balance.mt-home-calendar-summary .mt-home-balance-header>span {
+  color:var(--dark-ink)!important;
+}
+.mt-calendar-controls button,.mt-calendar-today,.mt-home-month-picker,
+.mt-home-screen .mt-home-month-picker{
+  background:var(--dark-soft)!important;color:var(--dark-accent)!important;
+  border-color:var(--dark-border)!important;
+}
+.mt-calendar-day{
+  background:var(--dark-raised)!important;color:var(--dark-ink)!important;
+  border-color:var(--dark-border)!important;
+}
+.mt-calendar-day.is-outside{background:#101b17!important;color:#9eb2a6!important;opacity:1}
+.mt-calendar-day.is-selected{background:#174e39!important;border-color:var(--dark-accent)!important;color:#fff!important}
+.mt-calendar-day.is-today .mt-calendar-day-number{ text-decoration-color:var(--dark-accent)!important }
+.mt-home-screen .mt-home-split,
+.mt-home-screen .mt-home-balance.mt-home-calendar-summary .mt-home-split,
+.mt-home-day-summary>div,.mt-home-day-detail .mt-home-day-summary>div,
+.mt-home-day-detail .mt-home-day-summary>div:last-child{
+  background:var(--dark-raised)!important;border-color:var(--dark-border)!important;
+  color:var(--dark-ink)!important;box-shadow:none!important;
+}
+.mt-home-screen .mt-home-split-head,
+.mt-home-screen .mt-home-split>small,.mt-home-day-count,
+.mt-home-section-heading>span{color:var(--dark-muted)!important}
+.mt-home-screen .mt-home-split>strong,.mt-home-day-summary strong{color:var(--dark-ink)!important}
+.mt-home-screen .mt-home-transaction,.mt-home-transaction{
+  background:transparent!important;border-color:var(--dark-border)!important;
+}
+.mt-home-transaction-text strong,.mt-home-transaction>b,
+.mt-home-detail-heading{color:var(--dark-ink)!important}
+.mt-home-transaction-text small{color:var(--dark-muted)!important}
+.mt-home-empty,.mt-home-screen .mt-home-empty,
+.mt-home-advisory,.mt-home-screen .mt-home-advisory {
+  background:var(--dark-soft)!important;color:var(--dark-ink)!important;
+  border-color:var(--dark-border)!important;
+}
+.mt-home-advisory strong{color:var(--dark-ink)!important}
+.mt-home-advisory button{background:var(--dark-raised)!important;color:var(--dark-accent)!important}
+.mt-home-screen .mt-home-upload{background:linear-gradient(120deg,#087b51,#0d5f42)!important;color:white!important}
+.mt-home-screen .mt-home-upload strong,.mt-home-screen .mt-home-upload small{color:#fff!important}
+/* Transaction lists, search, categories, summary */
+.transaction-page .search-box,.search-box,
+.transaction-page .transaction-day-heading,.transaction-day-heading,
+.tx-list,.tx-list-grouped,.transaction-row,.transaction-month-summary,
+.receipt-details-body,.receipt-item-list,.category-item,
+.report-category,.report-trend-table{
+  background:var(--dark-surface)!important;border-color:var(--dark-border)!important;
+}
+.transaction-copy strong,.transaction-day-heading strong,
+.transaction-day-heading span,.receipt-detail-line strong,
+.transaction-end b{color:var(--dark-ink)!important}
+.transaction-row,.transaction-open{color:var(--dark-ink)!important}
+.transaction-summary-income{background:#153b2c!important;color:#8ce9b6!important}
+.transaction-summary-expense{background:#3c252b!important;color:#ffb2bc!important}
+.transaction-financial-summary span,.transaction-financial-summary strong{color:inherit!important}
+.transaction-financial-summary span svg{background:#ffffff1c!important}
+.transaction-emoji,.category-icon,.money-category-icon{background:var(--dark-soft)!important;color:var(--dark-accent)!important}
+.transaction-end .positive,.positive,.mt-home-transaction>b.is-income,
+.mt-home-day-summary .is-income{color:var(--dark-accent)!important}
+.transaction-end .negative,.negative,.mt-home-transaction>b.is-expense,
+.mt-home-day-summary .is-expense{color:var(--dark-negative)!important}
+.filter-tabs button:hover,.inbox-view-tabs button:hover{border-color:var(--dark-accent)!important}
+.receipt-details summary,.receipt-detail-line,.receipt-total{color:var(--dark-ink)!important}
+/* Reports and budgeting: maintain signed metrics and distinct cash movements */
+.accountant-review-heading h3,.accountant-review-subheading h4,
+.accountant-review-flags h4,.accountant-inbox-intro h2,
+.settings-quick-intro h2,.spending-donut-hole strong,
+.accounting-secretary h3,.accounting-secretary-answer,
+.accountant-review-group-label b,.accountant-review-ledger button>strong{
+  color:var(--dark-ink)!important;
+}
+.accountant-review-ledger>div>button,.accountant-queue,.accountant-report-disclosure,
+.accounting-secretary-questions button,.accounting-secretary-answer,
+.accounting-secretary-metric,.accounting-secretary-actions button,
+.accountant-home-entry,.accountant-filter-banner,.report-trend-table th,
+.report-trend-table td,.reference-empty-chart {
+  background:var(--dark-raised)!important;color:var(--dark-ink)!important;
+  border-color:var(--dark-border)!important;
+}
+.accountant-review-ledger>div>button:hover{background:var(--dark-soft)!important}
+.accountant-review-focus,.accountant-review-incoming,
+.accountant-filter-banner,.accountant-review-check,
+.budget-alert,.backup-alert,.direction-warning,.duplicate-warning {
+  background:var(--dark-soft)!important;color:var(--dark-ink)!important;
+  border-color:var(--dark-border)!important;
+}
+.accountant-review-incoming span,.accountant-review-incoming small,
+.accountant-review-focus p{color:var(--dark-muted)!important}
+.spending-donut-hole,.budget-ring-inner{background:var(--dark-surface)!important}
+.spending-donut-hole strong,.spending-legend-row strong{color:var(--dark-ink)!important}
+.ref-report-budget-track,.budget-linear-track,.track{background:var(--dark-soft)!important}
+.ref-report-budget-line,.ref-budget-footnote{color:var(--dark-muted)!important}
+/* Slip uploader and OCR: never recolor evidence images or hide Pending/Duplicate */
+.slip-panel,.slip-attention-card,.slip-result,.slip-result-row,
+.slip-batch-results,.slip-batch-summary,.slip-batch-total,
+.slip-evidence,.slip-attention-fields,.slip-more-options{
+  background:var(--dark-surface)!important;color:var(--dark-ink)!important;
+  border-color:var(--dark-border)!important;
+}
+.ref-ocr-modal .slip-upload-box,.slip-workspace .slip-upload-box {
+  background:linear-gradient(135deg,#193c2d,#12281e)!important;
+  border:1px dashed #34775a!important;color:var(--dark-ink)!important;
+}
+.ref-ocr-modal .slip-upload-box>strong,.slip-upload-box>strong,
+.ref-ocr-modal .slip-upload-icon,.slip-head>div,.slip-attention-title,
+.slip-result>strong,.slip-result dd,.slip-result-amount {
+  color:var(--dark-ink)!important;
+}
+.ref-ocr-modal .slip-upload-box .slip-upload-icon,
+.slip-upload-box .slip-upload-icon{background:var(--dark-soft)!important;color:var(--dark-accent)!important}
+.ref-ocr-modal .slip-upload-box .btn-secondary,
+.slip-upload-box .slip-actions .btn-secondary{background:var(--dark-soft)!important;color:var(--dark-ink)!important;border-color:var(--dark-border)!important}
+.ref-ocr-modal .slip-upload-box .btn-primary{background:#087d50!important;color:white!important}
+.slip-hint,.slip-privacy,.slip-batch-note,.slip-result-reason,
+.slip-result dt,.slip-batch-file{color:var(--dark-muted)!important}
+.slip-preview,.slip-workspace .slip-preview{background:#142720!important;border-color:var(--dark-border)!important}
+.slip-preview img,.slip-evidence img{background:#fff} /* Original bank images must not be filtered. */
+.slip-awaiting-review,.slip-warning,.slip-wallet-guidance,.slip-queued-note{
+  background:#332e21!important;color:#ffe5b0!important;border-color:#655233!important;
+}
+.duplicate-warning{color:#bdeed7!important}
+.error-message{color:#ffb1bf!important}
+.slip-progress-track{background:var(--dark-soft)!important}
+/* Advanced settings, import/export, confirmation and safe empty states */
+.reference-settings-index a,.reference-settings-index button,
+.settings-connections,.settings-connections-content,
+.settings-card details,.reading-preference-card,.restore-notice,
+.reset-data-dialog,.data-reset-options,.data-clear-option,
+.email-ledger-result,.iphone-inbox-banner,.empty,.backup-alert{
+  background:var(--dark-surface)!important;color:var(--dark-ink)!important;
+  border-color:var(--dark-border)!important;
+}
+.settings-connections>summary,.settings-connections-content p,
+.settings-card label,.settings-card .hint,.reading-preference-help,
+.reference-settings-index p,.empty p{color:var(--dark-muted)!important}
+.data-clear-option,.restore-notice{background:#342723!important;border-color:#68483c!important}
+.restore-counts dd,.data-reset-options strong{color:var(--dark-ink)!important}
+.restore-confirm input,.data-reset-options input{accent-color:#2bc88b}
+.report-trend-table th,.report-trend-table td{border-color:var(--dark-border)!important}
+@media(prefers-reduced-motion:reduce){
+  *{scroll-behavior:auto!important;transition-duration:0.01ms!important}
+}
