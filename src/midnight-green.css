@@ -403,3 +403,58 @@ select:focus-visible,textarea:focus-visible{outline-color:var(--dark-accent)!imp
   border-color:var(--dark-border)!important;
 }
 .modal .eyebrow,.modal .hint,.modal .field-label{color:var(--dark-muted)!important}
+
+
+/* Third-pass selector-specific contrast adjustments, grounded in axe/Chromium screenshots. */
+.transaction-page .list-count,
+.transaction-page .list-count span,
+.transaction-page .transaction-copy>span,
+.transaction-page .transaction-copy span {
+  color:var(--dark-muted)!important;
+}
+.transaction-page .transaction-day-heading b,
+.transaction-page .transaction-month-summary b {color:var(--dark-ink)!important}
+.accounting-secretary .accounting-secretary-disclaimer,
+.accountant-review .accountant-review-kicker,
+.accountant-review .accountant-review-subheading>span,
+.accountant-review .accountant-review-empty,
+.accountant-review li,
+.accountant-review small,
+.accountant-review p {
+  color:var(--dark-muted)!important;
+}
+.pending-inbox p,.pending-slip-card div>p,
+.pending-slip-card .pending-slip-main+div p {
+  color:var(--dark-muted)!important;
+}
+.ref-ocr-modal .slip-flow span,
+.ref-ocr-modal .slip-flow span:not(.current) {
+  color:var(--dark-muted)!important;
+}
+.ref-ocr-modal .slip-flow .current,
+.ref-ocr-modal .slip-flow span.current {
+  color:var(--dark-accent)!important;
+}
+.ref-ocr-modal .slip-panel-primary .slip-head>div,
+.ref-ocr-modal .slip-panel-primary .slip-head>div>strong,
+.ref-ocr-modal .slip-panel-primary .slip-hint,
+.ref-ocr-modal .slip-panel-primary .slip-more-options>summary {
+  color:var(--dark-ink)!important;
+}
+.ref-ocr-modal .slip-panel-primary .slip-hint{
+  color:var(--dark-muted)!important;
+}
+.ref-ocr-modal .slip-panel-primary .slip-more-options,
+.ref-ocr-modal .slip-panel-primary .slip-more-options>summary{
+  background:var(--dark-surface)!important;
+}
+.ref-ocr-modal .slip-panel-primary .slip-upload-box>p,
+.ref-ocr-modal .slip-panel-primary .slip-upload-box>span,
+.ref-ocr-modal .slip-panel-primary .slip-upload-box small {
+  color:var(--dark-muted)!important;
+}
+.modal .expense-quick-picker .expense-quick-heading,
+.modal .expense-quick-picker .expense-quick-heading>small{
+  color:var(--dark-ink)!important;
+}
+.modal .expense-quick-picker .expense-quick-heading>small{color:var(--dark-muted)!important}
