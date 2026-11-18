@@ -218,7 +218,8 @@ try {
     await page.getByRole('button',{name:'บันทึกรายการ',exact:true}).click();
     await page.waitForTimeout(500);
     const state=await page.evaluate(()=>({modalOpen:!!document.querySelector('.modal'),formError:document.querySelector('.modal .error-message')?.textContent?.trim()||null,toast:document.querySelector('.toast')?.textContent?.trim()||null}));
-    if(state.modalOpen) await page.locator('.modal .modal-heading button').first().evaluate(el=>el.click());
+    // Saving can complete between the modal snapshot and this cleanup; do not wait for a removed button.
+    if(state.modalOpen) await page.evaluate(()=>document.querySelector('.modal .modal-heading button')?.click());
     await page.evaluate(()=>{
       const nav=innerWidth<=660?document.querySelector('.mobile-bottom-nav'):document.querySelector('.sidebar');
       const target=Array.from(nav?.querySelectorAll('button')||[]).find(x=>['รายการ','รายการทั้งหมด'].includes(x.textContent?.trim()||''));
