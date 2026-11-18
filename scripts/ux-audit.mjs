@@ -47,7 +47,7 @@ async function scan(page,view,viewport){
   let axe={violations:[]};
   try{
     const a=await new AxeBuilder({page}).withTags(['wcag2a','wcag2aa','wcag21a','wcag21aa']).analyze();
-    axe={violations:a.violations.map(v=>({id:v.id,impact:v.impact,description:v.description,nodeCount:v.nodes.length,examples:v.nodes.slice(0,2).map(x=>x.target.join(' '))}))};
+    axe={violations:a.violations.map(v=>({id:v.id,impact:v.impact,description:v.description,nodeCount:v.nodes.length,examples:v.nodes.slice(0,16).map(x=>x.target.join(' '))}))};
   }catch(e){axe={error:String(e)};}
   await page.screenshot({path:dir+'/'+viewport+'-'+view+'.png',fullPage:true});
   record(view,viewport,{...metrics,axe});
