@@ -309,3 +309,56 @@ select:focus-visible,textarea:focus-visible{outline-color:var(--dark-accent)!imp
 @media(prefers-reduced-motion:reduce){
   *{scroll-behavior:auto!important;transition-duration:0.01ms!important}
 }
+
+
+/* Contrast audit: legacy dark-ink-on-mint copy is illegible on deep surfaces.
+   Keep ordinary and selected states AA-readable without changing their semantics. */
+.mt-calendar-weekday,.mt-calendar-day .mt-calendar-day-number,
+.transaction-month-summary>summary,.transaction-page .transaction-month-summary>summary,
+.accountant-queue>summary,.accountant-report-disclosure>summary,
+.accountant-report-disclosure>summary strong,.accountant-queue>summary span,
+.accountant-report-disclosure>summary small,
+.settings-connections>summary,.app-technical-details>summary,
+.receipt-details>summary,.slip-raw>summary {
+  color:var(--dark-ink)!important;
+}
+.transaction-page .filter-tabs button:not(.selected),
+.filter-tabs button:not(.selected),
+.inbox-view-tabs button:not(.active),
+.reading-preference-options button:not(.active),
+.slip-mode-picker button:not(.active),
+.ref-report-tabs button:not(.active) {
+  color:var(--dark-ink)!important;
+}
+.reading-preference-preview,.reading-preference-preview.is-large,
+.reading-preference-options button.active .reading-preference-preview {
+  color:var(--dark-accent)!important;
+}
+.mt-home-advisory p,.accounting-secretary-heading p,
+.accounting-secretary-heading small,.accounting-secretary-metric dt,
+.accounting-secretary-answer p,.accounting-secretary-answer small,
+.accountant-review-heading p,.accountant-review-subheading p,
+.accountant-review-flags p,.accountant-inbox-intro p,
+.settings-quick-intro p,.settings-card .reading-preference-help,
+.accountant-filter-banner span {
+  color:var(--dark-muted)!important;
+}
+.accountant-review-ledger button .accountant-review-group-label,
+.accountant-review-ledger button .accountant-review-group-label b,
+.accountant-review-ledger button>strong,.accountant-home-entry strong,
+.accountant-home-entry button,.accountant-queue>summary,
+.accountant-report-disclosure>summary {
+  color:var(--dark-ink)!important;
+}
+.accountant-home-entry button,.accountant-filter-banner button,
+.accounting-secretary-questions button,.accounting-secretary-actions button,
+.accounting-secretary-metric,.report-trend-breakdown>summary,
+.ref-report-tabs button:not(.active),.slip-mode-picker button {
+  background:var(--dark-raised)!important;color:var(--dark-ink)!important;
+  border-color:var(--dark-border)!important;
+}
+.slip-mode-picker button.active{background:#0b754d!important;color:#fff!important}
+.accountant-review-number{background:var(--dark-soft)!important;color:var(--dark-accent)!important}
+.accountant-review-number.group-1{background:#3f2730!important;color:#ffadba!important}
+.accountant-review-number.group-2{background:#20344d!important;color:#a5caff!important}
+.accountant-review-number.group-3{background:#3b3222!important;color:#ffdda0!important}
