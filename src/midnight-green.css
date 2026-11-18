@@ -362,3 +362,44 @@ select:focus-visible,textarea:focus-visible{outline-color:var(--dark-accent)!imp
 .accountant-review-number.group-1{background:#3f2730!important;color:#ffadba!important}
 .accountant-review-number.group-2{background:#20344d!important;color:#a5caff!important}
 .accountant-review-number.group-3{background:#3b3222!important;color:#ffdda0!important}
+
+
+/* Second-pass WCAG findings from real Chromium audit across 320–1280px. */
+.mt-calendar-legend,.mt-calendar-legend>span,.mt-calendar-legend small,
+.list-count,.list-count span,.app-meta span,
+.accounting-secretary-briefing span,.accounting-secretary-briefing p,
+.accounting-secretary-briefing small {
+  color:var(--dark-muted)!important;
+}
+.mobile-bottom-nav button.active span,
+.mobile-bottom-nav button[aria-current="page"] span,
+.mobile-bottom-nav button.active svg,
+.mobile-bottom-nav button[aria-current="page"] svg {color:var(--dark-accent)!important}
+.transaction-page .transaction-day-heading>span.negative,
+.transaction-page .transaction-day-heading .negative {color:var(--dark-negative)!important}
+.transaction-page .transaction-day-heading>span.positive,
+.transaction-page .transaction-day-heading .positive {color:var(--dark-accent)!important}
+.pending-inbox,.pending-slip-card,.pending-slip-form,
+.pending-slip-queued,.pending-slip-review{
+  background:var(--dark-surface)!important;color:var(--dark-ink)!important;
+  border-color:var(--dark-border)!important;
+}
+.pending-slip-main strong,.pending-slip-amount,.pending-slip-inbox-title,
+.pending-slip-form strong,.pending-slip-form label{color:var(--dark-ink)!important}
+.pending-slip-main span:not(.pending-slip-amount),.pending-slip-detail,
+.pending-privacy,.pending-inbox-empty p,.pending-slip-form small,
+.pending-slip-card p,.pending-slip-card .pending-slip-note{
+  color:var(--dark-muted)!important;
+}
+.pending-slip-chip{background:#403425!important;color:#ffe3a7!important}
+.pending-slip-chip.wallet{background:#20394a!important;color:#b8ddff!important}
+.pending-slip-toggle,.pending-slip-notice,.pending-slip-secondary .btn-secondary{
+  background:var(--dark-soft)!important;color:var(--dark-ink)!important;
+  border-color:var(--dark-border)!important;
+}
+.pending-slip-form .slip-attention-fields input,
+.pending-slip-form .slip-attention-fields select{
+  background:var(--dark-raised)!important;color:var(--dark-ink)!important;
+  border-color:var(--dark-border)!important;
+}
+.modal .eyebrow,.modal .hint,.modal .field-label{color:var(--dark-muted)!important}
