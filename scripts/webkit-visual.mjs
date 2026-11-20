@@ -187,11 +187,19 @@ try{
       const glyph=document.querySelector('.ref-ocr-modal .slip-upload-icon');
       return {title:title?getComputedStyle(title).color:null,glyph:glyph?getComputedStyle(glyph).color:null};
     });
+    const isDarkTheme=await page.evaluate(()=>getComputedStyle(document.documentElement).colorScheme==='dark');
     const readableScanner=['title','glyph'].every(k=>{
       const value=scannerColors[k];
       if(!value)return false;
       const rgb=value.match(/\d+/g)?.slice(0,3).map(Number)||[];
-      return rgb.length===3&&rgb[0]<110&&rgb[1]<140&&rgb[2]<110;
+      if(rgb.length!==3)return false;
+      const luminance=rgb.map(n=>{
+        const x=n/255;
+        return x<=0.04045?x/12.92:((x+0.055)/1.055)**2.4;
+      }).reduce((sum,n,i)=>sum+n*[0.2126,0.7152,0.0722][i],0);
+      // The OCR upload card follows the app theme: light foreground on dark,
+      // dark foreground on light. Keep both title and icon clearly visible.
+      return isDarkTheme?luminance>0.45:luminance<0.16;
     });
     const slipArtLoaded=await page.locator('.reference-slip-art').evaluate(img=>img.complete&&img.naturalWidth>0);
     await page.screenshot({path:`${directory}/${label}-slip-upload.png`,fullPage:true});

@@ -47,7 +47,7 @@ async function scan(page,view,viewport){
   let axe={violations:[]};
   try{
     const a=await new AxeBuilder({page}).withTags(['wcag2a','wcag2aa','wcag21a','wcag21aa']).analyze();
-    axe={violations:a.violations.map(v=>({id:v.id,impact:v.impact,description:v.description,nodeCount:v.nodes.length,examples:v.nodes.slice(0,2).map(x=>x.target.join(' '))}))};
+    axe={violations:a.violations.map(v=>({id:v.id,impact:v.impact,description:v.description,nodeCount:v.nodes.length,examples:v.nodes.slice(0,16).map(x=>x.target.join(' '))}))};
   }catch(e){axe={error:String(e)};}
   await page.screenshot({path:dir+'/'+viewport+'-'+view+'.png',fullPage:true});
   record(view,viewport,{...metrics,axe});
@@ -62,6 +62,8 @@ try {
     const errors=[];
     page.on('pageerror',e=>errors.push(e.message));
     await page.goto(base,{waitUntil:'networkidle'});
+    // Wait for IndexedDB-backed Home to finish loading before measuring its controls.
+    await page.locator('.mt-finance-calendar').waitFor({state:'visible',timeout:10000});
     await scan(page,'home',name);
     const homeComposition=await page.evaluate(()=>{
       const calendar=document.querySelector('.mt-finance-calendar')?.getBoundingClientRect();
@@ -218,7 +220,8 @@ try {
     await page.getByRole('button',{name:'บันทึกรายการ',exact:true}).click();
     await page.waitForTimeout(500);
     const state=await page.evaluate(()=>({modalOpen:!!document.querySelector('.modal'),formError:document.querySelector('.modal .error-message')?.textContent?.trim()||null,toast:document.querySelector('.toast')?.textContent?.trim()||null}));
-    if(state.modalOpen) await page.locator('.modal .modal-heading button').first().evaluate(el=>el.click());
+    // Saving can complete between the modal snapshot and this cleanup; do not wait for a removed button.
+    if(state.modalOpen) await page.evaluate(()=>document.querySelector('.modal .modal-heading button')?.click());
     await page.evaluate(()=>{
       const nav=innerWidth<=660?document.querySelector('.mobile-bottom-nav'):document.querySelector('.sidebar');
       const target=Array.from(nav?.querySelectorAll('button')||[]).find(x=>['รายการ','รายการทั้งหมด'].includes(x.textContent?.trim()||''));
