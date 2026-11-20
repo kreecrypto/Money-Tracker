@@ -62,6 +62,8 @@ try {
     const errors=[];
     page.on('pageerror',e=>errors.push(e.message));
     await page.goto(base,{waitUntil:'networkidle'});
+    // Wait for IndexedDB-backed Home to finish loading before measuring its controls.
+    await page.locator('.mt-finance-calendar').waitFor({state:'visible',timeout:10000});
     await scan(page,'home',name);
     const homeComposition=await page.evaluate(()=>{
       const calendar=document.querySelector('.mt-finance-calendar')?.getBoundingClientRect();
