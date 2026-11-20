@@ -2,8 +2,9 @@ import {useMemo,useRef,useState} from 'react';
 import {FileSpreadsheet,Upload} from 'lucide-react';
 import {baht,type Transaction} from './lib/finance';
 import {accountantAudit} from './lib/accountantAudit';
-import {parseEmailLedgerCsv,partitionEmailLedger,emailLedgerCategory,type EmailLedgerParsed} from './lib/emailLedger';
+import {parseEmailLedgerCsv,partitionEmailLedger,type EmailLedgerParsed} from './lib/emailLedger';
 import {appendEmailTransactions,loadTransactions} from './lib/storage';
+import {groupEmailLedgerByCategory} from './lib/spendingInsights';
 import './email-ledger.css';
 
 type Props={existing:Transaction[];onImported:()=>Promise<void>};
@@ -17,6 +18,7 @@ export default function EmailLedgerImport({existing,onImported}:Props){
   const partition=useMemo(()=>partitionEmailLedger(parsed?.confirmed||[],existing),[parsed,existing]);
   const total=partition.ready.reduce((sum,t)=>sum+t.amountSatang,0);
   const breakdown=accountantAudit(partition.ready);
+  const categories=groupEmailLedgerByCategory(partition.ready);
   const pick=async(file?:File)=>{
     setParsed(null);setError('');setOutcome('');setFilename('');
     if(!file)return;
@@ -59,9 +61,19 @@ export default function EmailLedgerImport({existing,onImported}:Props){
         <div><dt>เงินออกยังไม่ทราบวัตถุประสงค์</dt><dd>฿{baht(breakdown.needsClassification.amountSatang)}</dd></div>
       </dl>
       <p className="email-ledger-warning">ยอดรวมคือเงินออกจากบัญชีตามหลักฐาน ไม่ใช่ค่าใช้จ่ายสุทธิทั้งหมด: เงินเติมล่วงหน้าและชำระหนี้แสดงแยกเพื่อป้องกันการตีความผิด รายการไม่ยืนยันหรือหลักฐานประกอบยังไม่บันทึก หากพบยอด/เวลาอาจซ้ำกับรายการเดิม ระบบจะข้ามเพื่อป้องกันการนับซ้ำ</p>
-      {partition.ready.length>0&&<div className="email-ledger-scroll">
-        <ul className="email-ledger-items">{partition.ready.map(t=><li key={t.id}><div><strong>{t.recipient}</strong><span>{t.date} · {t.time} · {emailLedgerCategory(t)}</span></div><b>฿{baht(t.amountSatang)}</b></li>)}</ul>
-      </div>}
+      {categories.length>0&&<section className="email-ledger-categories" aria-label="แยกหมวดหมู่รายการใหม่">
+        <h4>แยกหมวดหมู่ก่อนนำเข้า</h4>
+        <p>เฉพาะรายการใหม่ที่พร้อมบันทึก แตะหมวดเพื่อดูรายการและตรวจยอดก่อนยืนยัน</p>
+        {categories.map(group=><details key={group.name} className="email-ledger-category">
+          <summary>
+            <span className="email-ledger-category-name"><strong>{group.name}</strong><small>{group.items.length} รายการ</small></span>
+            <strong className="email-ledger-category-total">฿{baht(group.totalSatang)}</strong>
+          </summary>
+          <div className="email-ledger-scroll"><ul className="email-ledger-items">{group.items.map(t=><li key={t.id}>
+            <div><strong>{t.recipient}</strong><span>{t.date} · {t.time}</span></div><b>฿{baht(t.amountSatang)}</b>
+          </li>)}</ul></div>
+        </details>)}
+      </section>}
       {parsed.excluded.length>0&&<details className="email-ledger-excluded"><summary>ดูรายการที่ไม่รวมยอด ({parsed.excluded.length})</summary>
         <ul>{parsed.excluded.map((x,i)=><li key={i}><strong>{x.name||x.date}</strong> · {x.status} <span>{x.reason}</span></li>)}</ul>
       </details>}
