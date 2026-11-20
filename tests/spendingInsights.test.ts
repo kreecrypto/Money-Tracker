@@ -1,5 +1,5 @@
 import {describe,expect,it} from 'vitest';
-import {dailyTotals,groupTransactionsByDay,dateSectionLabel} from '../src/lib/spendingInsights';
+import {dailyTotals,groupTransactionsByDay,dateSectionLabel,groupEmailLedgerByCategory} from '../src/lib/spendingInsights';
 import type {Transaction} from '../src/lib/finance';
 
 const transaction=(id:string,date:string,type:'income'|'expense',amountSatang:number,time?:string):Transaction=>({
@@ -32,5 +32,25 @@ describe('scan-first finance summary and grouped transactions',()=>{
     expect(dateSectionLabel('2026-10-14','2026-10-14','2026-10-13',formatter)).toBe('วันนี้');
     expect(dateSectionLabel('2026-10-13','2026-10-14','2026-10-13',formatter)).toBe('เมื่อวาน');
     expect(dateSectionLabel('2026-10-12','2026-10-14','2026-10-13',formatter)).toBe('วันที่ 2026-10-12');
+  });
+});
+
+describe('K PLUS email category preview',()=>{
+  it('shows true email subcategories and exact satang totals without changing transactions',()=>{
+    const food={...transaction('email-food','2026-11-20','expense',15900,'11:49'),note:'หมวดย่อย: อาหาร/เครื่องดื่ม\nเลขอ้างอิง: TEST'};
+    const coffee={...transaction('email-coffee','2026-11-19','expense',4000,'07:00'),note:'หมวดย่อย: อาหาร/เครื่องดื่ม\nเลขอ้างอิง: TEST2'};
+    const wallet={...transaction('email-wallet','2026-11-18','expense',10000,'07:26'),category:'อื่น ๆ',note:'หมวดย่อย: เติมเงิน/Wallet\nเลขอ้างอิง: TEST3'};
+    const input=[food,coffee,wallet];
+    const before=JSON.stringify(input);
+    const groups=groupEmailLedgerByCategory(input);
+    expect(groups.map(group=>({
+      name:group.name,totalSatang:group.totalSatang,ids:group.items.map(t=>t.id)
+    }))).toEqual([
+      {name:'อาหาร/เครื่องดื่ม',totalSatang:19900,ids:['email-food','email-coffee']},
+      {name:'เติมเงิน/Wallet',totalSatang:10000,ids:['email-wallet']}
+    ]);
+    expect(groups.reduce((sum,group)=>sum+group.totalSatang,0)).toBe(29900);
+    expect(JSON.stringify(input)).toBe(before);
+    expect(groupEmailLedgerByCategory([])).toEqual([]);
   });
 });
