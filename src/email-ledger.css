@@ -23,3 +23,14 @@
 .email-ledger-document-note{white-space:pre-wrap;overflow-wrap:anywhere}
 .email-ledger-evidence-link{display:inline-block;padding:7px 0;overflow-wrap:anywhere}
 @media(max-width:360px){.email-ledger-summary{grid-template-columns:1fr}.email-ledger-actions .btn{flex:1}}
+
+.email-ledger-categories{display:grid;gap:8px;min-width:0}
+.email-ledger-categories h4,.email-ledger-categories p{margin:0}
+.email-ledger-categories p{font-size:.83rem;line-height:1.5;color:var(--text-muted,#64756a)}
+.email-ledger-category{min-width:0;border-top:1px solid var(--border,#e1e8e3)}
+.email-ledger-category>summary{display:flex;align-items:center;justify-content:space-between;gap:12px;min-height:48px;padding:9px 0;cursor:pointer}
+.email-ledger-category>summary:focus-visible{outline:2px solid var(--primary,#08783f);outline-offset:2px}
+.email-ledger-category-name{display:grid;gap:2px;min-width:0}
+.email-ledger-category-name strong{overflow-wrap:anywhere}
+.email-ledger-category-name small{font-size:.77rem;color:var(--text-muted,#64756a)}
+.email-ledger-category-total{white-space:nowrap;font-variant-numeric:tabular-nums}
