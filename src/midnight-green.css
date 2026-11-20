@@ -468,3 +468,70 @@ select:focus-visible,textarea:focus-visible{outline-color:var(--dark-accent)!imp
 .local-reset-modal .restore-counts>div{
   border-color:var(--dark-border)!important;
 }
+
+
+/* CSV import and category review: keep financial verification readable in Dark. */
+.settings-card .email-ledger-preview,
+.settings-card .email-ledger-category,
+.category-review .category-review-rows {
+  background:var(--dark-raised)!important;
+  border-color:var(--dark-border)!important;
+}
+.settings-card .email-ledger-preview-title,
+.settings-card .email-ledger-summary dd,
+.settings-card .email-ledger-items strong,
+.settings-card .email-ledger-items b,
+.settings-card .email-ledger-category-name strong,
+.settings-card .email-ledger-category-total,
+.category-review .category-review-detail strong,
+.category-review .category-review-amount {
+  color:var(--dark-ink)!important;
+}
+.settings-card .email-ledger-filename,
+.settings-card .email-ledger-summary dt,
+.settings-card .email-ledger-warning,
+.settings-card .email-ledger-categories>p,
+.settings-card .email-ledger-items span,
+.settings-card .email-ledger-category-name small,
+.settings-card .email-ledger-excluded li span,
+.category-review .category-review-heading p,
+.category-review .category-review-caution,
+.category-review .category-review-detail small {
+  color:var(--dark-muted)!important;
+}
+.settings-card .email-ledger-items li,
+.settings-card .email-ledger-excluded li,
+.category-review .category-review-row+.category-review-row {
+  border-color:var(--dark-border)!important;
+}
+.settings-card .email-ledger-category>summary,
+.settings-card .email-ledger-excluded>summary {
+  color:var(--dark-ink)!important;
+}
+.settings-card .email-ledger-category>summary:hover,
+.settings-card .email-ledger-excluded>summary:hover,
+.category-review .category-review-row:hover,
+.category-review .category-review-row:focus-within {
+  background:var(--dark-soft)!important;
+}
+.category-review .category-review-tools button {
+  min-height:44px;
+  background:var(--dark-raised)!important;
+  border-color:var(--dark-border)!important;
+  color:var(--dark-ink)!important;
+}
+.category-review .category-review-detail b,
+.category-review .category-review-heading>svg,
+.settings-card .email-ledger-evidence-link {
+  color:var(--dark-accent)!important;
+}
+.category-review .category-review-row input {accent-color:#2bc88b}
+.settings-card .email-ledger-result {color:#95e8b7!important}
+.settings-card .email-ledger-error,
+.category-review .category-review-error {color:#ffadba!important}
+.settings-card .email-ledger-category>summary:focus-visible,
+.settings-card .email-ledger-excluded>summary:focus-visible,
+.category-review .category-review-tools button:focus-visible {
+  outline:2px solid var(--dark-accent)!important;
+  outline-offset:2px;
+}
