@@ -212,7 +212,7 @@ function EntryModal({initial,existing,startWithScanner,close,submit,submitImport
     // Keep the result screen visible until the user explicitly finishes,
     // so the user can inspect corrections or undo this batch.
   };
-  return <div className="modal-backdrop" onMouseDown={e=>{if(e.target===e.currentTarget&&!pending&&!batchBusy)safeClose();}}><section ref={dialogRef} tabIndex={-1} className={`modal ${scannerOpen?'ref-ocr-modal':''}`} role="dialog" aria-modal="true" aria-labelledby="modal-title"><div className="modal-heading"><div><span className="eyebrow">เพิ่มรายการ</span><h2 id="modal-title">{initial?'แก้ไขรายการ':scannerOpen?'อัปโหลดสลิป':'กรอกรายการเอง'}</h2></div><button className="icon-btn" title={scannerOpen?'ย้อนกลับ':'ปิด'} aria-label={scannerOpen?'ย้อนกลับ':'ปิด'} disabled={pending||batchBusy} onClick={safeClose}>{scannerOpen?<ChevronLeft size={23}/>:<X size={21}/>}</button></div>
+  return <div className="modal-backdrop" onMouseDown={e=>{if(e.target===e.currentTarget&&!pending&&!batchBusy)safeClose();}}><section ref={dialogRef} tabIndex={-1} className={`modal ${scannerOpen?'ref-ocr-modal':''}`} role="dialog" aria-modal="true" aria-labelledby="modal-title"><div className="modal-heading"><div><span className="eyebrow">เพิ่มรายการ</span><h2 id="modal-title">{initial?'แก้ไขรายการ':scannerOpen?'อัปโหลดสลิป':'กรอกรายการเอง'}</h2></div><button type="button" className="icon-btn" title={scannerOpen?'กลับไปกรอกเอง':'ปิด'} aria-label={scannerOpen?'กลับไปกรอกเอง':'ปิด'} disabled={pending||batchBusy} onClick={()=>{if(scannerOpen&&!initial){if(!confirmLeave())return;pendingReviewRef.current=0;setScannerOpen(false);setError('');}else safeClose();}}>{scannerOpen?<ChevronLeft size={23}/>:<X size={21}/>}</button></div>
   <form onSubmit={save}>
   {!initial&&<div className="slip-entry slip-entry-first">
     {scannerOpen&&<div className="slip-flow" aria-label="ขั้นตอนบันทึกสลิป"><span className="current">1 เลือกรูป</span><span>2 อ่านข้อมูลจากสลิป</span><span>3 บันทึกหรือรอตรวจ</span></div>}
@@ -365,6 +365,7 @@ function LiveApp(){
   const openReview=()=>{setInboxTab(true);setSlipInboxTab(false);setView('transactions');};
   const openPendingSlips=()=>{setInboxTab(false);setSlipInboxTab(true);setView('transactions');};
   const openAdd=()=>{setScanOnOpen(true);setEditing(null);setModalOpen(true)};
+  const openManual=()=>{setScanOnOpen(false);setEditing(null);setModalOpen(true)};
   const onSave=async(t:Transaction)=>{
     // Never silently keep a repaired iPhone payee only in IndexedDB:
     // update the same confirmed cloud entry when the review connection is available.
@@ -518,6 +519,10 @@ function LiveApp(){
           {items.length>=5&&Date.now()-lastBackupAt>30*24*60*60*1000&&<div className="mt-home-advisory"><div><strong>สำรองข้อมูลการเงิน</strong><p>ข้อมูลในเครื่องอาจสูญหายหากล้างข้อมูลของ Safari</p></div><button type="button" onClick={exportJson}>สำรองข้อมูล</button></div>}
           {iphoneConfigured()&&iphoneConnected()&&iphoneSyncError&&<div className="mt-home-advisory"><div><strong>ซิงก์จาก iPhone ไม่สำเร็จ</strong><p>รายการเดิมในเครื่องยังใช้งานได้</p></div><button type="button" onClick={()=>setView('settings')}>ดูการเชื่อมต่อ</button></div>}
         </div>
+        <ReportPanels items={items} month={month} settings={settings} onSettings={()=>setView('settings')} onExport={exportCsv}/>
+        <details className="mt-report-advanced">
+          <summary>การวิเคราะห์และตรวจสอบเพิ่มเติม <span>คำถามการเงิน · ตรวจหมวดหมู่ · ตรวจสอบรายการ</span></summary>
+          <div className="mt-report-advanced-content">
         <AccountingSecretary items={items} month={month} localPending={pendingSlips.length} iphonePending={iphonePending}
             onTransactions={question=>{
               setReviewBucket(null);
@@ -532,7 +537,8 @@ function LiveApp(){
           onTransactions={()=>{setReviewBucket(null);setSearch('');setFilter('all');setInboxTab(false);setSlipInboxTab(false);setView('transactions');}}
           onBucket={bucket=>{setReviewBucket(bucket);setSearch('');setFilter('expense');setInboxTab(false);setSlipInboxTab(false);setView('transactions');}}
           onLocalReview={openPendingSlips} onIphoneReview={openReview} onExport={exportCsv}/>
-        <ReportPanels items={items} month={month} settings={settings} onSettings={()=>setView('settings')} onExport={exportCsv}/></>}
+          </div>
+        </details></>}
       {view==='settings'&&<><ReferenceSettingsIndex ownerNames={settings.ownerNames||[]} budgetSatang={settings.monthlyBudgetSatang}/><div className="settings-grid"><ReadingPreferenceControl/>
     <section id="settings-owner" className="surface settings-card ocr-owner-card">
       <div className="settings-icon blue"><ScanLine size={23}/></div>
@@ -569,7 +575,10 @@ function LiveApp(){
     <EmailLedgerImport existing={items} onImported={reload}/>
   </section><section id="settings-privacy" className="surface settings-card privacy-settings"><div className="settings-icon blue"><ShieldCheck size={24}/></div><h3>ข้อมูลและความเป็นส่วนตัว</h3><p>รายการที่เพิ่มในแอปจะเก็บไว้บนอุปกรณ์นี้ ส่วนรายการที่เชื่อมต่อจาก iPhone จะซิงก์ตามการตั้งค่าของคุณ</p><div className="info-banner"><CloudOff size={18}/><span>รายการในเครื่องใช้ได้แม้ไม่มีอินเทอร์เน็ต</span></div></section><details id="settings-connections" className="settings-connections"><summary>การเชื่อมต่อเพิ่มเติม</summary><div className="settings-connections-content"><IPhoneShortcutSettings onImported={reload}/><LineSyncSettings onImported={reload}/></div></details><section id="settings-about" className="surface settings-card privacy-settings"><div className="settings-icon lavender"><Menu size={24}/></div><h3>เกี่ยวกับแอป</h3><div className="app-meta"><span>เวอร์ชัน</span><strong>{APP_DISPLAY_VERSION}</strong></div><details className="app-technical-details"><summary>ข้อมูลเวอร์ชันเพิ่มเติม</summary><div className="app-meta"><span>Build</span><strong>{APP_BUILD_SHA}</strong></div><div className="app-meta"><span>อัปเดตเมื่อ</span><strong>{new Intl.DateTimeFormat('th-TH',{dateStyle:'medium',timeStyle:'short',timeZone:'Asia/Bangkok'}).format(new Date(APP_BUILT_AT))}</strong></div></details></section></div></>}
     </main></div>
-    {(view==='home'||(view==='transactions'&&!inboxTab&&!slipInboxTab))&&!modalOpen&&<button aria-label="อัปโหลดสลิป" title="อัปโหลดสลิป" className="mobile-fab" onClick={openAdd}><ScanLine size={25}/></button>}<nav className="mobile-bottom-nav" inert={modalOpen} aria-label="เมนูมือถือ">{navItems.map(({key,label,icon:Icon})=><button key={key} className={view===key?'active':''} aria-current={view===key?'page':undefined} onClick={()=>{if(key==='transactions'){setReviewBucket(null);setInboxTab(false);setSlipInboxTab(false);}setView(key);}}><Icon size={21}/><span>{label}</span></button>)}</nav>
+    {(view==='home'||(view==='transactions'&&!inboxTab&&!slipInboxTab))&&!modalOpen&&<div className="mt-mobile-entry-actions" role="group" aria-label="เพิ่มรายการ">
+      <button type="button" className="mt-mobile-entry-manual" onClick={openManual}><Plus size={18}/> กรอกเอง</button>
+      <button type="button" className="mt-mobile-entry-scan" onClick={openAdd}><ScanLine size={18}/> สแกนสลิป</button>
+    </div>}<nav className="mobile-bottom-nav" inert={modalOpen} aria-label="เมนูมือถือ">{navItems.map(({key,label,icon:Icon})=><button key={key} className={view===key?'active':''} aria-current={view===key?'page':undefined} onClick={()=>{if(key==='transactions'){setReviewBucket(null);setInboxTab(false);setSlipInboxTab(false);}setView(key);}}><Icon size={21}/><span>{label}</span></button>)}</nav>
     {toast&&<div className="toast" role="status"><Check size={17}/>{toast}</div>}
     {modalOpen&&<EntryModal initial={editing} existing={items} startWithScanner={scanOnOpen} close={()=>setModalOpen(false)} submit={onSave} submitImported={onSaveImported} undoImported={undoImported} queuePending={queuePending} resolvePending={resolvePending} ownerNames={settings.ownerNames||[]} viewSaved={date=>{
       setModalOpen(false);setInboxTab(false);setSlipInboxTab(false);
@@ -698,7 +707,10 @@ function PreviewDemo(){
         {view==='settings'&&<PreviewSettings/>}
       </main>
     </div>
-    {view==='home'&&<button type="button" aria-label="อัปโหลดสลิป (ไม่พร้อมใช้ใน Demo)" className="mobile-fab" onClick={demoOnly}><ScanLine size={25}/></button>}
+    {(view==='home'||view==='transactions')&&<div className="mt-mobile-entry-actions" role="group" aria-label="เพิ่มรายการ (โหมดตัวอย่าง)">
+      <button type="button" className="mt-mobile-entry-manual" onClick={demoOnly}><Plus size={18}/> กรอกเอง</button>
+      <button type="button" className="mt-mobile-entry-scan" onClick={demoOnly}><ScanLine size={18}/> สแกนสลิป</button>
+    </div>}
     <nav className="mobile-bottom-nav" aria-label="เมนูมือถือ">{navItems.map(({key,label,icon:Icon})=><button key={key} type="button" className={view===key?'active':''} aria-current={view===key?'page':undefined} onClick={()=>setView(key)}><Icon size={21}/><span>{label}</span></button>)}</nav>
     {notice&&<div className="toast" role="status">{notice}</div>}
   </div>;

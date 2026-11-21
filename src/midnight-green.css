@@ -535,3 +535,19 @@ select:focus-visible,textarea:focus-visible{outline-color:var(--dark-accent)!imp
   outline:2px solid var(--dark-accent)!important;
   outline-offset:2px;
 }
+
+
+/* UX audit additions: use the released Midnight Green tokens (no competing theme). */
+.mt-home-month-overview,.mt-report-advanced{background:var(--dark-surface)!important;color:var(--dark-ink)!important;border-color:var(--dark-border)!important;box-shadow:none!important}
+.mt-home-month-overview-heading h2,.mt-home-month-metrics strong{color:var(--dark-ink)!important}
+.mt-home-month-overview-heading span,.mt-home-month-metrics span,.mt-home-month-overview>p{color:var(--dark-muted)!important}
+.mt-home-month-metrics>div,.mt-home-month-metrics>.mt-home-month-net{background:var(--dark-raised)!important}
+.mt-home-month-metrics .is-income{color:var(--dark-accent)!important}
+.mt-home-month-metrics .is-expense{color:var(--dark-negative)!important}
+.mt-calendar-day-indicators .is-income{background:var(--dark-accent)!important}
+.mt-calendar-day-indicators .is-expense{background:var(--dark-negative)!important}
+.mt-report-advanced>summary{color:var(--dark-ink)!important}
+.mt-report-advanced>summary span{color:var(--dark-muted)!important}
+.mt-report-advanced[open]>summary{border-color:var(--dark-border)!important}
+.mt-mobile-entry-manual{background:var(--dark-raised)!important;color:var(--dark-ink)!important;border-color:var(--dark-border)!important}
+.mt-mobile-entry-scan{background:#087d50!important;color:white!important;border-color:#179662!important}
