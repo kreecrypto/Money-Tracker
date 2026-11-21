@@ -1,7 +1,7 @@
 import {useEffect,useMemo,useRef,useState,type KeyboardEvent as ReactKeyboardEvent} from 'react';
 import {createPortal} from 'react-dom';
 import {
-  ArrowRight, Bell, Camera,
+  ArrowRight, ArrowDownLeft, ArrowUpRight, Bell, Camera, CalendarDays,
   ChevronDown, CircleUserRound,
   UtensilsCrossed, ShoppingBag, TrainFront, HandCoins, Ellipsis,
 } from 'lucide-react';
@@ -27,7 +27,7 @@ export function HomeTopbar({pendingCount,onNotifications,onSettings,onUpload}:{
   return <div className="mt-home-topbar">
     <div className="mt-home-brand-row">
       <span className="mt-home-brand-icon" aria-hidden="true"><img className="reference-brand-img" src={sproutBrand} alt=""/></span>
-      <strong className="mt-home-brand-name">เงินวันนี้</strong>
+      <span className="mt-home-brand-copy"><strong className="mt-home-brand-name">เงินวันนี้</strong><small className="mt-home-brand-tagline">ติดตามรายรับรายจ่ายของคุณ</small></span>
       <div className="mt-home-header-actions">
         <button type="button" className="mt-home-desktop-upload" onClick={onUpload}><Camera size={18}/> อัปโหลดสลิป</button>
         <button type="button" className="mt-home-header-button" aria-label={pendingCount>0?`การแจ้งเตือน: มีสลิปรอตรวจ ${pendingCount} รายการ`:'การแจ้งเตือน'} onClick={onNotifications}>
@@ -178,28 +178,31 @@ export default function HomeScreen({
   const closeDetail=()=>setDetail(null);
   return <div className="home-dashboard mt-home-screen" aria-label="หน้าแรก เงินวันนี้">
     <section className="mt-home-month-overview" aria-label={'ภาพรวมเดือน '+monthLabel}>
-      <div className="mt-home-month-overview-heading"><h2>ภาพรวม{monthLabel}</h2><span>จากรายการที่บันทึก</span></div>
+      <h2 className="mt-home-visually-hidden">ภาพรวม{monthLabel}</h2>
       <div className="mt-home-month-metrics">
-        <div><span>รายรับ</span><strong className="is-income">+฿{baht(monthSums.income)}</strong></div>
-        <div><span>รายจ่าย</span><strong className="is-expense">−฿{baht(monthSums.expense)}</strong></div>
-        <div className="mt-home-month-net"><span>ผลต่างรายรับ–รายจ่าย</span><strong>{monthSums.net<0?'−':''}฿{baht(Math.abs(monthSums.net))}</strong></div>
+        <div className="mt-home-month-income"><span className="mt-home-month-metric-icon" aria-hidden="true"><ArrowDownLeft size={18}/></span><span className="mt-home-month-metric-label">รับ</span><strong className="is-income">+฿{baht(monthSums.income)}</strong></div>
+        <div className="mt-home-month-expense"><span className="mt-home-month-metric-icon" aria-hidden="true"><ArrowUpRight size={18}/></span><span className="mt-home-month-metric-label">จ่าย</span><strong className="is-expense">−฿{baht(monthSums.expense)}</strong></div>
       </div>
-      <p>ผลต่างนี้คำนวณจากรายการที่บันทึก ไม่ใช่ยอดเงินคงเหลือในบัญชีธนาคาร</p>
     </section>
-    <FinanceCalendar month={month} transactions={recent} selectedDate={activeDate} onSelect={setSelectedDate} onToday={()=>{const today=todayLocal();onMonthChange(today.slice(0,7));setSelectedDate(today);}} monthControl={<MonthChooser month={month} label={monthLabel} onChange={onMonthChange}/>}/>
+    <FinanceCalendar month={month} transactions={recent} selectedDate={activeDate} onSelect={setSelectedDate} onMonthChange={onMonthChange} onToday={()=>{const today=todayLocal();onMonthChange(today.slice(0,7));setSelectedDate(today);}} monthControl={<MonthChooser month={month} label={monthLabel} onChange={onMonthChange}/>}/>
     <section id="mt-home-selected-day-detail" className="mt-home-day-detail" aria-label="รายการวันที่เลือก">
-      <div className="mt-home-day-detail-heading"><h2 aria-live="polite">{dayLabel} <span className="mt-home-day-count">({daily.length} รายการ)</span></h2><button type="button" onClick={onTransactions}>ดูรายการทั้งเดือน <ArrowRight size={15}/></button></div>
+      <div className="mt-home-day-detail-heading">
+        <span className="mt-home-day-heading-icon" aria-hidden="true"><CalendarDays size={23}/></span>
+        <div className="mt-home-day-heading-copy"><h2 aria-live="polite">{dayLabel}</h2><p>รายละเอียดของวัน · {daily.length} รายการ</p></div>
+        <button type="button" onClick={onTransactions}>ดูทั้งหมด <ArrowRight size={16}/></button>
+      </div>
       <div className="mt-home-day-summary">
-        <div><span>รายรับ</span><strong className="is-income">+฿{baht(daySums.income)}</strong></div>
-        <div><span>รายจ่าย</span><strong className="is-expense">−฿{baht(daySums.expense)}</strong></div>
+        <div className="mt-home-day-income"><span className="mt-home-day-summary-icon" aria-hidden="true"><ArrowDownLeft size={20}/></span><span>รายรับวันนี้</span><strong className="is-income">+฿{baht(daySums.income)}</strong></div>
+        <div className="mt-home-day-expense"><span className="mt-home-day-summary-icon" aria-hidden="true"><ArrowUpRight size={20}/></span><span>รายจ่ายวันนี้</span><strong className="is-expense">−฿{baht(daySums.expense)}</strong></div>
       </div>
       {daily.length?<div className="mt-home-transaction-list">
         {daily.map(tx=><button key={tx.id} type="button" className="mt-home-transaction" onClick={event=>{detailTriggerRef.current=event.currentTarget;setDetail(tx);}}>
           <RecentIcon transaction={tx}/>
-          <span className="mt-home-transaction-text"><strong>{transactionDisplayName(tx)}</strong><small>{shortDate(tx.date,tx.time)}</small></span>
+          <span className="mt-home-transaction-text"><strong>{transactionDisplayName(tx)}</strong><small>{tx.type==='income'?'รายรับ':emailLedgerCategory(tx)}{tx.time?' · '+tx.time+' น.':''}</small></span>
           <b className={tx.type==='income'?'is-income':'is-expense'}>{tx.type==='income'?'+':'−'} ฿ {baht(tx.amountSatang)}</b>
         </button>)}
-      </div>:<div className="mt-home-empty" role="status"><p>ไม่มีรายการที่บันทึกในวันที่เลือก</p></div>}
+      </div>:<div className="mt-home-empty" role="status"><p>ยังไม่มีรายการที่บันทึกในวันนี้</p><small>เลือกวันที่อื่นบนปฏิทินเพื่อดูรายละเอียด</small></div>}
+      <details className="mt-home-month-explanation"><summary>เกี่ยวกับยอดสรุปรายเดือน</summary><p>ผลต่างรายรับ–รายจ่ายของ{monthLabel}: {monthSums.net<0?'−':''}฿{baht(Math.abs(monthSums.net))} คำนวณจากรายการที่บันทึก ไม่ใช่ยอดเงินคงเหลือในบัญชีธนาคาร</p></details>
     </section>
     {detail&&<TransactionDetail value={detail} onClose={closeDetail}/>}
   </div>;
