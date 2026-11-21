@@ -201,7 +201,7 @@ export default function HomeScreen({
           <span className="mt-home-transaction-text"><strong>{transactionDisplayName(tx)}</strong><small>{tx.type==='income'?'รายรับ':emailLedgerCategory(tx)}{tx.time?' · '+tx.time+' น.':''}</small></span>
           <b className={tx.type==='income'?'is-income':'is-expense'}>{tx.type==='income'?'+':'−'} ฿ {baht(tx.amountSatang)}</b>
         </button>)}
-      </div>:<div className="mt-home-empty" role="status"><p>ยังไม่มีรายการที่บันทึกในวันนี้</p><small>เลือกวันที่อื่นบนปฏิทินเพื่อดูรายละเอียด</small></div>}
+      </div>:<div className="mt-home-empty" role="status"><p>ไม่มีรายการที่บันทึกในวันที่เลือก</p><small>เลือกวันที่อื่นบนปฏิทินเพื่อดูรายละเอียด</small></div>}
       <details className="mt-home-month-explanation"><summary>เกี่ยวกับยอดสรุปรายเดือน</summary><p>ผลต่างรายรับ–รายจ่ายของ{monthLabel}: {monthSums.net<0?'−':''}฿{baht(Math.abs(monthSums.net))} คำนวณจากรายการที่บันทึก ไม่ใช่ยอดเงินคงเหลือในบัญชีธนาคาร</p></details>
     </section>
     {detail&&<TransactionDetail value={detail} onClose={closeDetail}/>}
