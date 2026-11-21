@@ -183,7 +183,7 @@
   .mt-mobile-entry-manual{background:#fff;color:#12583a;border:1px solid #bfdfce}
   .mt-mobile-entry-scan{background:#08783f;color:#fff;border:1px solid #08783f}
   .mt-mobile-entry-actions button:focus-visible{outline:3px solid #5dda9c;outline-offset:2px}
-  .app-body:has(.mt-mobile-entry-actions){padding-bottom:calc(155px + env(safe-area-inset-bottom,0px))}
+  .app-shell:has(.mt-mobile-entry-actions) .app-body{padding-bottom:calc(155px + env(safe-area-inset-bottom,0px))}
 }
 /* Reports show the essentials first; advanced review is available on demand. */
 .mt-report-advanced{margin-top:16px;border:1px solid #dbe8df;border-radius:17px;background:#fff;overflow:hidden}
