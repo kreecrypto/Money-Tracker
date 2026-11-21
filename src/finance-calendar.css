@@ -68,3 +68,32 @@
   .mt-calendar-day-amounts span{max-width:100%}
   .mt-calendar-legend{margin-top:8px}
 }
+
+
+/* UX audit: compact month summary and legible 320–400px calendar cells. */
+.mt-home-month-overview{background:#fff;border:1px solid #e4eee8;border-radius:17px;padding:15px;color:#173a2a}
+.mt-home-month-overview-heading{display:flex;align-items:baseline;justify-content:space-between;gap:8px;margin-bottom:12px}
+.mt-home-month-overview-heading h2{margin:0;font-size:17px;line-height:1.45}
+.mt-home-month-overview-heading span{font-size:12px;color:#566e61}
+.mt-home-month-metrics{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+.mt-home-month-metrics>div{display:flex;flex-direction:column;gap:4px;min-width:0;background:#f3f9f5;padding:12px;border-radius:12px}
+.mt-home-month-metrics span{font-size:12px;color:#526a5b}
+.mt-home-month-metrics strong{font-size:clamp(15px,4vw,20px);line-height:1.3;font-variant-numeric:tabular-nums;overflow-wrap:anywhere}
+.mt-home-month-metrics .is-income{color:#087640}.mt-home-month-metrics .is-expense{color:#b42a43}
+.mt-home-month-metrics>.mt-home-month-net{grid-column:1/-1;background:#e6f5eb}
+.mt-home-month-overview>p{font-size:12px;line-height:1.6;margin:10px 0 0;color:#53665b}
+/* Keep both numeric values on small phones; minimum 10px, no alternate dot-only mode. */
+@media(max-width:400px){
+  .mt-calendar-day{min-height:70px;padding:5px 0 4px}
+  .mt-calendar-day.is-selected{padding:4px 0 3px}
+  .mt-calendar-day-number{font-size:13px}
+  .mt-calendar-day-amounts{display:flex;font-size:clamp(10px,2.9vw,11px);line-height:1.25;letter-spacing:-.6px;min-height:30px;gap:2px}
+  .mt-calendar-day-amounts span{max-width:100%;overflow:hidden;text-overflow:ellipsis}
+}
+
+/* At 320px, keep seven full-width columns while fitting two signed 999.99 amounts. */
+@media(max-width:359px){
+  .mt-finance-calendar{padding-inline:2px}
+  .mt-calendar-grid{gap:1px}
+  .mt-calendar-day-amounts{font-family:Arial,"Noto Sans Thai",sans-serif;font-size:10px;letter-spacing:-.95px}
+}

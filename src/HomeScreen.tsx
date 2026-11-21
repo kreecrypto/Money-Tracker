@@ -171,11 +171,21 @@ export default function HomeScreen({
   const activeDate=selectedDate.startsWith(month+'-')?selectedDate:month+'-01';
   const daily=useMemo(()=>recent.filter(item=>item.date===activeDate).sort((a,b)=>(b.time||'').localeCompare(a.time||'')||b.createdAt-a.createdAt),[recent,activeDate]);
   const daySums=useMemo(()=>summarize(daily),[daily]);
+  const monthSums=useMemo(()=>summarize(recent),[recent]);
   const dayLabel=new Intl.DateTimeFormat('th-TH',{day:'numeric',month:'long',year:'numeric'}).format(new Date(activeDate+'T12:00:00'));
 
   useEffect(()=>{if(!detail)detailTriggerRef.current?.focus();},[detail]);
   const closeDetail=()=>setDetail(null);
   return <div className="home-dashboard mt-home-screen" aria-label="หน้าแรก เงินวันนี้">
+    <section className="mt-home-month-overview" aria-label={'ภาพรวมเดือน '+monthLabel}>
+      <div className="mt-home-month-overview-heading"><h2>ภาพรวม{monthLabel}</h2><span>จากรายการที่บันทึก</span></div>
+      <div className="mt-home-month-metrics">
+        <div><span>รายรับ</span><strong className="is-income">+฿{baht(monthSums.income)}</strong></div>
+        <div><span>รายจ่าย</span><strong className="is-expense">−฿{baht(monthSums.expense)}</strong></div>
+        <div className="mt-home-month-net"><span>ผลต่างรายรับ–รายจ่าย</span><strong>{monthSums.net<0?'−':''}฿{baht(Math.abs(monthSums.net))}</strong></div>
+      </div>
+      <p>ผลต่างนี้คำนวณจากรายการที่บันทึก ไม่ใช่ยอดเงินคงเหลือในบัญชีธนาคาร</p>
+    </section>
     <FinanceCalendar month={month} transactions={recent} selectedDate={activeDate} onSelect={setSelectedDate} onToday={()=>{const today=todayLocal();onMonthChange(today.slice(0,7));setSelectedDate(today);}} monthControl={<MonthChooser month={month} label={monthLabel} onChange={onMonthChange}/>}/>
     <section id="mt-home-selected-day-detail" className="mt-home-day-detail" aria-label="รายการวันที่เลือก">
       <div className="mt-home-day-detail-heading"><h2 aria-live="polite">{dayLabel} <span className="mt-home-day-count">({daily.length} รายการ)</span></h2><button type="button" onClick={onTransactions}>ดูรายการทั้งเดือน <ArrowRight size={15}/></button></div>

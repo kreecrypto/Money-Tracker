@@ -204,6 +204,8 @@ try{
     const slipArtLoaded=await page.locator('.reference-slip-art').evaluate(img=>img.complete&&img.naturalWidth>0);
     await page.screenshot({path:`${directory}/${label}-slip-upload.png`,fullPage:true});
     await page.locator('.modal-heading button').click();
+    const scannerBackToManual=await page.locator('#amount').isVisible();
+    await page.locator('.modal-heading button').click();
     await page.locator('.mobile-bottom-nav button').nth(2).click();
     const reportOverview=await page.locator('.reference-report-summary .metric').count()===3
       &&await page.locator('.reference-overview-trends').isVisible()
@@ -256,7 +258,8 @@ try{
       })
     );
     await page.locator('.modal-heading button').click();
-    findings.push({label,home,calendarCanNavigate,calendarBoth,calendarFiguresVisible,calendarFiguresNumeric,calendarSelected,calendarDetail,calendarTodayMarked,longCalendarMoneyReadable,calendarDayKeyboard,calendarPreviousMonth,calendarMonthRestored,calendarTodayReturn,monthOptions,arrowNavigatesMonth,menuUnclipped,monthCloses,detailsOpen,detailsClose,transactions,list,ledgerMonthCorrect,ledgerSenderSearch,ledgerDetailOpen,ledgerDetailClosed,ledgerFocusRestored,ledgerMoneySingleLine,brandLoaded,scanner,slipArtLoaded,compactUploadButtons,scannerColors,readableScanner,reportOverview,trendsOnly,noReportsFab,settings,settingsDirectory,settingsAnchors,noSettingsFab,largeSetting,largeHome,largeCalendarMoneyReadable,savedReadingMode,largeScanner,errors});
+    await page.locator('.modal-heading button').click();
+    findings.push({label,home,scannerBackToManual,calendarCanNavigate,calendarBoth,calendarFiguresVisible,calendarFiguresNumeric,calendarSelected,calendarDetail,calendarTodayMarked,longCalendarMoneyReadable,calendarDayKeyboard,calendarPreviousMonth,calendarMonthRestored,calendarTodayReturn,monthOptions,arrowNavigatesMonth,menuUnclipped,monthCloses,detailsOpen,detailsClose,transactions,list,ledgerMonthCorrect,ledgerSenderSearch,ledgerDetailOpen,ledgerDetailClosed,ledgerFocusRestored,ledgerMoneySingleLine,brandLoaded,scanner,slipArtLoaded,compactUploadButtons,scannerColors,readableScanner,reportOverview,trendsOnly,noReportsFab,settings,settingsDirectory,settingsAnchors,noSettingsFab,largeSetting,largeHome,largeCalendarMoneyReadable,savedReadingMode,largeScanner,errors});
     await context.close();
   }
   // Exercise the *same* compile-time Preview flag as Vercel, using a disposable WebKit context.
@@ -319,7 +322,7 @@ try{
   console.log('WEBKIT_PREVIEW_DEMO_PASS',JSON.stringify(demoEvidence));
   fs.writeFileSync(`${directory}/webkit-report.json`,JSON.stringify(findings,null,2));
   console.log('WEBKIT_SAFARI_VISUAL_RESULTS',JSON.stringify(findings));
-  const failed=findings.filter(f=>f.label!=='preview-demo-safari390').filter(f=>f.home.overflow>1||!f.calendarCanNavigate||!f.ledgerMoneySingleLine||!f.home.order||!f.home.onlyCalendarAndLedger||f.home.calendarDays<28||f.home.actionCount!==0||!f.calendarBoth||!f.calendarFiguresVisible||!f.calendarFiguresNumeric||!f.calendarSelected||!f.calendarDetail||!f.calendarTodayMarked||!f.longCalendarMoneyReadable||!f.largeCalendarMoneyReadable||!f.calendarDayKeyboard||!f.calendarPreviousMonth||!f.calendarMonthRestored||!f.calendarTodayReturn||f.home.navCount!==4||
+  const failed=findings.filter(f=>f.label!=='preview-demo-safari390').filter(f=>f.home.overflow>1||!f.calendarCanNavigate||!f.ledgerMoneySingleLine||!f.home.order||!f.home.onlyCalendarAndLedger||!f.scannerBackToManual||f.home.calendarDays<28||f.home.actionCount!==0||!f.calendarBoth||!f.calendarFiguresVisible||!f.calendarFiguresNumeric||!f.calendarSelected||!f.calendarDetail||!f.calendarTodayMarked||!f.longCalendarMoneyReadable||!f.largeCalendarMoneyReadable||!f.calendarDayKeyboard||!f.calendarPreviousMonth||!f.calendarMonthRestored||!f.calendarTodayReturn||f.home.navCount!==4||
     f.home.pageGrid!==4||f.home.homeGrid!==4||
     !f.home.navVisible||f.home.icons.some(icon=>icon.width<20||icon.height<20)||f.monthOptions!==13||!f.arrowNavigatesMonth||!f.menuUnclipped||!f.monthCloses||!f.detailsOpen||!f.detailsClose||f.transactions!==2||!f.list||!f.ledgerMonthCorrect||!f.ledgerSenderSearch||!f.ledgerDetailOpen||!f.ledgerDetailClosed||!f.ledgerFocusRestored||!f.brandLoaded||!f.slipArtLoaded||!f.reportOverview||!f.settingsDirectory||!f.settingsAnchors||!f.scanner||!f.compactUploadButtons||!f.readableScanner||!f.trendsOnly||!f.noReportsFab||!f.settings||!f.noSettingsFab||!f.largeSetting.active||!f.largeSetting.selected||f.largeSetting.fontSize<16||f.largeHome.overflow>1||f.largeHome.textSize<16||!f.largeHome.navigation||!f.savedReadingMode||!f.largeScanner||f.errors.length);
   if(failed.length){console.error('WEBKIT_SAFARI_VISUAL_FAIL',JSON.stringify(failed));process.exitCode=1;}
