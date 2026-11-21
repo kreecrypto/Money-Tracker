@@ -87,6 +87,6 @@
   .mt-calendar-day{min-height:70px;padding:5px 0 4px}
   .mt-calendar-day.is-selected{padding:4px 0 3px}
   .mt-calendar-day-number{font-size:13px}
-  .mt-calendar-day-amounts{display:flex;font-size:clamp(10px,2.9vw,11px);line-height:1.25;letter-spacing:-.2px;min-height:30px;gap:2px}
+  .mt-calendar-day-amounts{display:flex;font-size:clamp(10px,2.9vw,11px);line-height:1.25;letter-spacing:-.6px;min-height:30px;gap:2px}
   .mt-calendar-day-amounts span{max-width:100%;overflow:hidden;text-overflow:ellipsis}
 }

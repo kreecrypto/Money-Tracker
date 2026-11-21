@@ -577,7 +577,7 @@ function LiveApp(){
     </main></div>
     {(view==='home'||(view==='transactions'&&!inboxTab&&!slipInboxTab))&&!modalOpen&&<div className="mt-mobile-entry-actions" role="group" aria-label="เพิ่มรายการ">
       <button type="button" className="mt-mobile-entry-manual" onClick={openManual}><Plus size={18}/> กรอกเอง</button>
-      <button type="button" className="mt-mobile-entry-scan" onClick={openAdd}><ScanLine size={18}/> สแกนสลิป</button>
+      <button type="button" className="mt-mobile-entry-scan mobile-fab" onClick={openAdd}><ScanLine size={18}/> สแกนสลิป</button>
     </div>}<nav className="mobile-bottom-nav" inert={modalOpen} aria-label="เมนูมือถือ">{navItems.map(({key,label,icon:Icon})=><button key={key} className={view===key?'active':''} aria-current={view===key?'page':undefined} onClick={()=>{if(key==='transactions'){setReviewBucket(null);setInboxTab(false);setSlipInboxTab(false);}setView(key);}}><Icon size={21}/><span>{label}</span></button>)}</nav>
     {toast&&<div className="toast" role="status"><Check size={17}/>{toast}</div>}
     {modalOpen&&<EntryModal initial={editing} existing={items} startWithScanner={scanOnOpen} close={()=>setModalOpen(false)} submit={onSave} submitImported={onSaveImported} undoImported={undoImported} queuePending={queuePending} resolvePending={resolvePending} ownerNames={settings.ownerNames||[]} viewSaved={date=>{
@@ -709,7 +709,7 @@ function PreviewDemo(){
     </div>
     {(view==='home'||view==='transactions')&&<div className="mt-mobile-entry-actions" role="group" aria-label="เพิ่มรายการ (โหมดตัวอย่าง)">
       <button type="button" className="mt-mobile-entry-manual" onClick={demoOnly}><Plus size={18}/> กรอกเอง</button>
-      <button type="button" className="mt-mobile-entry-scan" onClick={demoOnly}><ScanLine size={18}/> สแกนสลิป</button>
+      <button type="button" className="mt-mobile-entry-scan mobile-fab" onClick={demoOnly}><ScanLine size={18}/> สแกนสลิป</button>
     </div>}
     <nav className="mobile-bottom-nav" aria-label="เมนูมือถือ">{navItems.map(({key,label,icon:Icon})=><button key={key} type="button" className={view===key?'active':''} aria-current={view===key?'page':undefined} onClick={()=>setView(key)}><Icon size={21}/><span>{label}</span></button>)}</nav>
     {notice&&<div className="toast" role="status">{notice}</div>}
