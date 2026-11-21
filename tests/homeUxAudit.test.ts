@@ -9,6 +9,8 @@ const calendar=source('src/FinanceCalendar.tsx');
 const calendarCss=source('src/finance-calendar.css');
 const homeCss=source('src/home-screen.css');
 const mobileCss=source('src/mobile-first.css');
+const hybridCss=source('src/hybrid-calendar.css');
+const entry=source('src/main.tsx');
 
 describe('Home UI audit regressions',()=>{
   it('shows only calendar then the complete selected-day ledger on Home',()=>{
@@ -28,12 +30,16 @@ describe('Home UI audit regressions',()=>{
     expect(home).not.toContain('วันนี้ยังไม่มีรายการที่บันทึกแล้ว');
     expect(home).toContain('recent.filter(item=>item.date===activeDate)');
     expect(home).not.toContain('recentOthers');
-    expect(home).toContain('({daily.length} รายการ)');
+    expect(home).toContain('รายละเอียดของวัน · {daily.length} รายการ');
     expect(app).toContain("view==='home'||(view==='transactions'&&!inboxTab&&!slipInboxTab)");
     expect(home).toContain('mt-home-desktop-upload');
   });
-  it('uses a single month change control and retains full-value accessible calendar labels',()=>{
-    expect(calendar).not.toContain('onMonthChange');
+  it('supports month chevrons plus the existing accessible month picker and full-value date labels',()=>{
+    expect(calendar).toContain('onMonthChange:(month:string)=>void');
+    expect(calendar).toContain('aria-label="เดือนก่อนหน้า"');
+    expect(calendar).toContain('aria-label="เดือนถัดไป"');
+    expect(calendar).toContain('onClick={()=>changeMonth(-1)}');
+    expect(calendar).toContain('onClick={()=>changeMonth(1)}');
     expect(calendar).toContain('mt-calendar-month-label');
     expect(calendar).toContain('monthControl:ReactNode');
     expect(home).toContain('monthControl={<MonthChooser');
@@ -54,6 +60,19 @@ describe('Home UI audit regressions',()=>{
     expect(home).toContain('className="mt-home-empty" role="status"');
     expect(calendarCss).toContain('.mt-calendar-day.is-today');
     expect(calendarCss).not.toContain('text-overflow:clip');
+  });
+  it('keeps the hybrid calendar hero dominant and daily details grounded in saved transactions',()=>{
+    const page=home.slice(home.indexOf('return <div className="home-dashboard mt-home-screen"'));
+    expect(page.indexOf('mt-home-month-overview')).toBeLessThan(page.indexOf('<FinanceCalendar'));
+    expect(page.indexOf('<FinanceCalendar')).toBeLessThan(page.indexOf('className="mt-home-day-detail"'));
+    expect(home).toContain('summarize(recent)');
+    expect(home).toContain('summarize(daily)');
+    expect(home).toContain('daily.map(tx=>');
+    expect(home).toContain('ไม่ใช่ยอดเงินคงเหลือในบัญชีธนาคาร');
+    expect(hybridCss).toContain('.mt-finance-calendar .mt-calendar-day.is-selected');
+    expect(hybridCss).toContain('.mt-finance-calendar .mt-calendar-day-amounts .is-income');
+    expect(hybridCss).toContain('.mt-finance-calendar .mt-calendar-day-amounts .is-expense');
+    expect(entry).toContain("import './hybrid-calendar.css'");
   });
   it('keeps numeric income and expense visible in phone calendar cells',()=>{
     expect(calendar).not.toContain('mt-calendar-day-indicators');
