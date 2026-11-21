@@ -15,6 +15,7 @@ import './reference-screen-integration.css';
 import './responsive-grids.css';
 import './cute-kawaii-preview.css';
 import './midnight-green.css';
+import './hybrid-calendar.css';
 installReadingSize();
 const stopViewportObserver = installMobileViewportObserver();
 if (import.meta.hot) import.meta.hot.dispose(stopViewportObserver);
