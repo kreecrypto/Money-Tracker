@@ -85,7 +85,9 @@ try {
       await page.locator('.mobile-fab').click();
       const openedOCR=await page.locator('.modal .slip-panel').isVisible();
       await page.locator('.modal .modal-heading button').click();
-      record('mobile-home-actions',name,{...mobileHome,openedOCR,
+      const backToManual=await page.locator('#amount').isVisible();
+      await page.locator('.modal .modal-heading button').click();
+      record('mobile-home-actions',name,{...mobileHome,openedOCR,backToManual,
          quickActionCount:await page.locator('.mt-home-shortcut-grid button').count(),
          categoryIcons:await page.locator('.money-category-icon').count(),
          pageErrors:errors});
@@ -107,13 +109,19 @@ try {
       }
       await scan(page,views[i],name);
       if(i===1){
-        const accountantReport=await page.evaluate(()=>{
-          const audit=document.querySelector('#accountant-review')?.getBoundingClientRect();
+        const reportHierarchy=await page.evaluate(()=>{
           const tabs=document.querySelector('.ref-report-tabs')?.getBoundingClientRect();
-          return {visible:!!(audit&&audit.height>0),beforeCharts:!!(audit&&tabs&&audit.bottom<=tabs.top),
-            safetyText:document.querySelector('#accountant-review')?.textContent?.includes('ไม่ใช่ยอดคงเหลือ')||false};
+          const advanced=document.querySelector('.mt-report-advanced');
+          const disclosure=advanced?.getBoundingClientRect();
+          return {coreFirst:!!(tabs&&disclosure&&tabs.bottom<=disclosure.top+1),initiallyCollapsed:!!advanced&&!advanced.open};
         });
-        record('accountant-report-first',name,{...accountantReport,pageErrors:errors});
+        const disclosure=page.locator('.mt-report-advanced > summary');
+        await disclosure.click();
+        const reviewAvailable=await page.locator('#accountant-review').isVisible();
+        const safetyText=(await page.locator('#accountant-review').textContent())?.includes('ไม่ใช่ยอดคงเหลือ')||false;
+        await disclosure.click();
+        const collapsedAgain=await page.locator('.mt-report-advanced').evaluate(el=>!el.open);
+        record('report-progressive-disclosure',name,{...reportHierarchy,reviewAvailable,safetyText,collapsedAgain,pageErrors:errors});
       }
       if(i===1) {
         const tabs=page.locator('.ref-report-tabs button');
@@ -314,7 +322,7 @@ try {
   console.log(JSON.stringify(focus.map(x=>({viewport:x.viewport,view:x.view,violations:x.axe?.violations,smallTouchTargets:x.smallTouchTargets})),null,2));
   console.log('AXE_DETAILS_END');
   const critical=findings.filter(x=>(x.view==='calendar-list-home'&&(!x.calendarFirst||!x.onlyCalendarAndLedger||!x.uploadAccessible||x.pageErrors?.length))
-    ||(x.view==='accountant-report-first'&&(!x.visible||!x.beforeCharts||!x.safetyText||x.pageErrors?.length))
+    ||(x.view==='report-progressive-disclosure'&&(!x.coreFirst||!x.initiallyCollapsed||!x.reviewAvailable||!x.safetyText||!x.collapsedAgain||x.pageErrors?.length))
     ||x.view==='navigation-obstruction'
     ||x.overflowPx>0
     ||x.gridMain!==x.gridExpected
@@ -330,7 +338,7 @@ try {
     ||(x.view==='pending-queue-smoke'&&(!x.homeBadge||x.pendingBefore!==1||x.pendingAfter!==0||!x.savedVisible||!x.fabHidden||!x.bottomNavHidden||x.pageErrors?.length))
     ||(x.view==='restore-smoke'&&(!x.initiallyDisabled||!x.enabledAfterAcknowledgement||!x.closed||x.pageErrors?.length))
     ||(x.view==='local-reset-smoke'&&(!x.initiallyDisabled||!x.enabledAfterAcknowledgement||!x.dialogClosed||x.wiped?.transactions!==0||x.wiped?.pending!==0||x.wiped?.paired||x.pageErrors?.length))
-    ||(x.view==='mobile-home-actions'&&(!x.correctHierarchy||!x.calendarNumbersVisible||x.calendarDays<28||x.quickActionCount!==0||!x.noDuplicateActions||!x.bottomNavVisible||!x.openedOCR||x.pageErrors?.length))
+    ||(x.view==='mobile-home-actions'&&(!x.correctHierarchy||!x.calendarNumbersVisible||x.calendarDays<28||x.quickActionCount!==0||!x.noDuplicateActions||!x.bottomNavVisible||!x.openedOCR||!x.backToManual||x.pageErrors?.length))
     ||(x.view==='report-view-switch'&&(x.count!==4||!x.trendOnly||!x.budgetOnly||!x.categoryOnly||!x.overview||!x.noOverlay||x.pageErrors?.length))
     ||(x.view==='competitive-ledger-smoke'&&(!x.ledgerAvailable||!x.resetVisible||!x.searchReset||x.pageErrors?.length))
     ||(x.view==='email-ledger-import-smoke'&&(!x.previewValid||x.stored?.count!==2||x.stored?.satang!==10750||!x.stored?.haveEvidence||x.reloaded!==2||!x.repeatBlocked||x.pageErrors?.length))
