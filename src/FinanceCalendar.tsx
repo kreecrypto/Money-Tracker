@@ -51,10 +51,6 @@ export default function FinanceCalendar({month,transactions,selectedDate,onSelec
             {hasIncome&&<span className="is-income">+{compactCalendarBaht(cell.incomeSatang)}</span>}
             {hasExpense&&<span className="is-expense">−{compactCalendarBaht(cell.expenseSatang)}</span>}
           </span>
-          <span className="mt-calendar-day-indicators" aria-hidden="true">
-            {hasIncome&&<i className="is-income"/>}
-            {hasExpense&&<i className="is-expense"/>}
-          </span>
         </button>;
       })}
     </div></div>

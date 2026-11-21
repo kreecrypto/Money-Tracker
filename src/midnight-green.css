@@ -544,8 +544,6 @@ select:focus-visible,textarea:focus-visible{outline-color:var(--dark-accent)!imp
 .mt-home-month-metrics>div,.mt-home-month-metrics>.mt-home-month-net{background:var(--dark-raised)!important}
 .mt-home-month-metrics .is-income{color:var(--dark-accent)!important}
 .mt-home-month-metrics .is-expense{color:var(--dark-negative)!important}
-.mt-calendar-day-indicators .is-income{background:var(--dark-accent)!important}
-.mt-calendar-day-indicators .is-expense{background:var(--dark-negative)!important}
 .mt-report-advanced>summary{color:var(--dark-ink)!important}
 .mt-report-advanced>summary span{color:var(--dark-muted)!important}
 .mt-report-advanced[open]>summary{border-color:var(--dark-border)!important}

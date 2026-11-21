@@ -3,7 +3,7 @@
 Scope: Calendar-first Home, month summary, slip/manual entry navigation, Reports progressive disclosure, mobile readability, released Midnight Green theme. No changes to accounting formulas, OCR extraction, storage, network, or production deploys.
 
 ## Acceptance cases (required before merge)
-- 320 / 375 / 390 / 430px: calendar status indicators are legible and the selected date exposes exact amounts and transaction details.
+- 320 / 375 / 390 / 430px: calendar numeric income/expense labels are legible and the selected date exposes exact amounts and transaction details.
 - Monthly summary updates with month selection; net explicitly reads as **recorded income minus expenses**, not bank balance. Empty month displays zero without inventing a bank balance.
 - Manual and scanner entry points both work in Live and are non-writing in Preview Demo; mobile buttons never obscure list content or navigation.
 - Scanner heading back action returns to manual-entry form. Escape or modal backdrop close still works; non-saved OCR review warns before leaving.

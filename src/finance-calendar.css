@@ -82,13 +82,11 @@
 .mt-home-month-metrics .is-income{color:#087640}.mt-home-month-metrics .is-expense{color:#b42a43}
 .mt-home-month-metrics>.mt-home-month-net{grid-column:1/-1;background:#e6f5eb}
 .mt-home-month-overview>p{font-size:12px;line-height:1.6;margin:10px 0 0;color:#53665b}
-.mt-calendar-day-indicators{display:none}
+/* Keep both numeric values on small phones; minimum 10px, no alternate dot-only mode. */
 @media(max-width:400px){
-  .mt-calendar-day-amounts{display:none!important}
-  .mt-calendar-day-indicators{display:flex;align-items:center;justify-content:center;gap:5px;margin-top:7px;min-height:12px}
-  .mt-calendar-day-indicators i{display:block;width:8px;height:8px;border-radius:50%;flex:none}
-  .mt-calendar-day-indicators .is-income{background:#087640}
-  .mt-calendar-day-indicators .is-expense{background:#c52943}
-  .mt-calendar-day{min-height:54px}
+  .mt-calendar-day{min-height:70px;padding:5px 0 4px}
+  .mt-calendar-day.is-selected{padding:4px 0 3px}
   .mt-calendar-day-number{font-size:13px}
+  .mt-calendar-day-amounts{display:flex;font-size:clamp(10px,2.9vw,11px);line-height:1.25;letter-spacing:-.2px;min-height:30px;gap:2px}
+  .mt-calendar-day-amounts span{max-width:100%;overflow:hidden;text-overflow:ellipsis}
 }
