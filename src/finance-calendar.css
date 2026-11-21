@@ -90,3 +90,10 @@
   .mt-calendar-day-amounts{display:flex;font-size:clamp(10px,2.9vw,11px);line-height:1.25;letter-spacing:-.6px;min-height:30px;gap:2px}
   .mt-calendar-day-amounts span{max-width:100%;overflow:hidden;text-overflow:ellipsis}
 }
+
+/* At 320px, keep seven full-width columns while fitting two signed 999.99 amounts. */
+@media(max-width:359px){
+  .mt-finance-calendar{padding-inline:2px}
+  .mt-calendar-grid{gap:1px}
+  .mt-calendar-day-amounts{font-family:Arial,"Noto Sans Thai",sans-serif;font-size:10px;letter-spacing:-.95px}
+}
