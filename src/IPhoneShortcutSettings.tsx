@@ -73,15 +73,19 @@ export default function IPhoneShortcutSettings({onImported,variant='settings',on
   const [linked,setLinked]=useState(iphoneConnected);
   const [token,setToken]=useState('');
   const [rows,setRows]=useState<IPhoneDraft[]>([]);
+  const [draftsLoaded,setDraftsLoaded]=useState(false);
   const [busy,setBusy]=useState(false);
   const [note,setNote]=useState('');
   const refresh=useCallback(async()=>{
-    const drafts=await iphoneDrafts();
-    setRows(drafts);
-    onPendingChanged?.(drafts.length);
-    const result=await iphoneSync();
-    await onImported();
-    return {...result,pending:drafts.length};
+    const [ledger,drafts]=await Promise.allSettled([iphoneSync(),iphoneDrafts()]);
+    if(drafts.status==='fulfilled'){
+      setRows(drafts.value);setDraftsLoaded(true);
+      onPendingChanged?.(drafts.value.length);
+    }else setDraftsLoaded(false);
+    if(ledger.status==='fulfilled')await onImported();
+    if(ledger.status==='rejected')throw ledger.reason;
+    if(drafts.status==='rejected')throw drafts.reason;
+    return {...ledger.value,pending:drafts.value.length};
   },[onImported,onPendingChanged]);
   const connect=async()=>{
     setBusy(true);setNote('');
@@ -103,14 +107,14 @@ export default function IPhoneShortcutSettings({onImported,variant='settings',on
     setNote('จัดการรายการเรียบร้อย นำเข้า '+result.imported+' รายการ'+(result.invalid?' · ตรวจข้อมูลผิดรูปแบบ '+result.invalid+' รายการ':''));
   };
   useEffect(()=>{
-    if(variant!=='review'||!linked||!iphoneConfigured())return;
+    if(!linked||!iphoneConfigured())return;
     let cancelled=false;
     iphoneDrafts().then(drafts=>{
       if(cancelled)return;
-      setRows(drafts);
+      setRows(drafts);setDraftsLoaded(true);
       onPendingChanged?.(drafts.length);
     }).catch(e=>{
-      if(!cancelled)setNote(e instanceof Error?e.message:'โหลดรายการที่ต้องตรวจไม่สำเร็จ');
+      if(!cancelled){setDraftsLoaded(false);setLinked(iphoneConnected());setNote(e instanceof Error?e.message:'โหลดรายการที่ต้องตรวจไม่สำเร็จ');}
     });
     return()=>{cancelled=true;};
   },[variant,linked,onPendingChanged]);
@@ -125,9 +129,9 @@ export default function IPhoneShortcutSettings({onImported,variant='settings',on
         <div className="iphone-draft-actions"><button className="btn btn-secondary" type="button" disabled={busy} onClick={()=>{void sync();}}>
           <RefreshCcw size={16}/> {busy?'กำลังตรวจรายการ…':'ตรวจรายการล่าสุด'}
         </button></div>
-        <h4 className="iphone-pending-heading">รอตรวจข้อมูล {rows.length} รายการ</h4>
+        <h4 className="iphone-pending-heading">รอตรวจข้อมูล {draftsLoaded?`${rows.length} รายการ`:'—'}</h4>
         {rows.length?rows.map(row=><Draft key={row.id} draft={row} onReviewed={afterReview}/>):
-          <p className="iphone-empty">ไม่มีรายการที่ต้องตรวจตอนนี้</p>}
+          <p className="iphone-empty">{draftsLoaded?'ไม่มีรายการที่ต้องตรวจตอนนี้':'ยังไม่ได้รับข้อมูลรายการรอตรวจจาก Cloud'}</p>}
       </>}
     {note&&<p className="line-status" role="status">{note}</p>}
   </section>;
@@ -163,12 +167,12 @@ export default function IPhoneShortcutSettings({onImported,variant='settings',on
           <button className="btn btn-primary" type="button" disabled={busy} onClick={()=>{void sync();}}>
             <RefreshCcw size={16}/> {busy?'กำลังซิงก์...':'ซิงก์รายการล่าสุด'}</button>
           <button className="btn btn-ghost bordered" type="button" disabled={busy}
-            onClick={()=>{iphoneDisconnect();setLinked(false);setRows([]);setNote('ตัดการเชื่อมในเบราว์เซอร์นี้แล้ว');}}>
+            onClick={()=>{iphoneDisconnect();setLinked(false);setRows([]);setDraftsLoaded(false);setNote('ตัดการเชื่อมในเบราว์เซอร์นี้แล้ว');}}>
             <Unlink size={16}/> เลิกเชื่อมเครื่องนี้</button>
         </div>
-        <h4 className="iphone-pending-heading">รอตรวจสอบ {rows.length} รายการ</h4>
+        <h4 className="iphone-pending-heading">รอตรวจสอบ {draftsLoaded?`${rows.length} รายการ`:'—'}</h4>
         {rows.length?rows.map(row=><Draft key={row.id} draft={row} onReviewed={afterReview}/>):
-          <p className="iphone-empty">ไม่มีรายการที่ต้องตรวจตอนนี้</p>}
+          <p className="iphone-empty">{draftsLoaded?'ไม่มีรายการที่ต้องตรวจตอนนี้':'ยังไม่ได้รับข้อมูลรายการรอตรวจจาก Cloud'}</p>}
       </>}
     {note&&<p className="line-status" role="status">{note}</p>}
     <small className="hint">ใช้ได้เมื่อ API พร้อมและตั้งค่ารหัสใน Vercel แล้ว รายการจาก Shortcut บันทึกใน Supabase และนำเข้ามาใน IndexedDB แบบทางเดียวเมื่อเปิด App; การลบ/แก้ไขใน App ยังไม่ซิงก์กลับ Cloud</small>

@@ -38,7 +38,16 @@ async function call(path:string,method:'GET'|'POST',data?:object){
   const r=await fetch(base+path,{method,headers:{
     authorization:'Bearer '+token,...(data?{'content-type':'application/json'}:{})
   },body:data?JSON.stringify(data):undefined,cache:'no-store'});
-  if(r.status===401){iphoneDisconnect();throw new Error('Review Token ไม่ถูกต้อง กรุณาเชื่อมใหม่');}
+  if(r.status===401){
+    // A proxy/deployment authentication failure is not proof that the app token is invalid.
+    const details=await r.json().catch(()=>null) as {error?:string}|null;
+    if(details?.error==='UNAUTHORIZED'){
+      // An in-flight request must never disconnect a newer pairing.
+      if(localStorage.getItem(TOKEN_KEY)===token)iphoneDisconnect();
+      throw new Error('Review Token ไม่ถูกต้อง กรุณาเชื่อมใหม่');
+    }
+    throw new Error('API ไม่อนุญาตให้เข้าถึง กรุณาตรวจการเชื่อมต่อ (401)');
+  }
   if(r.status===403)throw new Error('เว็บ Money Tracker ไม่ได้รับอนุญาตให้เชื่อม API (ตรวจ Allowed App Origin)');
   if(r.status===503){
     const details=await r.json().catch(()=>({})) as {code?:string};
@@ -59,7 +68,8 @@ export async function iphoneCorrectRecipient(id:string,recipient:string|null):Pr
 
 export async function iphoneDrafts():Promise<IPhoneDraft[]>{
   const r=await call('/api/iphone/drafts','GET');
-  return Array.isArray(r.drafts)?(r.drafts as IPhoneDraft[]):[];
+  if(!Array.isArray(r.drafts))throw new Error('ข้อมูลรายการรอตรวจจาก Cloud ไม่ถูกต้อง');
+  return r.drafts as IPhoneDraft[];
 }
 export async function iphoneReview(id:string,decision:'confirm'|'discard',input?:{
   type:'income'|'expense';amountSatang:number;date:string;

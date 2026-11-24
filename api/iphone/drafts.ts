@@ -43,7 +43,7 @@ export async function POST(request:Request){
       typeof input.category!=='string'||input.category.length>80 ||
       typeof input.note!=='string'||input.note.length>500 ||
       !['cash','bank','card','wallet'].includes(String(input.method)) ||
-      (input.time!==undefined && input.time!==null && (typeof input.time!=='string'||!/^([01]\\d|2[0-3]):[0-5]\\d$/.test(input.time))) ||
+      (input.time!==undefined && input.time!==null && (typeof input.time!=='string'||!/^([01]\d|2[0-3]):[0-5]\d$/.test(input.time))) ||
       (input.recipient!==undefined && input.recipient!==null && (typeof input.recipient!=='string'||input.recipient.length>160)))
       return json({error:'INVALID_TRANSACTION'},400,g.headers);
     const type=input.type as 'income'|'expense';

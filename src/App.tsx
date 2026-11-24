@@ -337,16 +337,20 @@ function LiveApp(){
       if(running||document.visibilityState!=='visible'||!iphoneConfigured()||!iphoneConnected())return;
       running=true;
       try{
-        const [result,drafts]=await Promise.all([iphoneSync(),iphoneDrafts()]);
-        setIphonePending(drafts.length);
-        setIphoneSyncError(result.invalid>0
-          ?'รายการจาก iPhone '+result.invalid+' รายการมีข้อมูลไม่ถูกต้องและยังไม่ถูกนำเข้า'
+        const [ledger,drafts]=await Promise.allSettled([iphoneSync(),iphoneDrafts()]);
+        // Do not hide a successful ledger import when the review endpoint fails.
+        setIphonePending(drafts.status==='fulfilled'?drafts.value.length:null);
+        if(ledger.status==='fulfilled')setItems(await loadTransactions());
+        if(ledger.status==='rejected')throw ledger.reason;
+        if(drafts.status==='rejected')throw drafts.reason;
+        setIphoneSyncError(ledger.value.invalid>0
+          ?'รายการจาก Cloud '+ledger.value.invalid+' รายการมีข้อมูลไม่ถูกต้องและยังไม่ถูกนำเข้า'
           :'');
-        if(result.imported>0)await reload();
       }catch(e){
         const reason=e instanceof Error?e.message:'ไม่สามารถเชื่อมต่อได้';
         setIphoneSyncError(reason);
-        console.warn('[iphone] sync unavailable',reason);
+        if(!iphoneConnected())setIphonePending(null);
+        console.warn('[iphone] sync unavailable');
       }
       finally{running=false;}
     };
@@ -355,7 +359,8 @@ function LiveApp(){
     const interval=window.setInterval(()=>{void sync();},60_000);
     document.addEventListener('visibilitychange',onVisible);
     window.addEventListener('focus',onVisible);
-    return()=>{window.clearInterval(interval);document.removeEventListener('visibilitychange',onVisible);window.removeEventListener('focus',onVisible);};
+    window.addEventListener('online',onVisible);
+    return()=>{window.clearInterval(interval);document.removeEventListener('visibilitychange',onVisible);window.removeEventListener('focus',onVisible);window.removeEventListener('online',onVisible);};
   },[reload]);
   useEffect(()=>{if(!toast)return;const id=window.setTimeout(()=>setToast(''),3500);return()=>window.clearTimeout(id);},[toast]);
   const selected=useMemo(()=>monthly(items,month),[items,month]);
@@ -487,7 +492,7 @@ function LiveApp(){
   if(loadingError) return <div className="loading-screen"><span>⚠️</span><h2>ไม่สามารถเปิดข้อมูลได้</h2><p>{loadingError}</p><button className="btn btn-primary" onClick={()=>window.location.reload()}>ลองอีกครั้ง</button></div>;
   return <div className="app-shell"><a href="#main-content" className="skip-link">ข้ามไปยังเนื้อหาหลัก</a><aside className="sidebar" inert={modalOpen}><Logo/><nav aria-label="เมนูหลัก">{navItems.map(({key,label,icon:Icon})=><button key={key} className={`nav-item ${view===key?'active':''}`} aria-label={label} aria-current={view===key?'page':undefined} onClick={()=>{if(key==='transactions'){setReviewBucket(null);setInboxTab(false);setSlipInboxTab(false);}setView(key);}}><Icon size={19} strokeWidth={1.9}/><span>{label}</span>{view===key&&<span className="nav-active-indicator"/>}</button>)}</nav><div className="sidebar-spacer"/></aside>
     <div className="app-body" inert={modalOpen}><header className={`topbar ${view==='home'?'topbar-home home-v2-topbar':''}`}>{view==='home'
-      ?<HomeTopbar pendingCount={pendingSlips.length+(iphonePending||0)} onUpload={openAdd} onNotifications={()=>{if(pendingSlips.length)openPendingSlips();else if(iphonePending&&iphonePending>0)openReview();else setToast('ยังไม่มีรายการที่ต้องตรวจในตอนนี้');}} onSettings={()=>setView('settings')}/>
+      ?<HomeTopbar pendingCount={pendingSlips.length+(iphonePending||0)} onUpload={openAdd} onNotifications={()=>{if(pendingSlips.length)openPendingSlips();else if(iphonePending&&iphonePending>0)openReview();else if(iphoneSyncError)setToast('ตรวจรายการจาก Cloud ไม่สำเร็จ · ดูการเชื่อมต่อในตั้งค่า');else if(iphonePending===null){setView('settings');setToast('ตรวจการเชื่อมต่อ Cloud ก่อนดูรายการรอตรวจ');}else setToast('ยังไม่มีรายการที่ต้องตรวจในตอนนี้');}} onSettings={()=>setView('settings')}/>
       :<><div className="topbar-left"><div className="ref-topbar-copy"><h1>{pageLabels[view]}</h1></div></div><div className="topbar-actions"><div className="today-chip"><CalendarDays size={16}/><span>{dateText(todayLocal())}</span></div><button className="btn btn-primary top-add" onClick={openAdd}><ScanLine size={18}/> <span>อัปโหลดสลิป</span></button></div></>}</header>
     <main id="main-content" className="main-content" tabIndex={-1}>
       {updateAvailable&&<div className="app-update-notice" role="status"><div><strong>มีแอปเวอร์ชันใหม่พร้อมใช้งาน</strong><span>อัปเดตหน้าเว็บโดยไม่ลบรายการที่บันทึกในเครื่อง</span></div><button type="button" className="btn btn-primary" onClick={()=>window.location.reload()}>โหลดเวอร์ชันใหม่</button></div>}
@@ -517,7 +522,7 @@ function LiveApp(){
           {(settings.ownerNames||[]).length===0&&<div className="mt-home-advisory"><div><strong>ตั้งชื่อเจ้าของบัญชีก่อนอ่านสลิป</strong><p>ช่วยระบุเงินเข้าและเงินออกให้ตรงกับชื่อบนสลิป</p></div><button type="button" onClick={()=>setView('settings')}>ตั้งชื่อของฉัน <ArrowRight size={16}/></button></div>}
           {pendingSlips.length>0&&<div className="mt-home-advisory mt-home-review pending-home-alert"><div><strong>มีสลิปรอตรวจ {pendingSlips.length} รายการ</strong><p>รายการที่ยังไม่ตรวจจะไม่รวมในยอดเงิน</p></div><button type="button" onClick={openPendingSlips}>ตรวจรายการ <ArrowRight size={16}/></button></div>}
           {items.length>=5&&Date.now()-lastBackupAt>30*24*60*60*1000&&<div className="mt-home-advisory"><div><strong>สำรองข้อมูลการเงิน</strong><p>ข้อมูลในเครื่องอาจสูญหายหากล้างข้อมูลของ Safari</p></div><button type="button" onClick={exportJson}>สำรองข้อมูล</button></div>}
-          {iphoneConfigured()&&iphoneConnected()&&iphoneSyncError&&<div className="mt-home-advisory"><div><strong>ซิงก์จาก iPhone ไม่สำเร็จ</strong><p>รายการเดิมในเครื่องยังใช้งานได้</p></div><button type="button" onClick={()=>setView('settings')}>ดูการเชื่อมต่อ</button></div>}
+          {iphoneSyncError&&<div className="mt-home-advisory"><div><strong>ซิงก์ข้อมูล Cloud ไม่สำเร็จ</strong><p>{iphoneSyncError} · รายการเดิมในเครื่องยังใช้งานได้</p></div><button type="button" onClick={()=>setView('settings')}>ดูการเชื่อมต่อ</button></div>}
         </div>
         <ReportPanels items={items} month={month} settings={settings} onSettings={()=>setView('settings')} onExport={exportCsv}/>
         <details className="mt-report-advanced">
